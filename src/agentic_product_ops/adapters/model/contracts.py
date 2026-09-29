@@ -10,13 +10,17 @@ from pydantic import Field, model_validator
 
 from agentic_product_ops.domain.contracts import (
     ID,
+    Assumption,
     Contract,
+    Dependency,
     Digest,
     Requirement,
     SourceStatement,
     Text,
+    Tier,
     Timestamp,
     UnresolvedQuestion,
+    WorkItem,
     WorkSpecification,
     unique,
 )
@@ -28,7 +32,7 @@ Money = Annotated[Decimal, Field(ge=0, max_digits=18, decimal_places=8, allow_in
 class Analysis(Contract):
     source_digest: Digest
     objective: Text
-    source_statements: tuple[SourceStatement, ...]
+    source_statements: Annotated[tuple[SourceStatement, ...], Field(min_length=1)]
     requirements: tuple[Requirement, ...]
     unresolved_questions: tuple[UnresolvedQuestion, ...]
 
@@ -36,7 +40,23 @@ class Analysis(Contract):
     def identifiers(self) -> Self:
         unique(tuple(r.id for r in self.requirements), "analysis requirement")
         unique(tuple(q.id for q in self.unresolved_questions), "analysis question")
+        for requirement in self.requirements:
+            if requirement.needs_human_decision and not any(
+                q.blocking and requirement.id in q.affected_requirement_ids
+                for q in self.unresolved_questions
+            ):
+                raise ValueError("human decision requires an associated blocking question")
         return self
+
+
+class Decomposition(Contract):
+    """Models suggest work; identity, policy, source, revision and digest stay server-owned."""
+
+    work_items: tuple[WorkItem, ...]
+    dependencies: tuple[Dependency, ...]
+    assumptions: tuple[Assumption, ...]
+    risk_tier: Tier
+    risk_reasons: Annotated[tuple[Text, ...], Field(min_length=1)]
 
 
 class ReviewFinding(Contract):
@@ -73,6 +93,7 @@ class ModelRequest(Contract):
     input_digest: Digest
     output_schema: Annotated[str, Field(min_length=1, max_length=100_000)]
     max_output_tokens: Annotated[int, Field(gt=0, le=16000)]
+    max_input_tokens: Annotated[int, Field(gt=0, le=200_000)]
 
 
 class ProviderUsage(Contract):
@@ -109,6 +130,14 @@ class ModelBudget(Contract):
     max_estimated_cost: Money
     input_cost_per_million: Money
     output_cost_per_million: Money
+
+
+class RuntimeConfiguration(Contract):
+    configuration_id: ID
+    provider_id: ID
+    model: ID
+    budget: ModelBudget
+    max_review_attempts: Annotated[int, Field(ge=1, le=2)] = 2
 
 
 class PipelineResult(Contract):

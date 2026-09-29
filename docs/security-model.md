@@ -1,47 +1,39 @@
 # Security model
 
-## Trust boundaries
+Requests, repository content, provider responses and model output are untrusted. They cannot grant authority, change policy, resolve material ambiguity without authenticated provenance, widen scope or trigger tools. The application is not a sandbox against an operator who can replace its code or database.
 
-Requests, notes, repository bytes, issue comments and model output are untrusted data. They cannot authenticate actors, approve work, choose policy, widen tenant/team/repository scope, downgrade risk or obtain mutation capabilities. Deterministic code retains authority. This application is not a sandbox against an operator who can modify its own code/database.
-
-| Threat | Implemented control | Remaining boundary |
+| Threat | Exercised control | Remaining limit |
 | --- | --- | --- |
-| Source injection | Exact fixture routing; separate role contexts; strict schemas; unknowns hold | No live model or independent semantic evaluation |
-| Repository injection | Bounded static reads, links excluded, document/config bodies omitted, advisory evidence cannot change policy | Metadata names are still untrusted; no semantic relevance proof |
-| Secret exposure | Hidden/excluded paths, sensitive-content heuristics, no raw file bodies in model context, redacted errors | Heuristics are not complete DLP; filesystem checks are not an OS sandbox |
-| Fabricated citations | Exact source excerpts, validated refs, digested snapshots, unchanged repository-context check | Matching references does not prove semantic truth |
-| Hidden ambiguity | Blocking questions, human-decision flags and inferred-behavior gates | General ambiguity detection needs evaluated inference |
-| Forged clarification | Test-authenticated receipt, immutable new revision, mandatory reanalysis hold | Production identity and resumed analysis not connected |
-| Stale or forged approval | Exact ID/revision/digest/plan/scope/actor/policy/time/count checks, immutable decision per revision | Test identity only; default ingress denies all |
-| Unauthorized destination | Trusted scope allowlists, canonical plan, per-operation authorization | Live metadata and tenant OAuth absent |
-| Risk laundering | Lexical floor includes resolutions; work risk cannot undercut spec | Paraphrases can evade lexical rules; adjudicated semantic risk needed |
-| Duplicate or lost writes | Durable unique keys, content conflicts, UNKNOWN before dispatch, reconcile-or-hold after restart | Fake provider only; no live exactly-once claim |
-| Artifact tampering | Nested digests, stored-read integrity checks, PostgreSQL immutable-record triggers | Hashes are not signatures; privileged database operators remain trusted |
-| Resource abuse | Bounded API body stream, CLI files, model calls/bytes/cost, repository entries/files/depth/bytes/time | Production rate limits/concurrency quotas absent |
-| Cancellation race | Persisted cancellation under reservation lock; Temporal workflow cancellation signal | Already reserved calls may finish; no HTTP revocation service |
+| Prompt/repository injection | Trusted role policy separated from untrusted payload; strict output; source and context preservation; inert bounded repository reads | Actual-model indirect injection not evaluated |
+| Fabricated evidence | Exact excerpts, linked source/requirement/criterion IDs, snapshot and nested digests, unchanged context | Structural validity does not prove semantic correctness |
+| Ambiguity laundering | Blocking questions, human-decision flags, authenticated answer receipts, additive revisions and distinct review | No independent semantic accuracy evidence |
+| Stale/forged approval | Exact revision/spec/plan/scope/count/policy/expiry; stored review; actor grant binding | Deployment identity and provisioning are not configured |
+| Revocation races | Durable actor/subject/token/approval revocation, grant revision checks, shared locks and per-dispatch authority | In-flight writes cannot be rolled back by cancellation |
+| Wrong destination | Fixed provider origins, bounded metadata, organization/app/team/project/label mapping and repository allowlists | Live provider metadata behavior remains unexercised |
+| Risk laundering | Lexical floor, immutable source/risk constraints, no downgrade during revision, security approver for high risk | Lexical checks are incomplete; general new intake stays tier 3 |
+| Duplicate/uncertain mutation | Unique operation identity, approved deterministic UUID, UNKNOWN before send, exact reconciliation | No blind retry after absence; no provider-wide exactly-once claim |
+| Secret/artifact exposure | SecretStr, redacted errors, heuristic exclusion, injected AES-GCM keys and authenticated row metadata | No complete DLP or deployed key custody; command/audit metadata needs DB protection |
+| Tampering | Canonical nested digests, read checks, immutable PostgreSQL triggers, Ed25519 public handoff | Privileged operators remain trusted; signature alone does not prove human intent |
+| Resource abuse | Input/response/file/entry/depth/time/token/call/cost/export bounds; no model tools | Production rate limits and tenant concurrency quotas not configured |
 
-## Approval and write boundary
+## Authority
 
-Approval is a structured receipt, not a boolean. It binds actor, decision, exact specification ID/revision/digest, workspace, teams/repositories, plan digest, ordered operation keys, expiry, mutation count and policy version. High-risk work also needs a configured security approver. Confidence cannot resolve a human decision. Policy comes from trusted configuration, never source text.
+Approval is an immutable receipt, never a boolean. It binds the exact specification and ordered plan, authenticated actor, workspace/team/repository scope, allowed mutation count and expiration. Native plan digest is an explicit approval input. Source text cannot choose approvers. Clarification receipts bind the original question, base digest/revision, answer, actor and timestamp; changed grants or revocation invalidate their authority.
 
-FastAPI takes identity from its authenticator, not a request-supplied actor. Default authentication denies every command. An optional pinned-key JWT adapter verifies RS256 issuer/audience/time/subject/token-ID claims and asks a mandatory revocation callback; backend failure denies. Trusted subject mapping supplies roles/scope, ignoring those token claims as authority. Remote-key headers and algorithm changes are rejected. Only ephemeral test signatures have been exercised; there is no deployed identity service. There is no arbitrary state patch, approval-by-comment or automatic publication. Readiness and publish return 503.
+Pinned RS256 JWT verification checks issuer, audience, subject, token ID, time and permitted keys. Durable grants supply roles and destinations. Untrusted role claims, remote key headers and algorithm changes are rejected. Verification/revocation failure denies. Grant/key rotation and revocation are exercised with ephemeral identities; no real login or identity provider is configured. Token revocation denies subsequent use of that token; explicit actor/subject/approval revocation or grant change invalidates existing bound authority. Public grant-administration endpoints do not exist.
 
-Approval additionally requires persisted proposal/review evidence for the exact specification and policy. Clarification receipts create new revisions and outbox starts, but cannot grant their own approval or invent acceptance criteria. API cancellation commits receipt, control, audit and signal atomically. The control row serializes approval/clarification with role/publication reservation. Previously committed reservations may finish; future ones fail. Token revocation alone does not revoke existing approval receipts; specification cancellation is the explicit invalidation path.
+PostgreSQL immutable triggers protect artifacts, commands and audits. Workspace-scoped reads recheck digests. Outbox operations carry stored receipt IDs. Cancellation and authority updates serialize with new reservations; a call already dispatched can still complete. Native service captures an authorization receipt immediately before mutation after metadata checks; late success is evidence, not permission for another write.
 
-PostgreSQL commits immutable command results, artifacts, audit metadata and workflow outbox jobs together. Triggers reject UPDATE/DELETE of immutable records. Tenant-scoped reads verify stored digests. Temporal decision signals contain only receipt references; activities load and revalidate them against current specification/policy/time. Lost start/signal acknowledgements reconcile exact workflow/receipt identity.
+## External boundary
 
-## External write safety
+Responses, GitHub, OAuth and native Linear clients fix origins, disable redirects/environment proxies, bound responses and require explicit network/mutation configuration. Model transport also requires explicit paid-execution enablement. None is enabled by default. OAuth uses app-actor PKCE, one-use state and encrypted verifier/access/refresh records. Exchange/refresh intent precedes HTTP; uncertain token outcomes hold for reauthorization. Issue creation can use `issues:create`; native relations require broader `write`, so scope expansion must be an explicit deployment decision. Projects and labels must already exist; epic/project creation and webhooks are unavailable.
 
-Stable logical identity is SHA-256 of `[specification_id, revision, local_item_id, generation]`; only generation 1 is currently supported. A reused key with changed request content conflicts. The original in-memory demo uses an explicit fixed clock and loses its records on process exit. It must never be attached to a real provider.
+UNKNOWN is durable before a mutation. Reconciliation requires exact approved target identity/content and saved dispatch authority. Missing/conflicting lookup stays held without recreation. Models have no mutation tool. The HTTP publication endpoint remains disabled regardless of credential presence elsewhere on disk.
 
-The durable simulation persists UNKNOWN before dispatch. A unique operation and locked control row serialize reservation/cancellation. Authorization uses an advancing clock before each operation. A crash after reservation but before a send can remain uncertain; absent lookup is not proof of nonexistence. Reconciliation verifies exact identity/content or holds, never blindly recreates. Cancellation prevents new reservations but does not roll back an already reserved call. External writes are not exposed by the API or Temporal workflow.
+## Storage and environment
 
-Live publication still requires real actor/OAuth scope and revocation checks, tenant metadata, provider-backed reconciliation and controlled fault tests. Mock GraphQL and GitHub adapters reject network transports. Webhooks remain absent until signature verification over original bounded bytes, durable receipt/deduplication, validation and asynchronous processing are implemented.
+Optional Store encryption binds workspace, kind, ID and revision as AES-GCM authenticated data. Wrong keys or swapped ciphertext fail. Configured encryption refuses legacy plaintext; production migration/key lifecycle remains external. Only raw role requests/responses can expire from reads, preserving approved contracts and audit lineage. Expiry is not physical erasure. OAuth vault rotation retains old immutable ciphertext. Public handoffs contain approved source content and require appropriate distribution controls.
 
-## Dependency and local environment hygiene
+Locked dependencies, pinned CI action/uv versions and container digests, byte-identical rebuilds, hash-locked clean-wheel installation, dependency audit and secret scanning are required gates. Scanning covers tracked and nonignored untracked files; only precisely defined 64-character digest fields have a nonsecret exception. Public keys/signatures are not credentials. No live key was copied from the adjacent repository.
 
-`uv.lock` pins runtime/development/build dependencies. CI uv and action revisions are pinned. Builds use the locked backend, compare repeated artifact bytes, and install the wheel outside the checkout with hash-locked dependencies. Secret scanning covers tracked and nonignored untracked files, default detectors, one worker, and no network verification. Only exact JSON digest fields containing 64 lowercase hexadecimal characters have a reviewed nonsecret exception. Fixtures are not excluded.
-
-Local PostgreSQL trust authentication is restricted to an ephemeral loopback test server, with test database names checked before destructive migration tests. It is not a deployment authentication recommendation. Temporal tests use a local development server. Downloaded Temporal tooling is checked against published release SHA-256 values. Docker templates remain untested; images use fixed tags rather than verified immutable digests. Public dependency downloads/auditing use network access, but no model/provider money or live credentials are required.
-
-No inspected repository is imported, executed, installed, or allowed to supply a shell command or source URL. AST parsing is advisory and bounded by file limits. File identity checks reduce normal races but do not provide hostile-filesystem isolation. Production tracing, retention, signing, identity/revocation and incident operations remain documented gaps.
+Local development PostgreSQL trust authentication is loopback-only and test databases are explicitly named. Restore creates and drops only its owned random test database. Temporal runs in development mode. Production DB authentication/TLS, workload isolation, key custody, tracing, incident response and physical-retention operations remain deployment acceptance requirements. See [ADR-013](adr/013-operational-artifacts-and-evaluation.md).

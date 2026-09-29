@@ -125,6 +125,7 @@ class RoleRunner:
             ),
             output_schema=schema,
             max_output_tokens=self.budget.max_output_tokens,
+            max_input_tokens=count,
         )
         self.reserved_cost += reserve  # Unknown provider usage never releases this reservation.
         started, tick = datetime.now(UTC), time.monotonic()

@@ -15,7 +15,8 @@ class JWTAuthenticator:
         issuer: str,
         audience: str,
         keys: Mapping[str, RSAPublicKey],
-        subjects: Mapping[str, Principal],
+        subjects: Mapping[str, Principal] | None = None,
+        resolve_subject: Callable[[str], Principal | None] | None = None,
         revoked: Callable[[str, str], bool],
         maximum_lifetime_seconds: int = 3600,
     ):
@@ -26,7 +27,10 @@ class JWTAuthenticator:
         if any(not isinstance(key, RSAPublicKey) or key.key_size < 2048 for key in keys.values()):
             raise ValueError("RSA public keys of at least 2048 bits required")
         self.issuer, self.audience = issuer, audience
-        self.keys, self.subjects = dict(keys), dict(subjects)
+        if (subjects is None) == (resolve_subject is None):
+            raise ValueError("exactly one server-side subject authority required")
+        self.keys, self.subjects = dict(keys), dict(subjects or {})
+        self.resolve_subject = resolve_subject or self.subjects.get
         self.revoked, self.maximum_lifetime = revoked, maximum_lifetime_seconds
         for principal in self.subjects.values():
             Principal.model_validate_json(principal.model_dump_json())
@@ -67,7 +71,7 @@ class JWTAuthenticator:
                 return None
             if self.revoked(subject, token_id):
                 return None
-            return self.subjects.get(subject)
+            return self.resolve_subject(subject)
         except Exception:
             # Includes unavailable revocation backend: deny without logging bearer or provider text.
             return None

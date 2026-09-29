@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Annotated, Any, Protocol
 from uuid import UUID, uuid4
 
@@ -14,6 +15,7 @@ from pydantic import Field
 from sqlalchemy import Connection, insert, text, update
 
 from agentic_product_ops.adapters.identity.contracts import Principal as Principal
+from agentic_product_ops.adapters.linear.native_plan import LinearScope, build_native_plan
 from agentic_product_ops.adapters.linear.offline import build_plan
 from agentic_product_ops.adapters.persistence.store import (
     Conflict,
@@ -23,6 +25,8 @@ from agentic_product_ops.adapters.persistence.store import (
     controls,
     outbox,
 )
+from agentic_product_ops.adapters.repository.local import Snapshot, inspect_repository
+from agentic_product_ops.domain.clarifications import ClarificationReceipt
 from agentic_product_ops.domain.contracts import (
     ID,
     ApprovalScope,
@@ -41,8 +45,14 @@ from agentic_product_ops.policies.validation import (
     blocking_findings,
     validate_approval,
 )
+from agentic_product_ops.services.authority import Authority
+from agentic_product_ops.services.clarifications import load_clarifications
 from agentic_product_ops.services.drafting import draft
-from agentic_product_ops.services.durable_analysis import load_analysis, recorded_review
+from agentic_product_ops.services.durable_analysis import (
+    analysis_mode,
+    load_analysis,
+    recorded_review,
+)
 
 
 class Authenticator(Protocol):
@@ -76,6 +86,8 @@ class TestAuthenticator:
 
 class IntakeCommand(Contract):
     source: Text
+    repository_id: ID | None = None
+    expected_snapshot_digest: Digest | None = None
 
 
 class RevisionCommand(Contract):
@@ -85,6 +97,7 @@ class RevisionCommand(Contract):
 
 class DecisionCommand(RevisionCommand):
     expires_in_seconds: Annotated[int, Field(gt=0, le=3600)] = 1800
+    plan_digest: Digest | None = None
 
 
 class ClarificationCommand(RevisionCommand):
@@ -96,10 +109,16 @@ def create_app(
     store: Store | None = None,
     policy: ServerPolicy | None = None,
     authenticator: Authenticator | None = None,
+    authority: Authority | None = None,
+    linear_scope: LinearScope | None = None,
+    repository_roots: dict[str, Path] | None = None,
 ) -> FastAPI:
-    app = FastAPI(title="Agentic Product Ops", version="0.3.0", docs_url=None, redoc_url=None)
+    app = FastAPI(title="Agentic Product Ops", version="0.4.0", docs_url=None, redoc_url=None)
     active_policy = policy or ServerPolicy()
     auth = authenticator or DenyAll()
+    roots = dict(repository_roots or {})
+    if not roots.keys() <= set(active_policy.repositories):
+        raise ValueError("configured repository roots exceed server policy")
 
     @app.exception_handler(RequestValidationError)
     async def malformed(request: Request, exc: RequestValidationError) -> JSONResponse:
@@ -141,6 +160,8 @@ def create_app(
         Principal.model_validate_json(actor.model_dump_json())
         if actor.workspace_id != active_policy.workspace_id:
             raise HTTPException(403, "workspace denied")
+        if authority:
+            authority.check(actor)
         return actor
 
     def database() -> Store:
@@ -181,6 +202,12 @@ def create_app(
             )
         )
 
+    def current_authority(conn: Connection, actor: Principal) -> None:
+        if authority:
+            db = database()
+            db.lock_specification(conn, actor.workspace_id, "authority-dispatch")
+            authority.check(actor, conn)
+
     def require_approver(actor: Principal) -> None:
         if "product_approver" not in actor.roles or actor.actor_id not in active_policy.approvers:
             raise HTTPException(403, "approver role required")
@@ -213,6 +240,14 @@ def create_app(
         command_key: Annotated[str, Depends(key)],
     ) -> dict[str, Any]:
         def execute(conn: Connection) -> dict[str, Any]:
+            current_authority(conn, actor)
+            if body.expected_snapshot_digest is not None and body.repository_id is None:
+                raise PolicyError("snapshot digest requires repository identity")
+            repository = (
+                read_snapshot(actor, body.repository_id, body.expected_snapshot_digest)
+                if body.repository_id
+                else None
+            )
             identifier, now = uuid4(), datetime.now(UTC)
             source = IntakeRequest(
                 intake_id=identifier,
@@ -224,6 +259,15 @@ def create_app(
             template, state = draft(body.source)
             payload = template.model_dump(mode="json")
             payload["specification_id"] = str(identifier)
+            payload["approval_policy"].update(
+                workspace_id=active_policy.workspace_id,
+                policy_version=active_policy.version,
+                max_age_seconds=active_policy.max_approval_seconds,
+            )
+            payload["risk"]["policy_version"] = active_policy.version
+            payload["provenance"]["created_at"] = now.isoformat()
+            if repository:
+                payload["repository_context"] = repository.context().model_dump(mode="json")
             spec = seal_specification(payload)
             db.put(conn, actor.workspace_id, "intake", str(identifier), 1, source)
             db.put(conn, actor.workspace_id, "specification", str(identifier), 1, spec)
@@ -259,6 +303,24 @@ def create_app(
             execute,
         )
 
+    def read_snapshot(
+        actor: Principal, repository_id: str, expected: str | None = None
+    ) -> Snapshot:
+        if repository_id not in active_policy.repositories or repository_id not in roots:
+            raise PolicyError("repository outside configured scope")
+        if authority and repository_id not in authority.check(actor).repository_ids:
+            raise PolicyError("repository outside identity grant")
+        try:
+            return inspect_repository(repository_id, roots, expected_digest=expected)
+        except (OSError, ValueError):
+            raise PolicyError("repository snapshot unavailable or changed") from None
+
+    @app.get("/v1/repositories/{repository_id}/snapshot")
+    def get_snapshot(
+        repository_id: str, actor: Annotated[Principal, Depends(identity)]
+    ) -> dict[str, Any]:
+        return read_snapshot(actor, repository_id).model_dump(mode="json")
+
     @app.get("/v1/intakes/{identifier}")
     def get_intake(
         identifier: UUID,
@@ -284,7 +346,7 @@ def create_app(
         spec = spec_for(db, actor, identifier)
         try:
             return {
-                "mode": "recorded_roles",
+                **analysis_mode(db, actor.workspace_id, spec),
                 "result": load_analysis(db, actor.workspace_id, spec, active_policy).model_dump(
                     mode="json"
                 ),
@@ -296,6 +358,21 @@ def create_app(
             "content_digest": spec.content_digest,
             "blocking_findings": blocking_findings(spec),
         }
+
+    @app.get("/v1/specifications/{identifier}/plan")
+    def get_plan(
+        identifier: UUID,
+        actor: Annotated[Principal, Depends(identity)],
+        db: Annotated[Store, Depends(database)],
+    ) -> dict[str, Any]:
+        spec = spec_for(db, actor, identifier)
+        answers = load_clarifications(db, spec, active_policy)
+        plan = (
+            build_native_plan(spec, active_policy, linear_scope, clarifications=answers)
+            if linear_scope
+            else build_plan(spec, active_policy, clarifications=answers)
+        )
+        return {"publication": "disabled", "plan": plan.model_dump(mode="json")}
 
     def decision(
         identifier: UUID,
@@ -310,12 +387,22 @@ def create_app(
         def execute(conn: Connection) -> dict[str, Any]:
             if db.lock_specification(conn, actor.workspace_id, str(identifier)):
                 raise PolicyError("specification cancelled")
+            current_authority(conn, actor)
             spec = spec_for(db, actor, identifier, body, conn)
             try:
                 recorded_review(db, actor.workspace_id, spec, active_policy)
             except Missing as exc:
                 raise PolicyError("analysis and review have not completed") from exc
-            plan = build_plan(spec, active_policy)
+            answers = load_clarifications(db, spec, active_policy)
+            plan = (
+                build_native_plan(spec, active_policy, linear_scope, clarifications=answers)
+                if linear_scope
+                else build_plan(spec, active_policy, clarifications=answers)
+            )
+            if (
+                linear_scope is not None or body.plan_digest is not None
+            ) and body.plan_digest != plan.content_digest:
+                raise Conflict("reviewed publication plan changed or was not acknowledged")
             now = datetime.now(UTC)
             approval = SpecificationApproval(
                 approval_id=uuid4(),
@@ -347,8 +434,14 @@ def create_app(
                     plan_digest=plan.content_digest,
                     operation_keys=tuple(o.operation_key for o in plan.operations),
                     now=now,
+                    clarifications=answers,
                 )
             db.put(conn, actor.workspace_id, "approval", str(approval.approval_id), 1, approval)
+            db.put(
+                conn, actor.workspace_id, "publication_plan", str(identifier), spec.revision, plan
+            )
+            if authority:
+                authority.bind_approval(conn, actor, approval, spec)
             db.put(
                 conn,
                 actor.workspace_id,
@@ -427,6 +520,7 @@ def create_app(
         def execute(conn: Connection) -> dict[str, Any]:
             if db.lock_specification(conn, actor.workspace_id, str(identifier)):
                 raise PolicyError("specification cancelled")
+            current_authority(conn, actor)
             spec = spec_for(db, actor, identifier, body, conn)
             if spec.revision >= 11:
                 raise PolicyError("clarification revision budget exhausted")
@@ -438,10 +532,12 @@ def create_app(
             receipt_id, timestamp = f"C-{uuid4()}", datetime.now(UTC).isoformat()
             receipt = {
                 "id": receipt_id,
+                "workspace_id": actor.workspace_id,
                 "specification_id": str(identifier),
                 "base_revision": spec.revision,
                 "base_digest": spec.content_digest,
                 "question_id": body.question_id,
+                "question_text": question.question,
                 "answer": body.answer,
                 "actor_id": actor.actor_id,
                 "resolved_at": timestamp,
@@ -459,7 +555,17 @@ def create_app(
             for work in payload["work_items"]:
                 work["risk_tier"] = 3
             revised = seal_specification(payload)
-            db.put(conn, actor.workspace_id, "clarification", receipt_id, 1, receipt)
+            parsed_receipt = ClarificationReceipt.model_validate_json(json.dumps(receipt))
+            if authority:
+                authority.bind_clarification(conn, actor, parsed_receipt)
+            db.put(
+                conn,
+                actor.workspace_id,
+                "clarification",
+                receipt_id,
+                1,
+                parsed_receipt,
+            )
             db.put(
                 conn,
                 actor.workspace_id,
@@ -512,6 +618,7 @@ def create_app(
 
         def execute(conn: Connection) -> dict[str, Any]:
             db.lock_specification(conn, actor.workspace_id, str(identifier))
+            current_authority(conn, actor)
             spec = spec_for(db, actor, identifier, body, conn)
             conn.execute(
                 update(controls)

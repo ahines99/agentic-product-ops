@@ -9,4 +9,4 @@ Use immutable specification revisions. Schema, digest, scope, or lifecycle chang
 
 No paid/live tests in default CI. No source-code implementation, merges, or deployments on behalf of downstream Product Ops requests. Delivery OS owns execution. Initialization code in this repository is the control plane itself, not a capability to mutate input repositories.
 
-Before a PR, run lint, formatting, typing, tests, build, isolated-wheel smoke, docs checks, secret scanning, and dependency audit. The docs checker validates local targets/anchors without fetching untrusted URLs. Add real PostgreSQL/Alembic checks only when persistence exists. Do not confuse passing simulations with M4/M5 completion.
+Before a PR, run lint, formatting, typing, tests, build, isolated-wheel smoke, docs checks, secret scanning, and dependency audit. The docs checker validates local targets/anchors without fetching untrusted URLs. Run the explicit disposable PostgreSQL/Temporal checks for persistence or orchestration changes; see [current commands](docs/v04-validation-record.md). Do not confuse passing simulations with M4/M5 completion.

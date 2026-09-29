@@ -1,0 +1,108 @@
+{
+  "schema_version": "1",
+  "authorship": "same_context_template",
+  "author_id": "initialization-author",
+  "cases": [
+    {
+      "id": "clear",
+      "category": "clear_feature",
+      "source": "We need customers to export the monthly revenue report as CSV. It should respect their current filters, only admins should be able to export it, and we need analytics on usage.\nProduct decisions for this request:\nExport at most 10,000 rows; if more rows match, reject the entire export with an actionable message and no partial file.\nUse UTF-8 CSV with headers month, revenue, currency; exclude customer identifiers and other sensitive fields.\nUse the existing report totals without recalculating financial amounts; preserve currency codes.\nFor the approved 10,000-row fixture, export completes within 5 seconds in the staging performance test.\nEnforce administrator authorization on the server and hide the export action from non-admins.\nEmit revenue_export_completed only after a successful export, with row_count and active_filter_names; omit filter values and customer identifiers.\nNeutralize spreadsheet formula prefixes in every CSV cell.\nBackend export, frontend action, authorization, analytics, and regression validation must have separate work items.\n",
+      "requirements": [
+        {
+          "id": "R1",
+          "text": "Export the monthly revenue report as CSV."
+        },
+        {
+          "id": "R2",
+          "text": "Export reflects the current active report filters."
+        },
+        {
+          "id": "R3",
+          "text": "Enforce administrator authorization on the server."
+        },
+        {
+          "id": "R4",
+          "text": "Hide the frontend export action from non-admins."
+        },
+        {
+          "id": "R5",
+          "text": "Reject more than 10,000 matching rows with an actionable message and no partial file."
+        },
+        {
+          "id": "R6",
+          "text": "Use UTF-8 CSV with headers month, revenue, currency and exclude customer identifiers and other sensitive fields."
+        },
+        {
+          "id": "R7",
+          "text": "Use existing report totals without recalculating financial amounts; preserve currency codes."
+        },
+        {
+          "id": "R8",
+          "text": "Export the approved 10,000-row fixture within 5 seconds in the staging performance test."
+        },
+        {
+          "id": "R9",
+          "text": "Emit revenue_export_completed only after success with row_count and active_filter_names, omitting filter values and customer identifiers."
+        },
+        {
+          "id": "R10",
+          "text": "Neutralize spreadsheet formula prefixes in every CSV cell."
+        }
+      ],
+      "ambiguities": [],
+      "minimum_risk": 0
+    },
+    {
+      "id": "ambiguous",
+      "category": "ambiguous_request",
+      "source": "We need customers to export the monthly revenue report as CSV. It should respect their current filters, only admins should be able to export it, and we need analytics on usage.\n",
+      "requirements": [
+        {
+          "id": "R1",
+          "text": "Export the monthly report as CSV."
+        },
+        {
+          "id": "R2",
+          "text": "Respect current filters."
+        },
+        {
+          "id": "R3",
+          "text": "Only administrators may export."
+        },
+        {
+          "id": "R4",
+          "text": "Instrument usage."
+        }
+      ],
+      "ambiguities": [
+        {
+          "id": "Q1",
+          "text": "What is the maximum supported row count?",
+          "material": true
+        },
+        {
+          "id": "Q2",
+          "text": "What happens for oversized exports?",
+          "material": true
+        },
+        {
+          "id": "Q3",
+          "text": "What is the analytics event schema?",
+          "material": true
+        },
+        {
+          "id": "Q4",
+          "text": "Which sensitive fields must be excluded?",
+          "material": true
+        },
+        {
+          "id": "Q5",
+          "text": "What is the performance target?",
+          "material": true
+        }
+      ],
+      "minimum_risk": 0
+    }
+  ],
+  "corpus_digest": "c85c927c21c492f3f3e3ff2e5c50b773ff27a50f5583c9a7fc7b4a129b03b893"
+}

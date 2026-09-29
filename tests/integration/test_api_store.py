@@ -264,3 +264,41 @@ def test_clarification_reanalysis_is_queued_and_stays_held(application):
     assert revised.analysis.unresolved_questions[0].resolution == "10,000 rows"
     review = client.get(f"/v1/specifications/{identifier}/review").json()
     assert review["result"]["state"] == "AWAITING_CLARIFICATION"
+
+
+def test_allowlisted_repository_snapshot_bound_to_intake(application, tmp_path):
+    _, store = application
+    repository = tmp_path / "sample"
+    repository.mkdir()
+    module = repository / "reporting.py"
+    module.write_text("def export_report(): pass\n", encoding="utf-8")
+    principal = Principal(
+        actor_id="offline-reviewer", workspace_id="offline-workspace", roles=("product_approver",)
+    )
+    token = secrets.token_urlsafe(32)
+    app = create_app(
+        store,
+        authenticator=TestAuthenticator({token: principal}, testing=True),
+        repository_roots={"sample-reporting": repository},
+    )
+    with TestClient(app) as client:
+        client.headers["Authorization"] = f"Bearer {token}"
+        snapshot = client.get("/v1/repositories/sample-reporting/snapshot")
+        assert snapshot.status_code == 200, snapshot.text
+        assert client.get("/v1/repositories/unknown/snapshot").status_code == 403
+        body = {
+            "source": load_fixture("feature").source_statements[0].text,
+            "repository_id": "sample-reporting",
+            "expected_snapshot_digest": snapshot.json()["digest"],
+        }
+        result = client.post("/v1/intakes", headers={"Idempotency-Key": "grounded"}, json=body)
+        assert result.status_code == 201, result.text
+        spec = store.get("offline-workspace", "specification", result.json()["specification_id"])
+        assert spec["repository_context"]["snapshot_digest"] == snapshot.json()["digest"]
+        module.write_text("def changed(): pass\n", encoding="utf-8")
+        assert (
+            client.post(
+                "/v1/intakes", headers={"Idempotency-Key": "changed"}, json=body
+            ).status_code
+            == 403
+        )

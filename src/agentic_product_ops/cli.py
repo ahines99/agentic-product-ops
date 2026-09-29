@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID
 
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from agentic_product_ops.adapters.artifacts.handoff import Handoff, export_handoff
 from agentic_product_ops.adapters.linear.offline import FakeLinear, OfflinePublisher, build_plan
@@ -114,8 +114,60 @@ def main() -> int:
     roles.add_argument("--input", type=Path, required=True)
     roles.add_argument("--repository-root", type=Path)
     roles.add_argument("--repository-id", default="sample-reporting")
+    grounding = commands.add_parser(
+        "ground", help="Report static metadata matches and missing evidence"
+    )
+    grounding.add_argument("--specification", type=Path, required=True)
+    grounding.add_argument("--snapshot", type=Path, required=True)
+    evaluation = commands.add_parser(
+        "evaluate-semantic", help="Score frozen, explicitly adjudicated results; no model execution"
+    )
+    evaluation.add_argument("--corpus", type=Path, required=True)
+    evaluation.add_argument("--attempts", type=Path, required=True)
+    evaluation.add_argument("--adjudications", type=Path, required=True)
+    evaluation.add_argument("--reviewer-keys", type=Path)
     args = parser.parse_args()
     try:
+        if args.command == "evaluate-semantic":
+            import base64
+
+            from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+            from agentic_product_ops.evaluation.semantic import (
+                EvaluationAttempt,
+                SemanticCorpus,
+                SubmittedAdjudication,
+                semantic_report,
+            )
+
+            keys = (
+                TypeAdapter(dict[str, str]).validate_json(bounded_read(args.reviewer_keys))
+                if args.reviewer_keys
+                else {}
+            )
+            report = semantic_report(
+                SemanticCorpus.model_validate_json(bounded_read(args.corpus)),
+                TypeAdapter(tuple[EvaluationAttempt, ...]).validate_json(
+                    bounded_read(args.attempts)
+                ),
+                TypeAdapter(tuple[SubmittedAdjudication, ...]).validate_json(
+                    bounded_read(args.adjudications)
+                ),
+                {
+                    actor: Ed25519PublicKey.from_public_bytes(base64.b64decode(key, validate=True))
+                    for actor, key in keys.items()
+                },
+            )
+            print(json.dumps(report, indent=2))
+            return 0
+        if args.command == "ground":
+            from agentic_product_ops.adapters.repository.local import Snapshot
+            from agentic_product_ops.services.grounding import ground
+
+            spec = WorkSpecification.model_validate_json(bounded_read(args.specification))
+            snapshot = Snapshot.model_validate_json(bounded_read(args.snapshot, 20_000_000))
+            print(ground(spec, snapshot).model_dump_json(indent=2))
+            return 0
         if args.command in {"inspect-repository", "roles-demo"}:
             from agentic_product_ops.adapters.repository.local import inspect_repository
             from agentic_product_ops.services.recorded_pipeline import recorded_pipeline

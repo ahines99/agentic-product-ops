@@ -8,6 +8,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
 
+from agentic_product_ops.domain.clarifications import ClarificationReceipt
 from agentic_product_ops.domain.contracts import (
     ID,
     Contract,
@@ -121,9 +122,13 @@ def description(spec: WorkSpecification, work: WorkItem, key: str) -> str:
 
 
 def build_plan(
-    spec: WorkSpecification, policy: ServerPolicy, generation: int = 1
+    spec: WorkSpecification,
+    policy: ServerPolicy,
+    generation: int = 1,
+    *,
+    clarifications: tuple[ClarificationReceipt, ...] = (),
 ) -> LinearPublicationPlan:
-    proposal_ready(spec, policy)
+    proposal_ready(spec, policy, clarifications=clarifications)
     if generation != 1:
         raise PolicyError("M0 permits only publication generation 1")
     operations: list[LinearOperation] = []

@@ -1,0 +1,252 @@
+[
+  {
+    "judgment": {
+      "run_id": "clear-1",
+      "reviewer_id": "initialization-author",
+      "corpus_digest": "c85c927c21c492f3f3e3ff2e5c50b773ff27a50f5583c9a7fc7b4a129b03b893",
+      "result_digest": "6f8151a54434d4d334b4716345201edd08fd95cbaf798d372ed5075d8d6c5302",
+      "requirements": [
+        {
+          "predicted_id": "R1",
+          "matched_gold_id": "R1",
+          "supported": true
+        }
+      ],
+      "detected_gold_ambiguities": [],
+      "falsely_resolved_gold_ambiguities": [],
+      "criteria": [],
+      "notes": "Authored scoring example; first clear result is deliberately incomplete. No independent review.",
+      "independence_attested": false
+    },
+    "signature": null
+  },
+  {
+    "judgment": {
+      "run_id": "clear-2",
+      "reviewer_id": "initialization-author",
+      "corpus_digest": "c85c927c21c492f3f3e3ff2e5c50b773ff27a50f5583c9a7fc7b4a129b03b893",
+      "result_digest": "214a7ec0507ef094874f1145bbe06cb379f22b51f872b258ebd9c54cd3c12697",
+      "requirements": [
+        {
+          "predicted_id": "R1",
+          "matched_gold_id": "R1",
+          "supported": true
+        },
+        {
+          "predicted_id": "R2",
+          "matched_gold_id": "R2",
+          "supported": true
+        },
+        {
+          "predicted_id": "R3",
+          "matched_gold_id": "R3",
+          "supported": true
+        },
+        {
+          "predicted_id": "R4",
+          "matched_gold_id": "R4",
+          "supported": true
+        },
+        {
+          "predicted_id": "R5",
+          "matched_gold_id": "R5",
+          "supported": true
+        },
+        {
+          "predicted_id": "R6",
+          "matched_gold_id": "R6",
+          "supported": true
+        },
+        {
+          "predicted_id": "R7",
+          "matched_gold_id": "R7",
+          "supported": true
+        },
+        {
+          "predicted_id": "R8",
+          "matched_gold_id": "R8",
+          "supported": true
+        },
+        {
+          "predicted_id": "R9",
+          "matched_gold_id": "R9",
+          "supported": true
+        },
+        {
+          "predicted_id": "R10",
+          "matched_gold_id": "R10",
+          "supported": true
+        }
+      ],
+      "detected_gold_ambiguities": [],
+      "falsely_resolved_gold_ambiguities": [],
+      "criteria": [
+        {
+          "criterion_id": "AC1_R1",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC1_R2",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC1_R5",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC1_R6",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC1_R7",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC1_R8",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC1_R10",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC2_R4",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC3_R3",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC4_R9",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC5_R1",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC5_R2",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC5_R3",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC5_R4",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC5_R5",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC5_R6",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC5_R7",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC5_R8",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC5_R9",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        },
+        {
+          "criterion_id": "AC5_R10",
+          "measurable": true,
+          "correct_traceability": true,
+          "correct_provenance": true
+        }
+      ],
+      "notes": "Authored scoring example; first clear result is deliberately incomplete. No independent review.",
+      "independence_attested": false
+    },
+    "signature": null
+  },
+  {
+    "judgment": {
+      "run_id": "ambiguous-1",
+      "reviewer_id": "initialization-author",
+      "corpus_digest": "c85c927c21c492f3f3e3ff2e5c50b773ff27a50f5583c9a7fc7b4a129b03b893",
+      "result_digest": "90dad9f40bc3b2c0ee9bc068c6d02af33e2afd57cde651297ecf5c66c470c226",
+      "requirements": [
+        {
+          "predicted_id": "R1",
+          "matched_gold_id": "R1",
+          "supported": true
+        },
+        {
+          "predicted_id": "R2",
+          "matched_gold_id": "R2",
+          "supported": true
+        },
+        {
+          "predicted_id": "R3",
+          "matched_gold_id": "R3",
+          "supported": true
+        },
+        {
+          "predicted_id": "R4",
+          "matched_gold_id": "R4",
+          "supported": true
+        }
+      ],
+      "detected_gold_ambiguities": [
+        "Q1",
+        "Q2",
+        "Q3",
+        "Q4",
+        "Q5"
+      ],
+      "falsely_resolved_gold_ambiguities": [],
+      "criteria": [],
+      "notes": "Authored scoring example; first clear result is deliberately incomplete. No independent review.",
+      "independence_attested": false
+    },
+    "signature": null
+  }
+]

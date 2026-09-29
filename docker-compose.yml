@@ -1,7 +1,7 @@
 # Development infrastructure only. No production identity or external-write capability is configured.
 services:
   postgres:
-    image: postgres:17.11
+    image: postgres:17.11@sha256:d74eeac9a635390a49bc21bd49fccd973de707e2a53a76ac49b552b8712ec46f
     environment:
       POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_DB: product_ops_test
@@ -15,16 +15,30 @@ services:
     volumes:
       - product-ops-postgres:/var/lib/postgresql/data
   temporal:
-    image: temporalio/temporal:1.9.1
+    image: temporalio/temporal:1.9.1@sha256:ad4c82c97bd12b417d1ea942610dbcd511afb250c4d5ed26c694009533df447e
     command: ["server", "start-dev", "--ip", "0.0.0.0", "--headless", "--db-filename", "/data/history.db"]
     ports:
       - "127.0.0.1:18233:7233"
+    volumes:
+      - product-ops-temporal:/data
+    depends_on:
+      temporal-volume-init:
+        condition: service_completed_successfully
+  temporal-volume-init:
+    image: temporalio/temporal:1.9.1@sha256:ad4c82c97bd12b417d1ea942610dbcd511afb250c4d5ed26c694009533df447e
+    user: "0:0"
+    entrypoint: ["chown", "1000:1000", "/data"]
     volumes:
       - product-ops-temporal:/data
   api:
     build: .
     ports:
       - "127.0.0.1:18000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
     # Factory defaults deny all identities and reports unready, until explicit deployment wiring.
 volumes:
   product-ops-postgres:

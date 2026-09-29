@@ -2,7 +2,7 @@
 
 Agentic Product Ops is a governed AI-assisted requirements and work-decomposition system. It converts ambiguous product requests into evidence-linked requirements, unresolved questions, acceptance criteria, and proposed Linear work items. Humans approve the exact specification before any external write. Approved work can then be handed to Agentic Delivery OS for controlled implementation and independent verification.
 
-**Current version: 0.3.0, offline foundation and durable governance, not a completed MVP.** Authored three-role analysis now persists through Temporal before approval. Other executable components include bounded repository inspection, strict deterministic gates, FastAPI commands, PostgreSQL records, clarification reanalysis, cancellation and an optional pinned-key token verifier. Live models, Linear writes and a deployed human identity system are absent. Publication and handoff remain simulated.
+**Current version: 0.4.0, offline engineering foundation; MVP acceptance is incomplete.** Executable components include strict domain/governance contracts, reviewed clarification revisions, durable grants/revocation, bounded repository reads, Responses/OAuth/native Linear adapters tested with mock transport, signed handoff and an independent reference consumer. PostgreSQL, Temporal, pinned containers and backup/restore are exercised locally. No paid inference, live Linear publication or actual Delivery OS intake has occurred.
 
 Product Ops defines and governs approved work. Delivery OS executes approved work. They share a versioned public artifact contract, never a database or internal persistence models.
 
@@ -17,6 +17,7 @@ python -m uv run product-ops draft --input examples/feature-request.md
 python -m uv run product-ops draft --input examples/ambiguous-request.md
 python -m uv run product-ops demo --output out/demo-1
 python -m uv run product-ops roles-demo --input examples/feature-request.md
+python -m uv run product-ops evaluate-semantic --corpus examples/semantic/corpus.json --attempts examples/semantic/attempts.json --adjudications examples/semantic/adjudications.json
 python -m uv run product-ops inspect-repository --root . --repository-id product-ops
 python -m uv run product-ops roles-demo --input examples/feature-request.md --repository-root . --repository-id product-ops
 ```
@@ -38,7 +39,7 @@ python -m uv run pip-audit -r out/requirements.txt --disable-pip --no-deps
 
 Or run every local gate with `python -m uv run python scripts/verify.py`. This also verifies unchanged fixture/schema regeneration and byte-identical sdist/wheel builds. Use a fresh demo output directory for each run; existing evidence files are never silently replaced.
 
-Default tests need no services or credentials; four runtime tests skip unless explicitly configured. See [local runtime commands and evidence](docs/offline-expansion.md) for real PostgreSQL/Temporal checks. Dependency installation and vulnerability auditing use public registries, not paid model APIs. The API defaults to deny-all and reports unready; it has no UI or live publication path.
+Default tests need no services or credentials; five service-dependent tests skip unless explicitly configured. See [current validation and runtime commands](docs/v04-validation-record.md) for real PostgreSQL/Temporal checks. Dependency installation and vulnerability auditing use public registries, not paid model APIs. The API defaults to deny-all and reports unready; it has no UI or live publication path.
 
 ## Read the design
 
@@ -49,7 +50,8 @@ Default tests need no services or credentials; four runtime tests skip unless ex
 - [Evaluation methodology](docs/evaluation-methodology.md)
 - [Implementation status and limits](docs/implementation-status.md), [ordered backlog](docs/backlog.md)
 - [Remaining implementation steps](docs/remaining-work.md), [local runtime commands and results](docs/offline-expansion.md)
-- [Durable governance continuation and validation](docs/durable-governance.md)
+- [Current verification and exact commands](docs/v04-validation-record.md), [offline case study](docs/offline-case-study.md)
+- [Completed engineering checklist](docs/offline-completion-plan.md)
 - [Contributing](CONTRIBUTING.md)
 
-The foundation validates structure and objective invariants, not semantic correctness. Lexical risk rules are a conservative floor, not a complete classifier. Hashes prove byte integrity, not human identity or authenticity. Unknown outcomes stop publication; they never trigger blind retries. Hosted CI, live providers, cross-repository consumption, and human value remain unverified until separately exercised.
+The foundation validates structure and objective invariants, not semantic correctness. Lexical risk rules are a conservative floor, not a complete classifier. Hashes prove byte integrity; signed v2 handoffs additionally require pinned issuer keys and an expected digest. Unknown outcomes stop publication; they never trigger blind retries. Hosted CI, live providers, actual Delivery OS consumption, and human value remain unverified until separately exercised.

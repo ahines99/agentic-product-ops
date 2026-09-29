@@ -1,55 +1,37 @@
 # Evaluation methodology
 
-Evaluation begins with objective safety regressions. [The frozen M0 corpus](../evals/fixtures/m0-corpus.json) contains 15 authored cases covering clear features, ambiguous features, documentation, bugs, analytics, authorization, financial logic, multi-ticket work, research, rephrasing, and five prompt-injection intents. Each case records exact source, expected routing state, category, and same-context authorship. The corpus digest binds all cases in order.
+Safety and semantic quality are separate evidence classes. [M0's 15 cases](../evals/fixtures/m0-corpus.json) and the [45-case routing corpus](../evals/fixtures/m1-routing-corpus.json) are frozen, same-context authored, zero-inference routing tests. Their [original reports](../evals/reports/m0-first-run.json) and [expanded first report](../evals/reports/m1-routing-first-run.json) remain unchanged. A larger authored routing corpus cannot satisfy M1/M6 semantic acceptance.
 
-Version 0.2 adds a separate [45-case routing corpus](../evals/fixtures/m1-routing-corpus.json) and preserves its [first report](../evals/reports/m1-routing-first-run.json), with 45/45 expected routing outcomes. The original files remain unchanged. Both corpora are same-context authored, use zero inference calls and score fixture routing only; a larger routing corpus does not fulfill M1/M6 semantic or authorship gates. The M0 tables below are historical coverage; current regression evidence also includes actual bounded repository reads, recorded role outage/budget handling, durable simulation recovery, real PostgreSQL migrations/concurrent commands and real Temporal restart/replay/approval waits.
+## Frozen semantic evaluation
 
-These cases were authored in the same initialization context as the implementation. They are neither independent evaluation nor human validation. They establish only deterministic fixture-routing behavior: recognized fixtures propose; all other inputs hold. They do not measure semantic extraction or general ambiguity detection. The first report is preserved at [m0-first-run.json](../evals/reports/m0-first-run.json). Later reports use new paths; the runner refuses overwrites. Separate contexts for independent authoring and system evaluation are required in M1/M6, with no claim that separately authored agent cases constitute human validation.
+`evaluation/semantic.py` supplies strict gold-case, run and adjudication contracts. Ten categories cover clear feature, ambiguous request, nonfunctional, security, data, analytics, operational, compliance, repository grounding and prompt injection. Corpus hashes bind exact sources/requirements/material unknowns/risk floor. Each attempt binds corpus and result; every prediction and criterion requires explicit adjudication. Every case must retain attempt 1, including failure/abstention. Retry successes appear separately and cannot replace the original score.
+
+| Measure | Numerator / denominator |
+| --- | --- |
+| Requirement precision | Unique supported matched gold requirements / all predicted requirements |
+| Requirement recall | Unique supported matched gold requirements / gold requirements |
+| Material ambiguity recall | Adjudicated detected material unknowns / gold material unknowns |
+| False resolution rate | Adjudicated falsely resolved material unknowns / gold material unknowns |
+| Criterion quality | Criteria judged measurable with correct traceability and provenance / predicted criteria |
+| Risk | Count of proposed specifications below gold minimum tier |
+
+Duplicate predictions cannot inflate matches; unsupported or missing annotations fail rather than silently disappear. Zero denominators are null. Aggregates include original attempts, all attempt rows, retry count and category breakdown. These metrics require human or independently reviewed semantic annotations; the software does not infer correctness from matching prose. Decomposition coherence, overlap, usefulness, full risk confusion matrices and semantic repository evidence require an extended adjudication study rather than invented automated scores.
+
+Optional Ed25519 reviewer signatures bind exact judgment/corpus/result. A pinned reviewer key, external corpus authorship and a distinct reviewer identity are necessary for an independence attestation to count; even then it is an authenticated claim, not proof of semantic truth. `reported_inference` is a label, not independent evidence that a provider ran. The report always leaves `mvp_completion` false and lists unmeasured human usefulness, billing and live integration.
+
+## Executable example
+
+[Example corpus](../examples/semantic/corpus.json), [attempts](../examples/semantic/attempts.json) and [adjudications](../examples/semantic/adjudications.json) demonstrate scoring. There are two same-author cases and three attempts. The first clear attempt is deliberately incomplete; its recorded retry cannot erase the failed recall. The example is neither a benchmark nor independent review.
 
 ```sh
-python -m uv run python scripts/evaluate.py --output out/evaluation-1.json
+python -m uv run product-ops evaluate-semantic --corpus examples/semantic/corpus.json --attempts examples/semantic/attempts.json --adjudications examples/semantic/adjudications.json
+python -m uv run python scripts/evaluate.py --output out/routing-evaluation-1.json
 ```
 
-## Measures and definitions
+The scorer prints JSON; redirect to a fresh evidence path when preserving a study. `--reviewer-keys` accepts an operator-maintained JSON mapping reviewer IDs to base64 public keys. Never trust a key supplied inside an evaluated request. The example generator creates new authored recordings and must not be used to overwrite an actual first-run study.
 
-| Dimension | Planned scoring | M0 evidence |
-| --- | --- | --- |
-| Requirement precision / recall | Matched supported requirements / generated or gold requirements | Unmeasured |
-| Ambiguity detection | Recall of authored material unknowns, stratified by category | Known ambiguous fixture keeps five blockers; unknown input holds |
-| False resolution | Material unknowns asserted resolved without authorized answer / material unknowns | Forged-resolution rejection test only |
-| Acceptance quality | Traceability + human rubric for observable behavior and evidence | Structural coverage, references, evidence text required |
-| Decomposition quality | Human rubric for coherent boundaries, sequencing, overlap | DAG checks and normalized duplicate-title detection |
-| Traceability | Valid source/requirement/criterion links / total links | Executable reference validation |
-| Repository grounding | Claims supported by pinned evidence / repository claims | Advisory schema; synthetic injection test only |
-| Risk classification | Confusion matrix against adjudicated policy tiers | Lexical floor regression, not semantic accuracy |
-| Publication safety | Unauthorized writes per attempted adversarial command | Zero fake writes in denied-command tests |
-| Write reliability | Duplicates, UNKNOWN handling, recovery after faults | In-memory fake duplicate/lost-response tests |
-| Cost / latency | Model usage, estimated decimal cost, end-to-end and wait latency separately | Zero model calls; live latency/cost unmeasured |
-| Human value | Time, edit count/distance, missed requirements, confidence/usefulness | No participants or measured savings |
+## Acceptance coverage and remaining evidence
 
-M6 requires at least 40 separately authored frozen cases with matched model/provider/config/prompt versions, pinned repository snapshots, first-run failures, per-case results, aggregate metrics with denominators, risk/category breakdown, and measured cost/latency. Abstention and research-only outputs need explicit gold labels; holding all inputs is not successful extraction. Retrieval/vector storage is deferred until an ablation establishes need.
+The suite exercises all foundation safety scenarios: clear/ambiguous routing, supported assumptions, unsupported requirement/forged clarification denial, risk floors, request/repository injection, stale/expired/unauthorized approval, duplicate commands, UNKNOWN reconciliation, scope enforcement, repository changes, duplicate titles, exact handoff, superseding revisions, model outage/budget and cancellation. Revision/service tests use real PostgreSQL/Temporal; Linear and model tests use mock transport. See [validation](v04-validation-record.md).
 
-## Acceptance scenario mapping
-
-| ID | Scenario | M0 coverage / remaining gap |
-| --- | --- | --- |
-| A-01 | Clear request | Authored fixture CLI + strict traceability tests |
-| A-02 | Material ambiguity | Five blockers, proposal/publication denied |
-| A-03 | Safe nonmaterial choice | Visible nonbehavioral ID-format assumption |
-| A-04 | Unsupported inference | Objective check blocks inferred behavior; semantic reviewer planned |
-| A-05 | High risk | Deterministic lexical floor and handoff restriction |
-| A-06 | Request injection | Adversarial unknown sources remain held |
-| A-07 | Repository injection | Synthetic advisory evidence cannot change policy; adapter planned |
-| A-08 | Revision mismatch | Fake publication denied |
-| A-09 | Expired approval | Boundary-time and future-date denial |
-| A-10 | Duplicate publish | One fake issue set in a single process |
-| A-11 | Lost response | Reconcile or UNKNOWN, no blind create |
-| A-12 | Unauthorized team | Allowlist and approval scope denial |
-| A-13 | Repository uncertainty | Null context and explicit synthetic unknowns; grounding planned |
-| A-14 | Duplicate work | Normalized title detector; semantic overlap review planned |
-| A-15 | Exact handoff | Digested simulation export/consumer parsing; real consumer planned |
-| A-16 | Post-publish revision | Old immutable object unchanged; old approval invalid; durable history planned |
-| A-17 | Model outage/budget | Not implemented; no model calls exist |
-| A-18 | Cancellation | Future fake writes denied; durable race handling planned |
-
-Test coverage percentages measure exercised code, not product capability or task quality. Hosted, live provider, cross-repository, externally used, human-validated, and production-accepted evidence remain separate categories.
+M6 still requires at least 40 separately authored frozen semantic cases across all categories, actual provider/config/prompt versions, pinned repository evidence, original failures, per-case adjudication and denominators, paid usage/cost/latency plus separate human waiting time, controlled live publication reliability and actual Delivery OS intake. Real participants must assess usefulness/time/editing effort; no participants or savings have been measured. Retrieval/vector storage remains deferred until an ablation establishes need. Coverage percentages are code evidence, never product quality or MVP completion.

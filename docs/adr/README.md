@@ -9,3 +9,7 @@
 - [007: Offline service expansion and state ownership](007-offline-service-expansion.md)
 - [008: Delivery OS public consumer compatibility](008-delivery-consumer-compatibility.md)
 - [009: Durable recorded governance and pinned identity](009-durable-recorded-governance.md)
+- [010: Reviewed revisions, provider execution and durable authority](010-revisions-providers-and-durable-authority.md)
+- [011: Native Linear publication and encrypted OAuth](011-native-linear-publication.md)
+- [012: Signed public handoff and independent reference intake](012-signed-public-handoff.md)
+- [013: Protected operational artifacts and honest evaluation](013-operational-artifacts-and-evaluation.md)

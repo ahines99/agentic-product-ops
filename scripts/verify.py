@@ -15,6 +15,7 @@ def main() -> None:
         ["mypy"],
         ["pytest"],
         [sys.executable, "scripts/check_docs.py"],
+        [sys.executable, "scripts/export_contracts.py", "--check"],
         [sys.executable, "scripts/secret_scan.py"],
         [sys.executable, "scripts/check_reproducibility.py"],
         ["uv", "build", "--no-build-isolation"],

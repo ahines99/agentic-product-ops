@@ -82,6 +82,42 @@ def main() -> None:
             check=True,
         )
         command = [str(executable), "-I", "-m", "agentic_product_ops.cli"]
+        subprocess.run(
+            [
+                str(executable),
+                "-I",
+                "-c",
+                "import sys; from importlib.resources import files; "
+                "import product_ops_handoff.consumer; "
+                "assert 'agentic_product_ops' not in sys.modules; "
+                "assert files('product_ops_handoff').joinpath('handoff-v2.schema.json').is_file()",
+            ],
+            cwd=scratch,
+            env=env,
+            check=True,
+        )
+        semantic = scratch / "semantic"
+        semantic.mkdir()
+        for name in ("corpus", "attempts", "adjudications"):
+            (semantic / f"{name}.json").write_bytes(
+                (ROOT / "examples" / "semantic" / f"{name}.json").read_bytes()
+            )
+        subprocess.run(
+            [
+                *command,
+                "evaluate-semantic",
+                "--corpus",
+                str(semantic / "corpus.json"),
+                "--attempts",
+                str(semantic / "attempts.json"),
+                "--adjudications",
+                str(semantic / "adjudications.json"),
+            ],
+            cwd=scratch,
+            env=env,
+            check=True,
+            capture_output=True,
+        )
         entrypoint = target / ("Scripts/product-ops.exe" if os.name == "nt" else "bin/product-ops")
         subprocess.run(
             [str(entrypoint), "--help"], cwd=scratch, env=env, check=True, capture_output=True

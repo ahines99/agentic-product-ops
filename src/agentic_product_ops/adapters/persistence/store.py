@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from typing import Any
 
@@ -25,6 +25,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import IntegrityError
 
+from agentic_product_ops.adapters.persistence.encryption import StorageEncryption
 from agentic_product_ops.domain.contracts import Contract, canonical_digest
 
 metadata = MetaData()
@@ -104,8 +105,38 @@ def engine(url: str, *, testing: bool = False) -> Engine:
 
 
 class Store:
-    def __init__(self, database: Engine):
+    def __init__(
+        self,
+        database: Engine,
+        *,
+        encryption: StorageEncryption | None = None,
+        retention_seconds: Mapping[str, int] | None = None,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ):
         self.database = database
+        self.encryption, self.retention, self.clock = (
+            encryption,
+            dict(retention_seconds or {}),
+            clock,
+        )
+        if any(
+            kind not in {"role_request", "role_response"}
+            or type(seconds) is not int
+            or seconds <= 0
+            for kind, seconds in self.retention.items()
+        ):
+            raise ValueError("only raw role request/response retention may expire")
+
+    def encode_record(self, identity: tuple[str | int, ...], value: dict[str, Any]) -> str:
+        return self.encryption.encode(identity, value) if self.encryption else json.dumps(value)
+
+    def decode_record(self, identity: tuple[str | int, ...], raw: str) -> dict[str, Any]:
+        if self.encryption:
+            return self.encryption.decode(identity, raw)
+        value: dict[str, Any] = json.loads(raw)
+        if "storage_version" in value:
+            raise Conflict("encrypted store requires its configured keyring")
+        return value
 
     def lock_specification(self, conn: Connection, workspace: str, identifier: str) -> bool:
         factory = pg_insert if conn.dialect.name == "postgresql" else sqlite_insert
@@ -166,8 +197,8 @@ class Store:
                 identity=identity,
                 revision=revision,
                 digest=digest,
-                payload=json.dumps(payload),
-                created_at=datetime.now(UTC).isoformat(),
+                payload=self.encode_record((workspace, kind, identity, revision), payload),
+                created_at=self.clock().isoformat(),
             )
         )
 
@@ -179,7 +210,9 @@ class Store:
         revision: int | None = None,
         connection: Connection | None = None,
     ) -> dict[str, Any]:
-        query = select(artifacts.c.payload, artifacts.c.digest).where(
+        query = select(
+            artifacts.c.payload, artifacts.c.digest, artifacts.c.revision, artifacts.c.created_at
+        ).where(
             artifacts.c.workspace == workspace,
             artifacts.c.kind == kind,
             artifacts.c.identity == identity,
@@ -194,7 +227,13 @@ class Store:
             raw = connection.execute(query).mappings().first()
         if raw is None:
             raise Missing("artifact not found")
-        value: dict[str, Any] = json.loads(raw["payload"])
+        if (
+            kind in self.retention
+            and (self.clock() - datetime.fromisoformat(raw["created_at"])).total_seconds()
+            >= self.retention[kind]
+        ):
+            raise Missing("raw artifact access retention expired; audit metadata retained")
+        value = self.decode_record((workspace, kind, identity, raw["revision"]), raw["payload"])
         if canonical_digest(value) != raw["digest"]:
             raise Conflict("stored artifact integrity mismatch")
         return value

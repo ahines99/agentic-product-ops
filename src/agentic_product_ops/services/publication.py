@@ -23,6 +23,8 @@ from agentic_product_ops.adapters.persistence.store import (
 )
 from agentic_product_ops.domain.contracts import SpecificationApproval, WorkSpecification
 from agentic_product_ops.policies.validation import PolicyError, ServerPolicy, validate_approval
+from agentic_product_ops.services.authority import Authority
+from agentic_product_ops.services.clarifications import load_clarifications
 
 
 class DurableSimulationPublisher:
@@ -31,8 +33,10 @@ class DurableSimulationPublisher:
         store: Store,
         provider: FakeLinear,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        authority: Authority | None = None,
     ):
         self.store, self.provider, self.clock = store, provider, clock
+        self.authority = authority
 
     def lock_control(self, conn: Connection, workspace: str, specification_id: str) -> bool:
         return self.store.lock_specification(conn, workspace, specification_id)
@@ -57,7 +61,8 @@ class DurableSimulationPublisher:
         policy: ServerPolicy,
         actor: str,
     ) -> tuple[OperationEvidence, ...]:
-        if plan != build_plan(spec, policy):
+        answers = load_clarifications(self.store, spec, policy)
+        if plan != build_plan(spec, policy, clarifications=answers):
             raise PolicyError("publication plan changed")
         receipts: list[OperationEvidence] = []
         for operation in plan.operations:
@@ -78,6 +83,8 @@ class DurableSimulationPublisher:
                 if latest["content_digest"] != spec.content_digest:
                     raise PolicyError("superseded specification")
                 now = self.clock()
+                if self.authority:
+                    self.authority.validate_dispatch(conn, approval, spec)
                 validate_approval(
                     spec,
                     approval,
@@ -86,6 +93,7 @@ class DurableSimulationPublisher:
                     plan_digest=plan.content_digest,
                     operation_keys=tuple(o.operation_key for o in plan.operations),
                     now=now,
+                    clarifications=answers,
                 )
                 query = select(operations).where(
                     operations.c.workspace == policy.workspace_id,
@@ -100,7 +108,10 @@ class DurableSimulationPublisher:
                             workspace=policy.workspace_id,
                             operation_key=operation.operation_key,
                             request_digest=operation.request_digest,
-                            request=operation.model_dump_json(),
+                            request=self.store.encode_record(
+                                (policy.workspace_id, "operation", operation.operation_key),
+                                operation.model_dump(mode="json"),
+                            ),
                             status="UNKNOWN",
                             attempt=1,
                             provider_id=None,

@@ -1,32 +1,25 @@
 # Delivery OS handoff
 
-Product Ops defines and governs work. Delivery OS plans, builds, tests, reviews implementation, and produces PR evidence. Product Ops never marks implementation complete; Delivery OS must not invent answers to unresolved product questions. No shared database or import of Delivery OS persistence classes is permitted.
+Product Ops governs approved work. Delivery OS plans, implements, tests and produces PR evidence. They exchange a versioned public artifact, never internal persistence classes or a shared database. No Product Ops code marks implementation complete.
 
-Version 0.2 includes a read-only compatibility review of the adjacent Delivery OS public model. It lacks Product Ops exact-digest intake. [ADR-008](adr/008-delivery-consumer-compatibility.md) records the inspected revision and required consumer adapter; no sibling code was run or changed. All handoffs here remain offline simulation, and M5 remains incomplete.
+## Signed v2 public contract
 
-## Version 1 artifact
+The [public JSON schema](../src/product_ops_handoff/handoff-v2.schema.json) covers complete immutable WorkSpecification, approval, native publication plan, publication receipts, per-operation dispatch authority, clarification provenance, issuer/audience/key ID and expiry. Nested canonical digests and the envelope digest bind content. Ed25519 signs `AgenticProductOps/Handoff/v2` followed by a NUL byte and the ASCII payload digest. Operator-pinned issuer keys and an expected artifact digest establish the receiver's trust inputs.
 
-[Handoff JSON Schema](../evals/schemas/Handoff.schema.json) defines an independently serializable envelope: schema version, explicit `offline_simulation` mode, the exact nested WorkSpecification, approval, publication plan, publication evidence, and artifact digest. The specification has its own content digest; operations and plan have their own digests. Handoff verification checks nested integrity and approval/specification/publication binding. The mode cannot be changed to claim a live handoff.
+The producer reloads current stored artifacts, checks authority/review, validates approval at recorded dispatch times and permits only tiers 0/1 with no material unknowns. Mock publication is explicitly marked. A late-observed successful write can be represented only with valid historical dispatch authority; it never creates fresh approval.
 
-The digest is APO canonical JSON v1, not a signature. It detects accidental or unapproved changes relative to a trusted expected digest; someone who controls an artifact can recompute hashes. Real acceptance needs a trusted channel or signed receipt and an independently configured trusted issuer. No signing key, signature verification, or Delivery OS runtime integration exists in M0.
+`product_ops_handoff.consumer.ReferenceConsumer` uses public schema plus independent digest, scope, provenance, ambiguity, risk, DAG, operation and receipt checks. It imports no `agentic_product_ops` module. It defaults to rejecting mock evidence, pins issuer/audience/key/digest, rejects expiry and stale revisions, retains original envelope bytes and records superseded reference work in its own SQLite database. It refuses a database containing unrelated tables. It never executes work.
 
-## Consumer rules
+Tests exercise independently imported consumer code, tampered and re-signed unsafe artifacts, exact byte preservation, separate persistence, stale/superseding revisions and risk/ambiguity rejection. This is an executable reference adapter, not integration into the actual adjacent Delivery OS. Actual downstream plan invalidation must be wired into that application's own execution model and independently accepted. [ADR-012](adr/012-signed-public-handoff.md) records the boundary.
 
-1. Reject unsupported schema/mode; a production consumer must reject offline simulation artifacts.
-2. Verify artifact and nested digests against the trusted expected approval record.
-3. Verify exact specification ID/revision, plan, operation evidence, actor and tenant authorization.
-4. Reject material unknowns and any risk tier the consumer does not accept.
-5. Persist immutable intake provenance in Delivery OS's own store.
-6. If a newer approved revision arrives, record a new intake and explicitly invalidate prior planning assumptions; preserve old evidence and provider IDs. Never silently mutate an in-progress specification.
-7. Record implementation evidence against exact requirements and criteria without changing their product meaning.
+## Legacy v1 demonstration
 
-M0 defaults to accepted tiers 0 and 1. The authorization/financial revenue-export fixture is tier 2 and denied export. The separate documentation fixture is tier 1 and exercises export plus independent deserialization within this repository. That is a consumer-format fixture, not a tested cross-repository integration.
-
-## Offline demonstration
+The [v1 schema](../evals/schemas/Handoff.schema.json) remains an unsigned `offline_simulation` contract. Its hashes prove integrity relative to an expected digest, not identity. The following uses a fixed-clock low-risk documentation fixture and fake publication:
 
 ```sh
 python -m uv run product-ops demo --output out/demo-1
 python -m uv run product-ops verify-handoff --input out/demo-1/handoff.simulated.json
+python -m uv run pytest tests/integration/test_signed_handoff.py --no-cov -q
 ```
 
-Use a fresh output directory each run; artifacts use exclusive creation to avoid silent overwrite. `verify-handoff` validates integrity only, not authentic human approval. The demonstration's fixed clock and actor are explicit simulation inputs. Publication receipts and old revisions remain attributable in artifacts; durable revision history and cross-repository invalidation are planned in M5.
+Use a new directory for each legacy demo. The signed integration tests use ephemeral keys and mock GraphQL, never live approval, credentials or downstream execution. The tier-2 revenue/export fixture remains ineligible for handoff. M5 requires actual Delivery OS consumption; the reference consumer cannot satisfy that exit.

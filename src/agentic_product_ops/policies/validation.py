@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 
+from agentic_product_ops.domain.clarifications import ClarificationReceipt
 from agentic_product_ops.domain.contracts import (
     ID,
     Contract,
@@ -113,20 +114,44 @@ def validate_scope(spec: WorkSpecification, policy: ServerPolicy) -> None:
             raise PolicyError("repository not allowed")
 
 
-def blocking_findings(spec: WorkSpecification) -> tuple[str, ...]:
+def blocking_findings(
+    spec: WorkSpecification, *, clarifications: tuple[ClarificationReceipt, ...] = ()
+) -> tuple[str, ...]:
     """Objective checks only; does not impersonate an independent semantic reviewer."""
     findings: list[str] = []
     if not spec.requirements or not spec.work_items:
         findings.append("missing requirements or work decomposition")
     if any(q.blocking and q.resolution is None for q in spec.unresolved_questions):
         findings.append("material ambiguity unresolved")
-    # Answers in an untrusted proposal are not authenticated human clarification receipts.
-    if any(q.resolution is not None for q in spec.unresolved_questions):
-        findings.append("clarification authentication not implemented in M0")
-    if spec.provenance.clarification_refs or any(
-        r.provenance == "human_clarification" for r in spec.requirements
+    # Receipt arguments come from trusted persistence, never from proposed model output.
+    expected = {r.id: r for r in clarifications}
+    resolved = [q for q in spec.unresolved_questions if q.resolution is not None]
+    if len(expected) != len(clarifications) or set(expected) != set(
+        spec.provenance.clarification_refs
     ):
-        findings.append("clarification authentication not implemented in M0")
+        findings.append("clarification authentication failed: receipts missing or invalid")
+    for question in resolved:
+        matches = [r for r in clarifications if r.question_id == question.id]
+        if len(matches) != 1 or (
+            matches[0].specification_id,
+            matches[0].workspace_id,
+            matches[0].question_text,
+            matches[0].answer,
+            matches[0].actor_id,
+            matches[0].resolved_at,
+        ) != (
+            spec.specification_id,
+            spec.approval_policy.workspace_id,
+            question.question,
+            question.resolution,
+            question.resolved_by,
+            question.resolved_at,
+        ):
+            findings.append("clarification authentication failed: receipts missing or invalid")
+        elif matches[0].base_revision >= spec.revision:
+            findings.append("clarification receipt revision invalid")
+    if {r.question_id for r in clarifications} != {q.id for q in resolved}:
+        findings.append("clarification authentication failed: receipts missing or invalid")
     if any(r.needs_human_decision for r in spec.requirements):
         findings.append("requirement needs human decision")
     if any(r.provenance == "safe_inference" for r in spec.requirements):
@@ -143,11 +168,18 @@ def blocking_findings(spec: WorkSpecification) -> tuple[str, ...]:
     return tuple(dict.fromkeys(findings))
 
 
-def proposal_ready(spec: WorkSpecification, policy: ServerPolicy) -> None:
+def proposal_ready(
+    spec: WorkSpecification,
+    policy: ServerPolicy,
+    *,
+    clarifications: tuple[ClarificationReceipt, ...] = (),
+) -> None:
     # Revalidate at each authority boundary, including objects made via model_construct/copy.
     WorkSpecification.model_validate_json(spec.model_dump_json())
     validate_scope(spec, policy)
-    if findings := blocking_findings(spec):
+    if any(r.actor_id not in policy.approvers for r in clarifications):
+        raise PolicyError("clarification actor not authorized")
+    if findings := blocking_findings(spec, clarifications=clarifications):
         raise PolicyError("; ".join(findings))
 
 
@@ -160,9 +192,10 @@ def validate_approval(
     plan_digest: str,
     operation_keys: tuple[str, ...],
     now: datetime,
+    clarifications: tuple[ClarificationReceipt, ...] = (),
 ) -> None:
     """Caller-supplied identity is simulation-only until authenticated ingress exists."""
-    proposal_ready(spec, policy)
+    proposal_ready(spec, policy, clarifications=clarifications)
     SpecificationApproval.model_validate_json(approval.model_dump_json())
     if now.tzinfo is None:
         raise PolicyError("aware clock required")

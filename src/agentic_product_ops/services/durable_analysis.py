@@ -1,4 +1,4 @@
-"""Persist recorded role intents/results; uncertain executions never repeat automatically."""
+"""Persist role intents/results; uncertain executions never repeat automatically."""
 
 from __future__ import annotations
 
@@ -58,8 +58,9 @@ class DurableRoleRunner(RoleRunner):
         provider: ModelProvider,
         budget: ModelBudget,
         identifier: str | None = None,
+        model: str = "offline-recording",
     ):
-        super().__init__(provider, budget)
+        super().__init__(provider, budget, model)
         self.store, self.workspace, self.specification_digest = (
             store,
             workspace,
@@ -144,7 +145,7 @@ class DurableRoleRunner(RoleRunner):
                         insert(audits).values(
                             event_id=str(receipt.run_id),
                             workspace=self.workspace,
-                            actor="recorded-runner",
+                            actor="role-runner",
                             action=f"role_{receipt.status.lower()}",
                             subject=step,
                             digest=receipt.input_digest,
@@ -198,6 +199,8 @@ def analyze_specification(
         cached = None
     if cached:
         return PipelineResult.model_validate_json(json.dumps(cached))
+    if spec.provenance.mode == "model_proposal" and not spec.provenance.clarification_refs:
+        raise PolicyError("model proposal requires its original durable review")
     budget = ModelBudget(
         max_calls=3,
         max_input_bytes=200_000,
@@ -243,9 +246,18 @@ def recorded_review(
 ) -> dict[str, Any]:
     parsed = load_analysis(store, workspace, spec, policy)
     if parsed.state != "PROPOSED" or parsed.specification != spec or parsed.review is None:
-        raise PolicyError("recorded analysis/review not ready")
+        raise PolicyError("analysis/review not ready")
     if parsed.review.specification_digest != spec.content_digest or any(
         f.blocking for f in parsed.review.findings
     ):
         raise PolicyError("blocking or mismatched review")
     return parsed.model_dump(mode="json")
+
+
+def analysis_mode(store: Store, workspace: str, spec: WorkSpecification) -> dict[str, Any]:
+    index = store.get(workspace, "analysis_index", str(spec.specification_id), spec.revision)
+    try:
+        runtime = store.get(workspace, "analysis_runtime", index["binding"])
+    except Missing:
+        return {"mode": "recorded_roles"}
+    return {"mode": "configured_provider", "runtime": runtime}

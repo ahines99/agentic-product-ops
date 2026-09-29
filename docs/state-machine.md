@@ -25,21 +25,21 @@ stateDiagram-v2
     PUBLISHED --> HANDOFF_READY
 ```
 
-This is the full target workflow. The pure M0 graph validator retains conservative foundation guards. Version 0.2 also implements a real Temporal subset: proposal checks, clarification hold, approval wait, stored-receipt validation, rejection, expiry, revision-required, pause and cancellation. It does not yet run model activities, resume clarification/revision loops, publish or hand off. CLI fixture endpoints do not fabricate model/workflow history. Scripted role runs identify their recorded provider explicitly.
+This is the full target graph. The pure offline transition API intentionally denies production-only transitions. The exercised Temporal subset persists role preparation, clarification/revision outcomes, approval waits, stored-receipt validation, rejection, expiry, pause and cancellation. Native publication and signed handoff are separately exercised service components; automatic live workflow transitions remain disabled.
 
-Version 0.3 extends that subset: the preparation activity persists recorded analyst/decomposer/reviewer executions before proposal approval. API clarification queues a new digest-bound revision workflow; old workflows cannot validate superseding content. API cancellation persists a shared control and signals Temporal. Reanalysis of arbitrary answers remains held until a semantic revision engine exists; no ambiguity gate is relaxed. Live publication/handoff remain absent.
+Each lifecycle object is bound to an exact content digest. Ready gates require schema, source/provenance, scope, risk, requirements, decomposition and passing distinct review. Human-decision flags and material questions cannot be cleared by untrusted JSON. Verified clarification receipts support additive new requirements; answers and original source/requirements cannot be erased or rewritten. New content creates a new immutable revision and invalidates prior approval.
 
-Each lifecycle object is bound to an exact content digest. Illegal skips and content changes are rejected. Ready transitions require valid schema, scope, risk, requirements, work decomposition, and no blocking findings. Resolved-question fields in source JSON do not count as authenticated clarification. M0 therefore denies exits from clarification that require the missing identity service, and denies APPROVED, LINEAR_PUBLISHING, PUBLISHED, and HANDOFF_READY transition commands. The fake demo is the only publication path and has no network capability.
+Configured revision execution allows at most two review attempts under a shared call/cost budget. First failures remain stored. Ten clarification revisions are allowed by the API. Roles are executed off the async activity loop; persisted intent without completion holds for operator resolution. No uncertain inference is silently repeated. A new revision queues a new digest-bound workflow; the old run cannot validate its approval.
 
-The target graph caps revision loops at two; they cannot bypass a reviewer. The API now creates immutable clarification revisions, but deliberately leaves them held pending reanalysis. Temporal binds its run to the original digest and rejects superseded receipts. REJECTED, EXPIRED, HANDOFF_READY and CANCELLED are terminal. Runtime tests exercise worker restart, replay, timeout and cancellation. The durable publication harness separately tests cancellation across publisher instances; its committed reservation is the boundary after which a call may finish.
+REJECTED, EXPIRED, HANDOFF_READY and CANCELLED are terminal in the target graph. Real local Temporal tests exercise restart, replay, timeout, cancellation, outbox reconciliation and reviewed clarification revision. Native publication locks and durable dispatch receipts separately enforce current authority before each write. A previously dispatched call can finish after cancellation; its observation cannot authorize another call. UNKNOWN permits exact reconciliation, not a blind create retry.
 
 | Gate | Failure behavior |
 | --- | --- |
 | Material ambiguity / human decision | Hold before proposal and reject publication plan |
 | Unsupported inferred requirement / duplicate title | Blocking objective review finding |
 | Scope/risk/digest mismatch | Reject command |
-| Stale, expired, rejected, future-dated, unauthorized approval | Zero new fake writes |
-| Timeout after fake creation | UNKNOWN, stop remaining operations |
+| Stale, expired, rejected, future-dated, unauthorized approval | Zero new dispatches in fake/mock tests |
+| Timeout after mock creation | UNKNOWN, stop remaining operations |
 | Unavailable/mismatched reconciliation | Keep UNKNOWN, no create retry |
 | Handoff risk outside consumer tiers | Deny export |
 

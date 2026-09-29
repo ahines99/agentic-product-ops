@@ -58,6 +58,7 @@ def main() -> None:
                         "pytest",
                         "tests/runtime/test_temporal.py",
                         "tests/runtime/test_connected_governance.py",
+                        "tests/integration/test_revisions.py",
                         "--no-cov",
                         "-q",
                     ],

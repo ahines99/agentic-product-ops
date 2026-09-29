@@ -1,5 +1,7 @@
 # Durable governance continuation (0.3)
 
+Historical release evidence; current capability and commands are in [0.4 validation](v04-validation-record.md).
+
 Date: 2026-09-29. Version 0.2's verified expansion was committed as `09301145b36d7cccbd59f2449b8e1056dffb1e06`. This continuation connects recorded analysis to durable approval and adds cancellation plus a pinned-key identity adapter. [ADR-009](adr/009-durable-recorded-governance.md) explains the authority and recovery decisions.
 
 ## Executable behavior
