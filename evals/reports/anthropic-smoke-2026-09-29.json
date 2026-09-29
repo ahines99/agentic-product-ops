@@ -1,0 +1,206 @@
+{
+  "evidence_kind": "same-context engineering smoke; not independent semantic acceptance",
+  "date": "2026-09-29",
+  "model": "claude-opus-5-5",
+  "accounting": {
+    "model": "claude-opus-5-5",
+    "authorization_limit_usd": "10",
+    "calls": 6,
+    "reserved_usd": "2.341864",
+    "input_tokens": 78037,
+    "output_tokens": 10821,
+    "conservative_estimated_usd": "0.840716",
+    "standard_price_estimated_usd": "0.528568",
+    "actual_billing_verified": false,
+    "approvals": 0,
+    "publication_artifacts": 0
+  },
+  "attempts": [
+    {
+      "configuration_id": "anthropic-pilot-v1",
+      "started_at": "2026-09-29T21:37:57.268993+00:00",
+      "execution_digest": "da34547924f64fdb0e9a291a82fc49a384e2b488833abcd06dcff822472a1c35",
+      "state": "REVISION_REQUIRED",
+      "reason": "composed_schema_gate",
+      "receipts": [
+        {
+          "run_id": "1c614d77-7209-481a-81dd-24a725936b38",
+          "context_id": "c24b51f7-4d79-47b0-a231-3a56e2ecf8f7",
+          "role": "requirements_analyst",
+          "model": "claude-opus-5-5",
+          "prompt_version": "roles-v1",
+          "input_digest": "6fad89655abb57558d02b57d82d1d987a92baf81f8b4bdd08efb1a99052c4964",
+          "output_digest": "ebb21d89940e1fc257e6135d143f163e01f68d77d86123474a1b19a4f1e9d665",
+          "started_at": "2026-09-29T21:37:57.336618Z",
+          "elapsed_ms": 21094,
+          "status": "SUCCEEDED",
+          "usage": {
+            "input_tokens": 9300,
+            "output_tokens": 1974,
+            "provider_request_id": "req_011CfYTF5qcdPGgyhXTeFtJx"
+          },
+          "estimated_cost": "0.11388000"
+        },
+        {
+          "run_id": "b1a2b565-a41a-4c04-8340-eb5723d9060f",
+          "context_id": "a8cef053-ac11-464e-82f4-41776806ae89",
+          "role": "work_decomposer",
+          "model": "claude-opus-5-5",
+          "prompt_version": "roles-v1",
+          "input_digest": "edac290296a68c19e50014390370da23e96757585351ff3ee41998af24b5a40c",
+          "output_digest": "28bde83008c48364d383ccc6b9da183862f0bfb4108c38bd7200386204421d89",
+          "started_at": "2026-09-29T21:38:18.487162Z",
+          "elapsed_ms": 22188,
+          "status": "SUCCEEDED",
+          "usage": {
+            "input_tokens": 11094,
+            "output_tokens": 2005,
+            "provider_request_id": "req_011CfYTGe3dyvFmgQYRKKKD5"
+          },
+          "estimated_cost": "0.12885200"
+        }
+      ]
+    },
+    {
+      "configuration_id": "anthropic-pilot-v2",
+      "started_at": "2026-09-29T21:42:37.326906+00:00",
+      "execution_digest": "c1ab45a111b0816abb537a0bb7274106a3408aa92508d631b742c456390626e3",
+      "state": "PAUSED",
+      "reason": "provider_or_schema_hold",
+      "receipts": [
+        {
+          "run_id": "078dd813-0ec0-4271-87a2-4bc95f7217fd",
+          "context_id": "e1ef0151-c980-4359-91d0-25c122003398",
+          "role": "requirements_analyst",
+          "model": "claude-opus-5-5",
+          "prompt_version": "roles-v1",
+          "input_digest": "3ef48354e0d74d85d532d8caefc1e0879bd825d9c9aea5d60f05fcf3cbd7fcaa",
+          "output_digest": "bcd84bcc8b13480725f9f50bf83e48ef927d668a04b85759cd0eebcc4e6b7772",
+          "started_at": "2026-09-29T21:42:37.397716Z",
+          "elapsed_ms": 19093,
+          "status": "SUCCEEDED",
+          "usage": {
+            "input_tokens": 9417,
+            "output_tokens": 1812,
+            "provider_request_id": "req_011CfYTbjBVBW5rqUg38T1q1"
+          },
+          "estimated_cost": "0.11157600"
+        },
+        {
+          "run_id": "95c04710-2a3d-4f06-9653-5442bea26ec2",
+          "context_id": "241e481e-81f2-476a-bf1d-62bc273c2e6a",
+          "role": "work_decomposer",
+          "model": "claude-opus-5-5",
+          "prompt_version": "roles-v1",
+          "input_digest": "0f8fde6cdb31e1b79117f3ec7c6c8c8f8336f967f954058a11366dc56a829eed",
+          "output_digest": "a985c59b39d883ae7856d87a364e6c0f1c786c5c466d239882f737ae8631126d",
+          "started_at": "2026-09-29T21:42:56.559326Z",
+          "elapsed_ms": 13858,
+          "status": "SUCCEEDED",
+          "usage": {
+            "input_tokens": 11106,
+            "output_tokens": 1227,
+            "provider_request_id": "req_011CfYTd9BPfcmJPfwoTk8dB"
+          },
+          "estimated_cost": "0.11338800"
+        },
+        {
+          "run_id": "523cba41-0533-4c03-942d-4c95b0f7232a",
+          "context_id": "f54bef72-4924-4195-857b-acf353cba4af",
+          "role": "specification_reviewer",
+          "model": "claude-opus-5-5",
+          "prompt_version": "roles-v1",
+          "input_digest": "139c6eb33f32596ed5a87962031ba734b7643f309f89fec3139df5ae66491bda",
+          "output_digest": "c4ceb25b2b6dd58c22e2704ce9a949d9b2f13802568394ee05ba795b74f00824",
+          "started_at": "2026-09-29T21:43:10.481232Z",
+          "elapsed_ms": 22906,
+          "status": "INVALID_OUTPUT",
+          "usage": {
+            "input_tokens": 18389,
+            "output_tokens": 1987,
+            "provider_request_id": "req_011CfYTeATpExXXqESLQ7ELZ"
+          },
+          "estimated_cost": "0.18685200"
+        }
+      ]
+    },
+    {
+      "configuration_id": "anthropic-pilot-v3",
+      "started_at": "2026-09-29T21:45:38.435668+00:00",
+      "execution_digest": "9924b3acd61b72c8dfcb958c7e3cbb3005dd04cebaf12f56457d32ce4218d712",
+      "state": "PROPOSED",
+      "reason": "reviewed_revision",
+      "receipts": [
+        {
+          "run_id": "078dd813-0ec0-4271-87a2-4bc95f7217fd",
+          "context_id": "e1ef0151-c980-4359-91d0-25c122003398",
+          "role": "requirements_analyst",
+          "model": "claude-opus-5-5",
+          "prompt_version": "roles-v1",
+          "input_digest": "3ef48354e0d74d85d532d8caefc1e0879bd825d9c9aea5d60f05fcf3cbd7fcaa",
+          "output_digest": "bcd84bcc8b13480725f9f50bf83e48ef927d668a04b85759cd0eebcc4e6b7772",
+          "started_at": "2026-09-29T21:42:37.397716Z",
+          "elapsed_ms": 19093,
+          "status": "SUCCEEDED",
+          "usage": {
+            "input_tokens": 9417,
+            "output_tokens": 1812,
+            "provider_request_id": "req_011CfYTbjBVBW5rqUg38T1q1"
+          },
+          "estimated_cost": "0.11157600"
+        },
+        {
+          "run_id": "95c04710-2a3d-4f06-9653-5442bea26ec2",
+          "context_id": "241e481e-81f2-476a-bf1d-62bc273c2e6a",
+          "role": "work_decomposer",
+          "model": "claude-opus-5-5",
+          "prompt_version": "roles-v1",
+          "input_digest": "0f8fde6cdb31e1b79117f3ec7c6c8c8f8336f967f954058a11366dc56a829eed",
+          "output_digest": "a985c59b39d883ae7856d87a364e6c0f1c786c5c466d239882f737ae8631126d",
+          "started_at": "2026-09-29T21:42:56.559326Z",
+          "elapsed_ms": 13858,
+          "status": "SUCCEEDED",
+          "usage": {
+            "input_tokens": 11106,
+            "output_tokens": 1227,
+            "provider_request_id": "req_011CfYTd9BPfcmJPfwoTk8dB"
+          },
+          "estimated_cost": "0.11338800"
+        },
+        {
+          "run_id": "318d9594-0f54-415e-bf06-1c4a49b63e56",
+          "context_id": "d429bb17-77b5-4ace-b7a7-40f991967e8e",
+          "role": "specification_reviewer",
+          "model": "claude-opus-5-5",
+          "prompt_version": "roles-v1",
+          "input_digest": "bda61869a3bd0c7ded8ff84e7afeeb9647a9af14ed7ebfcc1213530e9984d09d",
+          "output_digest": "aab8f2e1219efc05eb15755e20f41bd285fddb68f5a077dce9e8547245185251",
+          "started_at": "2026-09-29T21:45:38.515297Z",
+          "elapsed_ms": 21265,
+          "status": "SUCCEEDED",
+          "usage": {
+            "input_tokens": 18731,
+            "output_tokens": 1816,
+            "provider_request_id": "req_011CfYTq5gt78YVSFTVia8Fx"
+          },
+          "estimated_cost": "0.18616800"
+        }
+      ]
+    }
+  ],
+  "final": {
+    "state": "PROPOSED",
+    "specification_id": "dddf28ad-2d90-4d44-a622-995f4a25531b",
+    "revision": 2,
+    "specification_digest": "760cefddfd8afd9ba16d95a7f228f28548aa3971c563226f83715545a7a5db7b",
+    "risk_tier": 3,
+    "requirements": 6,
+    "work_items": 1,
+    "plan_digest": "0bce3334ef84795133350a0c2f04d3420a336c254f35040cd0fee288246c89b7",
+    "plan_operations": 1,
+    "human_approved": false,
+    "linear_writes": 0,
+    "delivery_os_intake": false
+  },
+  "mvp_completion": false
+}

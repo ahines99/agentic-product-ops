@@ -1,5 +1,7 @@
 # Linear integration
 
+The local pilot uses an explicit Linear API key, as selected by the operator; OAuth is optional and unused. Read-only organization/viewer/team discovery succeeded on 2026-09-29. The assembled publisher is disabled in the private profile and still requires exact current human approval before each native operation. No live tickets or mutations have been exercised. See [pilot commands](local-pilot.md) and [ADR-014](adr/014-local-anthropic-pilot.md).
+
 Version 0.4 implements native GraphQL planning, OAuth PKCE/encrypted token storage and durable publication orchestration, exercised with mock HTTP transport. No live request or ticket creation has occurred. The HTTP publish route remains disabled. The original in-memory demo and `FAKE-` records remain explicitly simulated.
 
 ## Identity and scope

@@ -25,6 +25,7 @@ class ServerPolicy(Contract):
     teams: tuple[ID, ...] = ("product",)
     projects: tuple[ID, ...] = ()
     repositories: tuple[ID, ...] = ("sample-reporting",)
+    allow_any_repository: bool = False
     labels: tuple[ID, ...] = ()
     approvers: tuple[ID, ...] = ("offline-reviewer",)
     security_approvers: tuple[ID, ...] = ("offline-reviewer",)
@@ -101,7 +102,11 @@ def validate_scope(spec: WorkSpecification, policy: ServerPolicy) -> None:
         raise PolicyError("unsupported approval role")
     if spec.risk.tier < risk_floor(spec):
         raise PolicyError("risk understated")
-    if spec.repository_context and spec.repository_context.repository_id not in policy.repositories:
+    if (
+        spec.repository_context
+        and not policy.allow_any_repository
+        and spec.repository_context.repository_id not in policy.repositories
+    ):
         raise PolicyError("repository not allowed")
     for work in spec.work_items:
         if work.proposed_team_id not in policy.teams:
@@ -110,7 +115,11 @@ def validate_scope(spec: WorkSpecification, policy: ServerPolicy) -> None:
             raise PolicyError("project not allowed")
         if not set(work.proposed_labels) <= set(policy.labels):
             raise PolicyError("labels not allowed")
-        if work.repository_id is not None and work.repository_id not in policy.repositories:
+        if (
+            work.repository_id is not None
+            and not policy.allow_any_repository
+            and work.repository_id not in policy.repositories
+        ):
             raise PolicyError("repository not allowed")
 
 

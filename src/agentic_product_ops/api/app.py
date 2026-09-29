@@ -3,6 +3,7 @@
 import hashlib
 import hmac
 import json
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated, Any, Protocol
@@ -26,6 +27,7 @@ from agentic_product_ops.adapters.persistence.store import (
     outbox,
 )
 from agentic_product_ops.adapters.repository.local import Snapshot, inspect_repository
+from agentic_product_ops.adapters.repository.selection import RepositorySelection
 from agentic_product_ops.domain.clarifications import ClarificationReceipt
 from agentic_product_ops.domain.contracts import (
     ID,
@@ -53,6 +55,7 @@ from agentic_product_ops.services.durable_analysis import (
     load_analysis,
     recorded_review,
 )
+from agentic_product_ops.services.risk_reassessment import RiskCommand
 
 
 class Authenticator(Protocol):
@@ -88,6 +91,7 @@ class IntakeCommand(Contract):
     source: Text
     repository_id: ID | None = None
     expected_snapshot_digest: Digest | None = None
+    repository: RepositorySelection | None = None
 
 
 class RevisionCommand(Contract):
@@ -112,12 +116,19 @@ def create_app(
     authority: Authority | None = None,
     linear_scope: LinearScope | None = None,
     repository_roots: dict[str, Path] | None = None,
+    repository_resolver: Callable[[RepositorySelection], Snapshot] | None = None,
+    force_model_intake: bool = False,
+    publication_handler: Callable[[str, Principal, str], dict[str, Any]] | None = None,
+    readiness: Callable[[], dict[str, Any]] | None = None,
+    risk_handler: Callable[[str, Principal, RiskCommand, str], dict[str, Any]] | None = None,
 ) -> FastAPI:
-    app = FastAPI(title="Agentic Product Ops", version="0.4.0", docs_url=None, redoc_url=None)
+    app = FastAPI(title="Agentic Product Ops", version="0.5.0", docs_url=None, redoc_url=None)
     active_policy = policy or ServerPolicy()
     auth = authenticator or DenyAll()
     roots = dict(repository_roots or {})
-    if not roots.keys() <= set(active_policy.repositories):
+    if not active_policy.allow_any_repository and not roots.keys() <= set(
+        active_policy.repositories
+    ):
         raise ValueError("configured repository roots exceed server policy")
 
     @app.exception_handler(RequestValidationError)
@@ -214,7 +225,11 @@ def create_app(
 
     @app.get("/health")
     def health() -> dict[str, str]:
-        return {"status": "ok", "mode": "offline_foundation", "publication": "disabled"}
+        return {
+            "status": "ok",
+            "mode": "configured_pilot" if force_model_intake else "offline_foundation",
+            "publication": "guarded" if publication_handler else "disabled",
+        }
 
     @app.get("/ready")
     def ready(db: Annotated[Store, Depends(database)]) -> JSONResponse:
@@ -223,6 +238,11 @@ def create_app(
                 conn.execute(text("SELECT 1"))
         except Exception:
             return JSONResponse(status_code=503, content={"ready": False})
+        if readiness is not None:
+            report = readiness()
+            return JSONResponse(
+                status_code=200 if report.get("ready") is True else 503, content=report
+            )
         return JSONResponse(
             status_code=503,
             content={
@@ -241,13 +261,44 @@ def create_app(
     ) -> dict[str, Any]:
         def execute(conn: Connection) -> dict[str, Any]:
             current_authority(conn, actor)
-            if body.expected_snapshot_digest is not None and body.repository_id is None:
+            if body.repository is not None and body.repository_id is not None:
+                raise PolicyError("one repository selection required")
+            if (
+                body.expected_snapshot_digest is not None
+                and body.repository_id is None
+                and body.repository is None
+            ):
                 raise PolicyError("snapshot digest requires repository identity")
             repository = (
                 read_snapshot(actor, body.repository_id, body.expected_snapshot_digest)
                 if body.repository_id
                 else None
             )
+            if body.repository is not None:
+                if not active_policy.allow_any_repository or repository_resolver is None:
+                    raise PolicyError("ticket repository selection not enabled")
+                grant = authority.check(actor) if authority else None
+                if grant is None or not grant.allow_any_repository:
+                    raise PolicyError("ticket repository selection requires durable operator grant")
+                try:
+                    repository = repository_resolver(body.repository)
+                    if repository.repository_id != body.repository.repository_id():
+                        raise ValueError("repository identity mismatch")
+                    if (
+                        body.expected_snapshot_digest is not None
+                        and repository.digest != body.expected_snapshot_digest
+                    ):
+                        raise ValueError("repository snapshot changed")
+                except (ValueError, OSError):
+                    raise PolicyError("selected repository unavailable or changed") from None
+                db.put(
+                    conn,
+                    actor.workspace_id,
+                    "repository_selection",
+                    repository.repository_id,
+                    1,
+                    body.repository.model_dump(mode="json", exclude={"commit"}),
+                )
             identifier, now = uuid4(), datetime.now(UTC)
             source = IntakeRequest(
                 intake_id=identifier,
@@ -256,7 +307,7 @@ def create_app(
                 received_at=now,
                 source_kind="prompt",
             )
-            template, state = draft(body.source)
+            template, state = draft(body.source, use_fixtures=not force_model_intake)
             payload = template.model_dump(mode="json")
             payload["specification_id"] = str(identifier)
             payload["approval_policy"].update(
@@ -306,10 +357,15 @@ def create_app(
     def read_snapshot(
         actor: Principal, repository_id: str, expected: str | None = None
     ) -> Snapshot:
-        if repository_id not in active_policy.repositories or repository_id not in roots:
+        if (
+            not active_policy.allow_any_repository
+            and repository_id not in active_policy.repositories
+        ) or repository_id not in roots:
             raise PolicyError("repository outside configured scope")
-        if authority and repository_id not in authority.check(actor).repository_ids:
-            raise PolicyError("repository outside identity grant")
+        if authority:
+            grant = authority.check(actor)
+            if not grant.allow_any_repository and repository_id not in grant.repository_ids:
+                raise PolicyError("repository outside identity grant")
         try:
             return inspect_repository(repository_id, roots, expected_digest=expected)
         except (OSError, ValueError):
@@ -661,13 +717,27 @@ def create_app(
             execute,
         )
 
+    @app.post("/v1/specifications/{identifier}/risk")
+    def risk(
+        identifier: UUID,
+        body: RiskCommand,
+        actor: Annotated[Principal, Depends(identity)],
+        command_key: Annotated[str, Depends(key)],
+    ) -> dict[str, Any]:
+        require_approver(actor)
+        if risk_handler is None:
+            raise HTTPException(503, "risk reassessment provider is not configured")
+        return risk_handler(str(identifier), actor, body, command_key)
+
     @app.post("/v1/specifications/{identifier}/publish")
     def publish(
         identifier: UUID,
         actor: Annotated[Principal, Depends(identity)],
         command_key: Annotated[str, Depends(key)],
-    ) -> None:
+    ) -> dict[str, Any]:
         require_approver(actor)
+        if publication_handler is not None:
+            return publication_handler(str(identifier), actor, command_key)
         raise HTTPException(503, "live publication is disabled; no provider credentials configured")
 
     @app.get("/v1/publications/{identifier}")

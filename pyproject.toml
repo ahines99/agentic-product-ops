@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentic-product-ops"
-version = "0.4.0"
-description = "Offline foundation for governed product requirements and work publication"
+version = "0.5.0"
+description = "Governed product requirements, local pilot and approved work publication"
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
 license = "MIT"
@@ -25,6 +25,7 @@ dependencies = [
 
 [project.scripts]
 product-ops = "agentic_product_ops.cli:main"
+product-ops-pilot = "agentic_product_ops.pilot.cli:main"
 
 [dependency-groups]
 dev = [

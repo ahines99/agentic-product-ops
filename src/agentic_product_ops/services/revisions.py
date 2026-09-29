@@ -69,7 +69,7 @@ def revise_specification(
         if base.content_digest != expected_digest:
             raise Conflict("superseded revision request")
         if initial:
-            template, _ = draft(base.source_statements[0].text)
+            template, _ = draft(base.source_statements[0].text, use_fixtures=False)
             expected = template.model_dump(mode="json")
             expected["specification_id"] = str(base.specification_id)
             expected["approval_policy"].update(
@@ -113,6 +113,22 @@ def revise_specification(
     state, reason = "REVISION_REQUIRED", "review_attempts_exhausted"
     for attempt in range(1, configuration.max_review_attempts + 1):
         payload = {
+            "initial_intake": initial,
+            "instructions": (
+                "On initial intake, the empty seed's Q1 is a routing placeholder, not an "
+                "established product ambiguity. Extract actual requirements and actual unknowns. "
+                "Preserve S0 exactly. Return exact source excerpts with unique IDs and cite them. "
+                "On a clarification revision preserve every original requirement and answer. "
+                "Use only the configured team/project/label scope and supplied repository ID. "
+                "Do not fabricate approvals or answers. Decomposer must include every requirement "
+                "in work item requirement_ids and every criterion must cite real requirements."
+                " Each requirement has exactly one provenance class: explicit_source and "
+                "safe_inference references must use only source statement IDs; "
+                "repository_evidence must use only supplied evidence IDs; policy must use "
+                "only supplied policy_refs; human_clarification must use only saved answer IDs. "
+                "Split requirements if provenance differs. Never mix S and E references on "
+                "an explicit_source requirement."
+            ),
             "base_specification": base.model_dump(mode="json"),
             "authenticated_answers": [answer.model_dump(mode="json") for answer in answers],
             "attempt": attempt,
@@ -212,7 +228,18 @@ def revise_specification(
                 validate_revision(base, candidate, answers, policy)
             review = runner.run(
                 "specification_reviewer",
-                json.dumps({**payload, "candidate": candidate.model_dump(mode="json")}),
+                json.dumps(
+                    {
+                        **payload,
+                        "candidate": candidate.model_dump(mode="json"),
+                        "review_target_digest": candidate.content_digest,
+                        "output_instructions": (
+                            "Echo review_target_digest exactly as the 64-character "
+                            "specification_digest. Do not recompute it or put prose in that field. "
+                            "Place every concern in findings. You cannot approve or lower risk."
+                        ),
+                    }
+                ),
                 policy,
                 Review,
             )
@@ -223,8 +250,12 @@ def revise_specification(
             else:
                 proposal_ready(candidate, policy, clarifications=answers)
                 state, reason = "PROPOSED", "reviewed_revision"
-        except (RunStopped, ValidationError):
+        except RunStopped:
             state, reason = "PAUSED", "provider_or_schema_hold"
+        except ValidationError:
+            # Completed provider outputs that fail composition are definite failures, not
+            # concurrent unfinished role calls. Persist them without laundering a retry.
+            state, reason = "REVISION_REQUIRED", "composed_schema_gate"
         except PolicyError:
             state, reason = "REVISION_REQUIRED", "deterministic_revision_gate"
         snapshot = PipelineResult.model_validate_json(
@@ -244,7 +275,10 @@ def revise_specification(
             return snapshot
         with store.database.begin() as conn:
             store.put(conn, workspace, "revision_attempt", execution, attempt, snapshot)
-        if state in {"PROPOSED", "PAUSED"} or reason == "deterministic_revision_gate":
+        if state in {"PROPOSED", "PAUSED"} or reason in {
+            "deterministic_revision_gate",
+            "composed_schema_gate",
+        }:
             break
     result = PipelineResult.model_validate_json(
         json.dumps(

@@ -15,10 +15,10 @@ from agentic_product_ops.workflows.lifecycle import State
 FIXED_TIME = "2026-09-28T00:00:00Z"
 
 
-def draft(text: str) -> tuple[WorkSpecification, State]:
+def draft(text: str, *, use_fixtures: bool = True) -> tuple[WorkSpecification, State]:
     digest = source_digest(text)
     resource = files("agentic_product_ops.fixtures")
-    for name in ("feature", "ambiguous", "handoff"):
+    for name in ("feature", "ambiguous", "handoff") if use_fixtures else ():
         spec = WorkSpecification.model_validate_json(resource.joinpath(f"{name}.json").read_bytes())
         if spec.source_digest == digest:
             if name == "ambiguous":

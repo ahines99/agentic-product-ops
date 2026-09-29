@@ -1,5 +1,7 @@
 # Security model
 
+The [v0.5 pilot controls](adr/014-local-anthropic-pilot.md) add owner-private explicit credentials, loopback-only configuration, revocable single-operator bearer identity, a separate encrypted pilot database, token-preflight Anthropic transport without tools, a durable aggregate spending ledger and dual policy/grant opt-in for ticket-selected repositories. Risk reassessment requires an explicit security operator, lexical floor, new revision and fresh review/approval. The paid smoke exercised holds for invalid provenance and reviewer digest; its passing proposal is not a security/semantic acceptance study. See [current limits](implementation-status.md).
+
 Requests, repository content, provider responses and model output are untrusted. They cannot grant authority, change policy, resolve material ambiguity without authenticated provenance, widen scope or trigger tools. The application is not a sandbox against an operator who can replace its code or database.
 
 | Threat | Exercised control | Remaining limit |

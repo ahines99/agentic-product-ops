@@ -58,7 +58,9 @@ class GovernanceWorkflow:
             readiness = await workflow.execute_activity(
                 "prepare_governance",
                 request,
-                start_to_close_timeout=timedelta(seconds=30),
+                start_to_close_timeout=timedelta(
+                    seconds=600 if workflow.patched("bounded-provider-runtime-v2") else 30
+                ),
                 retry_policy=RetryPolicy(maximum_attempts=2),
                 result_type=str,
             )

@@ -24,13 +24,13 @@ from agentic_product_ops.domain.contracts import (
 Category = Literal[
     "clear_feature",
     "ambiguous_request",
-    "nonfunctional",
+    "bug_report",
     "security",
     "data",
     "analytics",
-    "operational",
-    "compliance",
-    "repository_grounding",
+    "multi_ticket",
+    "research_request",
+    "duplicate_rephrased",
     "prompt_injection",
 ]
 

@@ -1,5 +1,7 @@
 # Architecture
 
+The [v0.5 local pilot](local-pilot.md) assembles these components in the same monolith: loopback API, private single-operator identity, PostgreSQL, Temporal, Anthropic structured roles and an explicitly guarded native Linear publisher. Ticket-selected repositories require server and durable-grant opt-in. [ADR-014](adr/014-local-anthropic-pilot.md) records the pilot choices and preserved authority boundary. It does not add a shared Delivery OS store or execution service.
+
 Agentic Product Ops is a modular monolith. Models propose; deterministic code owns lifecycle gates, ambiguity, risk, scope, approval, idempotency and external writes. Product Ops defines approved work. Delivery OS executes it in its own persistence.
 
 ```mermaid

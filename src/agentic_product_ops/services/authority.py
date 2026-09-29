@@ -36,6 +36,7 @@ class ActorGrant(Contract):
     roles: tuple[ID, ...]
     team_ids: tuple[ID, ...]
     repository_ids: tuple[ID, ...]
+    allow_any_repository: bool = False
     issued_at: Timestamp
     expires_at: Timestamp
     enabled: bool
@@ -228,7 +229,7 @@ class Authority:
         repositories = {w.repository_id for w in specification.work_items if w.repository_id}
         if specification.repository_context:
             repositories.add(specification.repository_context.repository_id)
-        if not repositories <= set(grant.repository_ids):
+        if not grant.allow_any_repository and not repositories <= set(grant.repository_ids):
             raise PolicyError("repository outside grant")
 
     def validate_dispatch(

@@ -13,3 +13,4 @@
 - [011: Native Linear publication and encrypted OAuth](011-native-linear-publication.md)
 - [012: Signed public handoff and independent reference intake](012-signed-public-handoff.md)
 - [013: Protected operational artifacts and honest evaluation](013-operational-artifacts-and-evaluation.md)
+- [014: Explicit local operator and bounded Anthropic pilot](014-local-anthropic-pilot.md)

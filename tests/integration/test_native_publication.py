@@ -16,9 +16,11 @@ from agentic_product_ops.adapters.linear.native_plan import (
     build_native_plan,
 )
 from agentic_product_ops.adapters.persistence.encryption import StorageEncryption
-from agentic_product_ops.adapters.persistence.store import Store, engine, metadata
+from agentic_product_ops.adapters.persistence.store import Missing, Store, engine, metadata
 from agentic_product_ops.api.app import TestAuthenticator, create_app
 from agentic_product_ops.domain.contracts import SpecificationApproval, WorkSpecification
+from agentic_product_ops.pilot.config import PilotSettings
+from agentic_product_ops.pilot.runtime import PilotRuntime
 from agentic_product_ops.policies.validation import PolicyError, ServerPolicy
 from agentic_product_ops.services.authority import ActorGrant, Authority
 from agentic_product_ops.services.durable_analysis import analyze_specification
@@ -252,3 +254,40 @@ def test_native_relation_budget_and_scope_digest(reviewed):
         build_native_plan(spec, ServerPolicy(max_mutations=len(spec.work_items)), plan.scope)
     changed = plan.scope.model_copy(update={"actor_id": uuid4()})
     assert build_native_plan(spec, ServerPolicy(), changed).content_digest != plan.content_digest
+
+
+def test_pilot_assembly_disabled_then_unknown_reconciliation(reviewed, monkeypatch, tmp_path):
+    store, authority, spec, plan, _, tick = reviewed
+    credential = tmp_path / "linear.env"
+    credential.write_text("LINEAR_API_KEY=mock-only\n", encoding="utf-8")
+    runtime = PilotRuntime.__new__(PilotRuntime)
+    runtime.store, runtime.authority, runtime.policy = store, authority, ServerPolicy()
+    runtime.settings = PilotSettings(
+        workspace="offline-workspace",
+        subject="person",
+        database_url="postgresql+psycopg://postgres@127.0.0.1/product_ops_pilot",
+        linear_scope=plan.scope,
+        linear_key_file=str(credential),
+        anthropic_key_file=str(tmp_path / "unused.env"),
+        spend_authorization="mock-only",
+        maximum_spend="10",
+    )
+    recording = LinearRecording(plan, authority, tick, "timeout")
+
+    def factory(*args, **kwargs):
+        assert kwargs["token_kind"] == "api_key" and kwargs["allow_mutations"]  # noqa: S105
+        return adapter(plan, recording)
+
+    monkeypatch.setattr("agentic_product_ops.pilot.runtime.NativeGraphQLAdapter", factory)
+    actor = authority.resolve_subject("person")
+    with pytest.raises(PolicyError, match="not enabled"):
+        runtime.publish(str(spec.specification_id), actor, "pilot-publish")
+    assert not recording.queries
+    runtime.settings = runtime.settings.model_copy(update={"allow_publication": True})
+    first = runtime.publish(str(spec.specification_id), actor, "pilot-publish")
+    assert not first["complete"]
+    with pytest.raises(Missing):
+        store.get("offline-workspace", "publication", str(spec.specification_id))
+    recovered = runtime.publish(str(spec.specification_id), actor, "pilot-publish")
+    assert recovered["complete"] and len(recording.mutations) == len(plan.operations)
+    assert runtime.publish(str(spec.specification_id), actor, "pilot-publish") == recovered

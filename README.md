@@ -2,7 +2,7 @@
 
 Agentic Product Ops is a governed AI-assisted requirements and work-decomposition system. It converts ambiguous product requests into evidence-linked requirements, unresolved questions, acceptance criteria, and proposed Linear work items. Humans approve the exact specification before any external write. Approved work can then be handed to Agentic Delivery OS for controlled implementation and independent verification.
 
-**Current version: 0.4.0, offline engineering foundation; MVP acceptance is incomplete.** Executable components include strict domain/governance contracts, reviewed clarification revisions, durable grants/revocation, bounded repository reads, Responses/OAuth/native Linear adapters tested with mock transport, signed handoff and an independent reference consumer. PostgreSQL, Temporal, pinned containers and backup/restore are exercised locally. No paid inference, live Linear publication or actual Delivery OS intake has occurred.
+**Current version: 0.5.0, local Anthropic pilot; MVP acceptance is incomplete.** The offline foundation remains available. The local pilot adds explicit operator identity, ticket-selected repositories, encrypted PostgreSQL, Temporal, bounded Anthropic calls and a durable aggregate spending allowance. A six-call `claude-opus-5-5` smoke reached a reviewed proposal after two preserved failures, and read-only Linear API-key discovery succeeded. No human approval, live Linear write or actual Delivery OS intake occurred. See [pilot setup](docs/local-pilot.md), [evidence](docs/v05-validation-record.md) and [exact limitations](docs/implementation-status.md).
 
 Product Ops defines and governs approved work. Delivery OS executes approved work. They share a versioned public artifact contract, never a database or internal persistence models.
 
@@ -22,7 +22,7 @@ python -m uv run product-ops inspect-repository --root . --repository-id product
 python -m uv run product-ops roles-demo --input examples/feature-request.md --repository-root . --repository-id product-ops
 ```
 
-The ambiguous draft emits `AWAITING_CLARIFICATION` and exits 2. An unrecognized input also stops for clarification. The demo uses the low-risk documentation fixture, validates simulated approval, suppresses duplicate fake writes, and exports a digested handoff. No command performs a live external write.
+The ambiguous offline draft emits `AWAITING_CLARIFICATION` and exits 2. An unrecognized offline input also stops for clarification. The offline demo uses the low-risk documentation fixture, validates simulated approval, suppresses duplicate fake writes, and exports a digested handoff. These commands make no live external write. `product-ops-pilot` is a separate explicitly configured command path; its paid-execution and publication flags default off.
 
 ```sh
 python -m uv run ruff check .
@@ -39,7 +39,7 @@ python -m uv run pip-audit -r out/requirements.txt --disable-pip --no-deps
 
 Or run every local gate with `python -m uv run python scripts/verify.py`. This also verifies unchanged fixture/schema regeneration and byte-identical sdist/wheel builds. Use a fresh demo output directory for each run; existing evidence files are never silently replaced.
 
-Default tests need no services or credentials; five service-dependent tests skip unless explicitly configured. See [current validation and runtime commands](docs/v04-validation-record.md) for real PostgreSQL/Temporal checks. Dependency installation and vulnerability auditing use public registries, not paid model APIs. The API defaults to deny-all and reports unready; it has no UI or live publication path.
+Default tests need no services or credentials; five service-dependent tests skip unless explicitly configured. See [current validation and runtime commands](docs/v05-validation-record.md) for real PostgreSQL/Temporal checks. Dependency installation and vulnerability auditing use public registries, not paid model APIs. The default API denies all identities and reports unready; the local pilot explicitly supplies its operator and guarded publication handler. There is no UI.
 
 ## Read the design
 
@@ -52,6 +52,7 @@ Default tests need no services or credentials; five service-dependent tests skip
 - [Remaining implementation steps](docs/remaining-work.md), [local runtime commands and results](docs/offline-expansion.md)
 - [Current verification and exact commands](docs/v04-validation-record.md), [offline case study](docs/offline-case-study.md)
 - [Completed engineering checklist](docs/offline-completion-plan.md)
+- [Local pilot runbook](docs/local-pilot.md), [independent evaluation kit](docs/independent-evaluation-kit.md)
 - [Contributing](CONTRIBUTING.md)
 
-The foundation validates structure and objective invariants, not semantic correctness. Lexical risk rules are a conservative floor, not a complete classifier. Hashes prove byte integrity; signed v2 handoffs additionally require pinned issuer keys and an expected digest. Unknown outcomes stop publication; they never trigger blind retries. Hosted CI, live providers, actual Delivery OS consumption, and human value remain unverified until separately exercised.
+The foundation validates structure and objective invariants, not semantic correctness. Lexical risk rules are a conservative floor, not a complete classifier. Hashes prove byte integrity; signed v2 handoffs additionally require pinned issuer keys and an expected digest. Unknown outcomes stop publication; they never trigger blind retries. The model smoke is engineering evidence. Hosted CI, live publication, actual Delivery OS consumption, independent semantic quality and human value remain unverified.

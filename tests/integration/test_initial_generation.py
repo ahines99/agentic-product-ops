@@ -25,7 +25,10 @@ from agentic_product_ops.workflows.governance import GovernanceInput
 
 
 @pytest.mark.parametrize("ambiguous", [False, True])
-def test_transport_to_durable_proposal_or_clarification(tmp_path, valid, ambiguous):
+@pytest.mark.parametrize("invalid_provenance", [False, True])
+def test_transport_to_durable_proposal_or_clarification(
+    tmp_path, valid, ambiguous, invalid_provenance
+):
     source = valid.source_statements[0].text + "\nThis is a new request."
     seed, _ = draft(source)
     body = seed.model_dump(mode="json")
@@ -50,7 +53,14 @@ def test_transport_to_durable_proposal_or_clarification(tmp_path, valid, ambiguo
                 source_digest=seed.source_digest,
                 objective=valid.objective,
                 source_statements=seed.source_statements,
-                requirements=valid.requirements,
+                requirements=(
+                    tuple(
+                        r.model_copy(update={"source_refs": ("missing-source",)})
+                        for r in valid.requirements
+                    )
+                    if invalid_provenance
+                    else valid.requirements
+                ),
                 unresolved_questions=seed.unresolved_questions if ambiguous else (),
             )
         elif role == "work_decomposer":
@@ -109,6 +119,25 @@ def test_transport_to_durable_proposal_or_clarification(tmp_path, valid, ambiguo
         provider,
         initial=True,
     )
+    if invalid_provenance:
+        assert result.state == "REVISION_REQUIRED" and result.reason == "composed_schema_gate"
+        with database.connect() as conn:
+            assert (
+                conn.execute(select(artifacts).where(artifacts.c.kind == "revision_result")).first()
+                is not None
+            )
+        replay = revise_specification(
+            store,
+            str(seed.specification_id),
+            seed.content_digest,
+            ServerPolicy(),
+            config,
+            provider,
+            initial=True,
+        )
+        assert replay == result and len(roles) == (1 if ambiguous else 2)
+        database.dispose()
+        return
     assert result.state == ("AWAITING_CLARIFICATION" if ambiguous else "PROPOSED")
     candidate = result.specification
     assert candidate.revision == 2 and candidate.specification_id == seed.specification_id

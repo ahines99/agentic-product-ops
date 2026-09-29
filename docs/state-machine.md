@@ -1,5 +1,7 @@
 # State machine
 
+The local pilot's explicit operator risk reassessment creates a new immutable revision, passes the risk floor and a fresh separate review, then awaits a new approval. It does not transition an existing approval into authority for changed content. Completed model outputs rejected by composition are persisted as `REVISION_REQUIRED`; uncertain/incomplete calls remain held without automatic replay. See [ADR-014](adr/014-local-anthropic-pilot.md).
+
 ```mermaid
 stateDiagram-v2
     RECEIVED --> NORMALIZED

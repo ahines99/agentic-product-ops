@@ -122,6 +122,12 @@ def main() -> None:
         subprocess.run(
             [str(entrypoint), "--help"], cwd=scratch, env=env, check=True, capture_output=True
         )
+        pilot_entrypoint = target / (
+            "Scripts/product-ops-pilot.exe" if os.name == "nt" else "bin/product-ops-pilot"
+        )
+        subprocess.run(
+            [str(pilot_entrypoint), "--help"], cwd=scratch, env=env, check=True, capture_output=True
+        )
         for name, expected in (("feature-request.md", 0), ("ambiguous-request.md", 2)):
             source = scratch / name
             source.write_bytes((ROOT / "examples" / name).read_bytes())

@@ -34,10 +34,10 @@ class GitHubReader:
     ):
         if transport is not None and not isinstance(transport, httpx.MockTransport):
             raise ValueError("only in-memory mocks may bypass network authorization")
-        if transport is None and (
-            not allow_network or token is None or not token.get_secret_value()
-        ):
-            raise ValueError("explicit read authorization and credential required")
+        if transport is None and not allow_network:
+            raise ValueError("explicit read authorization required")
+        if token is not None and not token.get_secret_value():
+            raise ValueError("empty GitHub credential")
         if any(
             not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", value)
             for value in repositories.values()

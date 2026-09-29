@@ -28,7 +28,8 @@ def main() -> None:
             "--no-verify",
             "--exclude-lines",
             r'^\s*"(?:source_digest|content_digest|artifact_digest|corpus_digest|'
-            r'specification_digest|input_digest|output_digest|result_digest|digest)": '
+            r"specification_digest|input_digest|output_digest|result_digest|execution_digest|"
+            r'plan_digest|digest)": '
             r'"[a-f0-9]{64}",?\s*$',
             *paths,
         ],
