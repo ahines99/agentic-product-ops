@@ -1,6 +1,6 @@
 # Linear integration
 
-M0 implements a deterministic LinearPublicationPlan and an in-memory fake provider. It does not contain OAuth configuration, a GraphQL HTTP client, live credentials, actual Linear IDs, webhook endpoints, or a hosted MCP publication path. IDs beginning `FAKE-` are simulation evidence only.
+Version 0.2 retains the deterministic LinearPublicationPlan and in-memory demo, and adds a durable simulation plus a mock-only GraphQL issue-create adapter. The adapter requires MockTransport and rejects real networking. OAuth, live credentials, actual Linear IDs, webhooks and hosted MCP publication are absent. IDs beginning `FAKE-` are simulation evidence only.
 
 ## Planned production adapter
 
@@ -21,6 +21,8 @@ Logical operation identity is the canonical digest of `[specification_id, revisi
 The harness records UNKNOWN before fake dispatch. A simulated lost response can leave an object created remotely. It stops subsequent operations and reconciles on another command by exact operation identity and complete content equality. Unavailable, absent, or conflicting lookup data leaves UNKNOWN and never causes a second create. No authoritative nonexistence retry is implemented.
 
 Production must transactionally persist intent, attempts, authorization snapshot, bounded request body, provider timestamps, and reconciliation records; use unique constraints and dispatch leases across workers. Recheck approval with a real clock before every external write. A cancellation accepted after a write is in flight cannot guarantee remote rollback. Tests against a fake do not establish real Linear exactly-once semantics.
+
+The new durable harness exercises stored request/intent/evidence, unique keys, row-locked reservation, an advancing approval clock, persisted cancellation and restart recovery. UNKNOWN is committed before a fake call. Repeated successful calls return stored evidence; uncertain calls only reconcile. PostgreSQL tests exercise concurrent command and fake-publication submissions; the restart/fault harness uses a SQLite test double. Neither proves live provider behavior. API publication remains disabled. The mock GraphQL adapter tests explicit variables, bounded response parsing and exact team/title/body equality without retries.
 
 ## Webhooks and MCP
 

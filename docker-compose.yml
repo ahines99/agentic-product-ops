@@ -1,0 +1,31 @@
+# Development infrastructure only. No production identity or external-write capability is configured.
+services:
+  postgres:
+    image: postgres:17.11
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: product_ops_test
+    ports:
+      - "127.0.0.1:18432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d product_ops_test"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+    volumes:
+      - product-ops-postgres:/var/lib/postgresql/data
+  temporal:
+    image: temporalio/temporal:1.9.1
+    command: ["server", "start-dev", "--ip", "0.0.0.0", "--headless", "--db-filename", "/data/history.db"]
+    ports:
+      - "127.0.0.1:18233:7233"
+    volumes:
+      - product-ops-temporal:/data
+  api:
+    build: .
+    ports:
+      - "127.0.0.1:18000:8000"
+    # Factory defaults deny all identities and reports unready, until explicit deployment wiring.
+volumes:
+  product-ops-postgres:
+  product-ops-temporal:

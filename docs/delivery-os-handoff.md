@@ -2,6 +2,8 @@
 
 Product Ops defines and governs work. Delivery OS plans, builds, tests, reviews implementation, and produces PR evidence. Product Ops never marks implementation complete; Delivery OS must not invent answers to unresolved product questions. No shared database or import of Delivery OS persistence classes is permitted.
 
+Version 0.2 includes a read-only compatibility review of the adjacent Delivery OS public model. It lacks Product Ops exact-digest intake. [ADR-008](adr/008-delivery-consumer-compatibility.md) records the inspected revision and required consumer adapter; no sibling code was run or changed. All handoffs here remain offline simulation, and M5 remains incomplete.
+
 ## Version 1 artifact
 
 [Handoff JSON Schema](../evals/schemas/Handoff.schema.json) defines an independently serializable envelope: schema version, explicit `offline_simulation` mode, the exact nested WorkSpecification, approval, publication plan, publication evidence, and artifact digest. The specification has its own content digest; operations and plan have their own digests. Handoff verification checks nested integrity and approval/specification/publication binding. The mode cannot be changed to claim a live handoff.

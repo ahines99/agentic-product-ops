@@ -1,68 +1,40 @@
 # Implementation status
 
-Status: M0 offline foundation. Updated 2026-09-28. MVP and portfolio release are **not complete**.
+Updated 2026-09-28, version 0.2.0. M0 foundation plus an offline service expansion. **MVP, M1 exit, and portfolio release are not complete.** The original [M0 validation record](m0-validation-record.md) is historical; this document is authoritative for the current tree.
 
-## Executable today
+## Executable capabilities and evidence
 
-- Strict version-1 WorkSpecification, intake, source/provenance, unresolved question, assumption, repository evidence, risk, acceptance criteria, work item, approval, audit, plan, operation evidence, and handoff contracts.
-- Immutable nested values, source/content/plan/request/artifact digests, exact source excerpts, references, coverage, scope, and DAG validation.
-- Conservative lexical risk floor, material ambiguity and inferred-behavior gates, duplicate-title checks, deterministic lifecycle transitions with unavailable authenticated paths denied.
-- Content-bound approval validation with actor/scope/policy/time/count checks using explicit simulated identity and clock.
-- `draft`, `validate`, `demo`, and `verify-handoff` CLI commands; exact fixture lookup and clarification fallback.
-- In-memory fake publication with stable operation keys, duplicate suppression, request-digest conflict detection, lost-response UNKNOWN/reconciliation, and cancellation.
-- Versioned, digested offline handoff and exact-spec verification; default risk-tier restriction.
-- Frozen 15-case routing corpus, preserved first report, adversarial/contract/integration tests, reproducible fixture/schema generation, CI definitions and developer checks.
+| Area | Implemented and exercised | Boundary |
+| --- | --- | --- |
+| Domain and policy | Strict immutable WorkSpecification, provenance, DAG, risk, ambiguity, approval, digest and scope checks | Objective constraints cannot prove semantic truth |
+| Three model roles | Provider-neutral interface, separate contexts, strict structured results, findings, usage/cost receipts, cancellation and budget guards | Scripted recordings only; no actual inference or spend |
+| Repository context | Bounded local reader, AST metadata/search, snapshot digest pinning, secret/injection fixtures | Read-only working tree; metadata is advisory, not semantic grounding |
+| GitHub | Commit/blob identity and bounded mock API reads | MockTransport only; no live GitHub reads or authentication |
+| API | Bounded FastAPI commands, server-assigned identity, tenant scope, idempotency, immutable clarifications and decisions | Explicit test identity only; default denies all; readiness and publication return 503 |
+| PostgreSQL | SQLAlchemy/Alembic, immutable artifact/command/audit triggers, unique command keys, transactional outbox | Real PostgreSQL 17.11 local tests; no production deployment |
+| Temporal | Durable approval wait, receipt verification, worker restart, history replay, expiry, cancellation and outbox recovery | Real local Temporal; model/revision/publication activities not connected |
+| Publication | In-memory demo plus durable simulation, reservation-before-dispatch, advancing clock, restart reconciliation, cancellation | Fake Linear only; GraphQL adapter rejects real network transports |
+| Handoff | Versioned exact-spec artifact, nested digests, approval binding and tier gate | Unsigned simulation; no actual Delivery OS consumer |
+| Evaluation | Original 15-case report retained; expanded 45-case frozen routing report | Same-context authoring, zero model calls; not independent semantic evaluation |
+| Packaging/CI | Lock, lint, formatting, strict typing, tests, docs, secret/audit checks, reproducible builds, clean-wheel smoke | Local evidence only; hosted Actions and Docker not exercised |
 
-## Evidence categories
+Current validation commands and local infrastructure evidence are in [offline expansion](offline-expansion.md). An entirely green suite does not satisfy milestone exits in the [ordered backlog](backlog.md).
 
-| Category | Status |
-| --- | --- |
-| Implemented | Offline foundation listed above |
-| Tested locally | See local validation record below |
-| Hosted GitHub Actions | Configured; not run or claimed |
-| Real PostgreSQL/Temporal | Not implemented or tested |
-| Live Linear | No credentials, API calls, or tickets created |
-| Live model | No calls or spend; fixture routing only |
-| Real repository grounding | No reader or repository snapshot inspected |
-| Actual Delivery OS consumption | Not exercised; only in-repository consumer-format verification |
-| External use / independent human validation | None |
-| Production accepted | No |
-
-## Local validation record
-
-Final local verification used Windows, CPython 3.12.10 and 3.13.15, and the checked-in uv lock. `python -m uv run python scripts/verify.py` passed on both environments:
-
-| Check | Result |
-| --- | --- |
-| Lock consistency | Pass; runtime, development and build dependencies locked |
-| Ruff lint / formatting | Pass |
-| mypy strict | Pass |
-| pytest | 78 passed on each Python version; combined statement/branch coverage rounded to 90% |
-| Frozen routing evaluation | 15/15 expected outcomes; zero model/provider calls; same-context authorship |
-| Fixture/schema/corpus regeneration | Unchanged bytes |
-| Repeated package builds | Wheel and sdist each byte-identical across two builds with fixed SOURCE_DATE_EPOCH |
-| Clean wheel | Fresh venv outside checkout, locked hashed dependencies, console entry point, valid/ambiguous draft, demo and handoff verification pass on both Python versions |
-| Docs links | 19 Markdown documents checked; local targets/anchors pass; external URLs not fetched by checker |
-| Secret scan | Pass across all repository-owned nonignored files; default detectors, reviewed digest-line exception, no network verification |
-| Dependency audit | No known vulnerabilities reported for exported locked runtime/development/build dependencies |
-| Hosted CI | Definition provided for Linux/Python 3.12 and 3.13; no hosted run claimed |
-
-During development, initial failures were missing README build metadata, syntax/format/type errors, overly broad scanner traversal/default worker count, missing uv on PATH for isolated installation, and an unavailable cached Python 3.13 dependency wheel. The final scanner is bounded to repository files and one worker. Smoke setup permits registry downloads of hash-locked dependencies; the application exercises remain offline. Strict literal validation was tightened to reject boolean/integer coercion. The 15-case first evaluation report is preserved unchanged. Development/tooling errors are not represented as model-evaluation failures.
+Final local result: 109 default tests passed on each of Python 3.12.10 and 3.13.15, with four explicit service-test skips. All four service tests passed separately against local PostgreSQL/Temporal on Python 3.12. Lock, lint, formatting, typing, docs, secrets, dependency audit, reproducible builds and clean-wheel checks passed. Hosted CI and Docker were not run. TestClient emits one known unsuppressed deprecation warning.
 
 ## Exact known limitations
 
-1. The CLI performs no general natural-language analysis. Only three exact source digests match authored fixtures; unknown text stops at clarification. Line-ending and whitespace changes intentionally count as changed input.
-2. There is no model provider interface, analyst/decomposer/reviewer execution, independent semantic review, clarification authentication, cost receipt service, or model outage/budget lifecycle.
-3. Risk checks are lexical floors with possible false positives and missed paraphrases. Matching source IDs does not prove semantic support; duplicate detection recognizes normalized titles, not semantic overlap.
-4. RepositoryContext is a schema and synthetic security test only. No local/GitHub adapter, pinned snapshot verification, AST discovery, retrieval, or secret-safe repository ingestion exists.
-5. No FastAPI, authenticated identity, OAuth, database, migrations, Temporal, durable audit, distributed locking, webhooks, or production observability is implemented. Their intended state ownership remains unchanged.
-6. Fake publication is single-process in-memory. It loses state on restart and has no concurrency or real provider exactly-once guarantee. The simulation clock does not advance during a batch. Production lifecycle publication transitions are disabled.
-7. No real Linear objects, native relationships, project provisioning, or team metadata have been tested. Approved generation is fixed at 1. UNKNOWN never retries creation without proof; operator resolution is planned.
-8. Handoff is explicitly offline, digested but unsigned. Hashes do not authenticate a human, issuer, or source. Consumer parsing is within this repository, not Delivery OS; real revision invalidation is planned.
-9. CLI demo files use exclusive creation but multi-file export is not transactional or a tamper-proof store. Trusted output paths are operator-selected. File bounds/symlink checks are best-effort local hygiene, not a hostile-filesystem sandbox.
-10. Corpus authoring is same-context; 15 routing cases are not the required 40+ independently authored release corpus. Semantic quality, human usefulness/savings, real latency/cost, external use, and production acceptance are unmeasured.
-11. Python 3.12 and 3.13 are supported; 3.14 is intentionally excluded pending compatibility checks. Default CI requires dependency downloads/audit network access, but no paid API or credentials.
+1. General natural-language extraction is absent. The CLI uses authored fixture responses; unknown requests stop for clarification. Separate role contexts are implemented but do not establish independently authored reasoning or semantic quality.
+2. Model budgets reserve a conservative local estimate; they are not measured billing. There is no live provider adapter, provider tokenizer, live timeout policy, or automatic persistence of role receipts through Temporal. No model/API money was spent.
+3. Local snapshots expose static names/imports/tests and file digests, not raw document/configuration bodies. Relevance and dynamic call edges remain unknown. Secret detection is heuristic; path/file checks are not a hostile-filesystem sandbox. GitHub has a mock-only adapter.
+4. API authentication is a test implementation and default-deny boundary. No OIDC/OAuth, production credential management, tenant provisioning, or real human identity verification exists. Publish stays disabled even after test approval; readiness deliberately reports incomplete integration.
+5. Clarification creates an immutable new revision and requires reanalysis; it never automatically clears the approval gate. The Temporal workflow handles proposal holds and approval decisions, not the complete target state graph, resumed clarification loop, model activities, publication, or handoff activities. HTTP cancellation/revocation endpoints are not implemented.
+6. PostgreSQL owns records; Temporal owns workflow history. SQLite is explicitly a test double. Runtime tests use a disposable loopback PostgreSQL and local Temporal development server, not a production cluster. Docker/Compose is provided but untested here; image tags are pinned, image digests are not.
+7. Durable publication is simulation-only. UNKNOWN survives restart and cannot blindly recreate; cancellation stops future reservations but cannot roll back an already reserved in-flight call. No OAuth, live reconciliation, native Linear dependency/project mapping, provider-wide exactly-once guarantee, or webhook service exists.
+8. Handoffs are unsigned offline artifacts. Hashes do not authenticate their issuer. Read-only inspection of the adjacent Delivery OS public model found no digest-verifying intake; no sibling code was imported, executed, or modified. See [ADR-008](adr/008-delivery-consumer-compatibility.md).
+9. Forty-five routing cases do not satisfy the separately authored 40+ semantic release corpus. Requirements quality, false resolution, human usefulness/time savings, paid-model latency/cost, external usage, and production acceptance remain unmeasured.
+10. Audit records are durable, bounded metadata; production tracing/export, retention policy, key rotation and real revocation are not implemented. CLI exports are exclusive-create files, not transactional multi-file storage. Risk is a lexical floor; matching references and normalized titles do not prove truth or semantic uniqueness.
 
 ## Next milestone
 
-M1: provider-neutral structured requirements/ambiguity analysis, separate independent-review context, authenticated clarification and approval receipts, decimal usage/cost accounting, and a frozen separately authored corpus. Add PostgreSQL/Temporal/ingress through I01–I05 before making durable service claims. See [ordered backlog](backlog.md) for exact acceptance criteria.
+Complete M1 service acceptance: connect persisted role runs and bounded reanalysis to Temporal, add a production identity/provider boundary, and obtain a separately authored adjudicated requirements/ambiguity corpus. Only then evaluate real inference with explicitly authorized credentials/budget. Linear and Delivery OS integration remain separate M4/M5 gates; initialization has not authorized live writes.

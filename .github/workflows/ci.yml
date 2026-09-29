@@ -34,5 +34,37 @@ jobs:
       - run: uv export --locked --no-emit-project --quiet --output-file out/requirements.txt
       - run: uv run pip-audit -r out/requirements.txt --disable-pip --no-deps
       - run: uv run python scripts/evaluate.py --output out/ci-evaluation.json
-      # No DB yet: migration check begins with the M1 persistence implementation.
+      # Real migration/workflow checks run in the isolated local-services job below.
       # No credentials, model calls, or live Linear execution in this workflow.
+  local-services:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.11
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: product_ops_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d product_ops_test"
+          --health-interval 2s --health-timeout 2s --health-retries 20
+    env:
+      PRODUCT_OPS_TEST_DATABASE_URL: postgresql+psycopg://postgres@127.0.0.1:5432/product_ops_test
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff
+        with:
+          version: '0.12.18'
+          python-version: '3.12'
+      - run: uv sync --locked --python 3.12
+      - run: uv run pytest tests/runtime/test_postgres.py --no-cov -q
+      - name: Verify and extract pinned Temporal CLI
+        run: |
+          mkdir -p out/temporal-cli
+          cd out/temporal-cli
+          curl --fail --location --silent --show-error --output temporal.tar.gz https://github.com/temporalio/cli/releases/download/v1.9.1/temporal_cli_1.9.1_linux_amd64.tar.gz
+          curl --fail --location --silent --show-error --output checksums.txt https://github.com/temporalio/cli/releases/download/v1.9.1/checksums.txt
+          mv temporal.tar.gz temporal_cli_1.9.1_linux_amd64.tar.gz
+          grep '  temporal_cli_1.9.1_linux_amd64.tar.gz$' checksums.txt | sha256sum --check
+          tar -xzf temporal_cli_1.9.1_linux_amd64.tar.gz
+      - run: uv run python scripts/runtime_checks.py --temporal-cli out/temporal-cli/temporal

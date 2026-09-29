@@ -1,0 +1,382 @@
+{
+  "schema_version": "1",
+  "mode": "offline_routing_regression",
+  "corpus_digest": "be2ce3f4b0d2d51b6c8bf8bd46ef24b9d1d197ae12dff7af69af4f05f59aca80",
+  "case_count": 45,
+  "passed": 45,
+  "results": [
+    {
+      "id": "M0-01",
+      "expected": "PROPOSED",
+      "actual": "PROPOSED",
+      "passed": true,
+      "blocking_questions": 0,
+      "specification_digest": "6bc98ad405ca71f9cd620c0814c0f20a05120d7d3d55730eb2300bca5de3f855"
+    },
+    {
+      "id": "M0-02",
+      "expected": "PROPOSED",
+      "actual": "PROPOSED",
+      "passed": true,
+      "blocking_questions": 0,
+      "specification_digest": "42997b1e601bda7a40c3da320494d086c1a2e5ee44a81f5e8c2bcb22881f065d"
+    },
+    {
+      "id": "M0-03",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 5,
+      "specification_digest": "c030b97ef6f2971689795ae2fbc7c6d9eba4583c10d2d53debefbde8768f056a"
+    },
+    {
+      "id": "M0-04",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "5840e60b660618d6e2bf3a3855e30877a90428a4fc16ad8ead61ac97dedcaf19"
+    },
+    {
+      "id": "M0-05",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "46935920b1e534186d553dd8a71b602bb8422867c590694e091d8f20a18e3834"
+    },
+    {
+      "id": "M0-06",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "a8f353c6c1140d442b5b197a42d0ca491245e9af77585da5a73b89b1bc365cba"
+    },
+    {
+      "id": "M0-07",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "16e8248e63175d798271c5ba74315505226b659dcaf22515b7b612c1c7f91c1f"
+    },
+    {
+      "id": "M0-08",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "2f08f9368f73126b9729bf760bc036e303cebf2a5f6d5b07d886b20cf5ceaba7"
+    },
+    {
+      "id": "M0-09",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "5dbfd96ed49f768f9548c6724c463196e4824b5530e4630931fc62aee26ef48c"
+    },
+    {
+      "id": "M0-10",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "021063a55a7094385f2c4b256e30bbf6db51329d43eeccc78be2f1f9496b0283"
+    },
+    {
+      "id": "M0-11",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "14c1dcd523e66550900ffe1cc90b264c9e53d59dab5ca354565df5db122cfc24"
+    },
+    {
+      "id": "M0-12",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "13c682100c8976f343b06a03890d0f80b4e96cc7fb02c05428bd5738525503b7"
+    },
+    {
+      "id": "M0-13",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "775464dfc2ac1598e9af51007b7761e4fa1d926bfddcb8f135afbf19780b0f79"
+    },
+    {
+      "id": "M0-14",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "e4c24a64a1a78239d1cd2be77353a7fbe93303d0c68d15b651391289ef2815b5"
+    },
+    {
+      "id": "M0-15",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "e3c043187725ea7ba4a49875960321825af2b0bcbf22090502c69142fd0f57eb"
+    },
+    {
+      "id": "M1-01",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "dd37f84c5dcc4d20bf778251f727dd17c3b342885187237ea58c3f2c73a69227"
+    },
+    {
+      "id": "M1-02",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "b8ce0bbd2b0121d90505b5254753b83f6c6ebaee9f8f2299efd04e699eff1a5f"
+    },
+    {
+      "id": "M1-03",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "8ba3ac808605eb88ebcaac6a38ed1fc58d1f08d77d15d81bcdd9ce4bc3c11353"
+    },
+    {
+      "id": "M1-04",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "7d0ebc5114abdd16cc7693b38199940439e6fc27032e4728b77a34f888a4f5ef"
+    },
+    {
+      "id": "M1-05",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "a410306053d4b13328efa1a974c2205aef56f303dafe89faa29165231d19d878"
+    },
+    {
+      "id": "M1-06",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "c2c5bdd61aa894151d3d24e4fc30aaf766bbf5e2998b19fa9bbf965d827f004f"
+    },
+    {
+      "id": "M1-07",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "59fe9f73ce6b90735a1474188571350d17c6f1f9d2960c101002ce347ebe8579"
+    },
+    {
+      "id": "M1-08",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "b6140adc0864a536a87eb7f848e79ae5e2bfa6a1f26e8a0bb6b124d3a1e4f739"
+    },
+    {
+      "id": "M1-09",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "29f90dad8648fc38ea22fabbb33f44ca620eebcf3a874c16da5c8c1f8fe87eb1"
+    },
+    {
+      "id": "M1-10",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "5125bb4ffb58c40ff5b856b7aedd9626cf1b1582af2a4de78ddfd752d27f2512"
+    },
+    {
+      "id": "M1-11",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "88753e4ab1790722cb27f3c3e2307eb21b8597cf15a0d3be7014d187a36af06b"
+    },
+    {
+      "id": "M1-12",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "d713b56386874e6476e4b1b787aa5ab8f0da0f45ab494c403ecb31fd2b271439"
+    },
+    {
+      "id": "M1-13",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "883f9ba4e2727e00c11352f11fdeb3fe3d8543611d9ee62090c00e8c9b487b07"
+    },
+    {
+      "id": "M1-14",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "83c6a607488210dc8602d7773ee0a56b5370a70ec7c60236035bae0490b559de"
+    },
+    {
+      "id": "M1-15",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "9c2576e2932324303c8d16b6488fdd29a6d7bc1d5571af4508c58e3a4a97a588"
+    },
+    {
+      "id": "M1-16",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "9738c4064e10dabffcb6eb26320a993f65af349ef4191fe52fc0c301e17f39b1"
+    },
+    {
+      "id": "M1-17",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "c2430781b045cb4eeb62df434c4a40e78d6e584aec05bf57832e9bf3e14535e9"
+    },
+    {
+      "id": "M1-18",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "6339163ddbe5ac4e6e40ea7b492eddac49f51673ddbb3759e4d249ce66ada885"
+    },
+    {
+      "id": "M1-19",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "eabad20ac1c1179057abf6b3d839a737b3ad9f2c6f5fb3a52aa444453ce351ce"
+    },
+    {
+      "id": "M1-20",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "8d84916557f713636d0b1c75e41257365f140c622a1479c27ebf9feb6ea00fbe"
+    },
+    {
+      "id": "M1-21",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "a56140394bbb71870a96366325c194eee46fb3f4eaca9429c02db33a0fb4a6a5"
+    },
+    {
+      "id": "M1-22",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "ddef6b65c70343854f0c6609fcd12783bcdc43ac767444f455c523c717d588cd"
+    },
+    {
+      "id": "M1-23",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "3ec46fe28a89d6896c96fe2560a13164e22e816ef32b770afcff44ee78e25f90"
+    },
+    {
+      "id": "M1-24",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "a6230c0ce76736f2e0ba699e1ebec7b930323e8fec9717d3d9bd87a3e24f3d72"
+    },
+    {
+      "id": "M1-25",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "24e7a6eebd70f4d5b17d43ca2c7edbafb60fe94cb36adcaa93b5faeb62fe5b0c"
+    },
+    {
+      "id": "M1-26",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "b2ad9766b59386977a6f161a346e87fa2003e862e95eda6200d5dd969b3af699"
+    },
+    {
+      "id": "M1-27",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "2a40a8aa5e40a388d9da9852682a778e05b180f841b18a60c828febd1c6744e6"
+    },
+    {
+      "id": "M1-28",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "741ab2877e988b07682efdf1469f2ea3f3e4d7fa5382579e5467a11bbe62901a"
+    },
+    {
+      "id": "M1-29",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "ebef1c7a59013bc998ec5cce20018d90878c6a97dd0f8e345bbc74e5f4592156"
+    },
+    {
+      "id": "M1-30",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "d5300a40a22db21fc96737e426b094ffd3af3897067d7dfce2370c26ca761446"
+    }
+  ],
+  "model_calls": 0,
+  "provider_calls": 0,
+  "model_cost": "0",
+  "independent_authorship": false,
+  "human_validation": false,
+  "unmeasured": [
+    "extraction precision/recall",
+    "semantic ambiguity detection",
+    "ticket usefulness",
+    "repository grounding",
+    "human time savings",
+    "live latency/cost"
+  ]
+}

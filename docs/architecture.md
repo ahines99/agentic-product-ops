@@ -1,56 +1,59 @@
 # Architecture
 
-A modular monolith keeps product authority in deterministic code. Pydantic contracts are the only runtime dependency during M0. Adding unused FastAPI, PostgreSQL, Temporal, containers, or empty adapter directories would imply capabilities that do not exist; [ADR-001](adr/001-offline-foundation.md) defers those runtimes until executable milestones need them.
+Agentic Product Ops is a modular monolith. Models propose; deterministic code controls lifecycle, ambiguity, risk, authorization, team/repository scope, idempotency and writes. Product Ops defines approved work; Delivery OS executes it using its own persistence. [ADR-007](adr/007-offline-service-expansion.md) extends the original [M0 decision](adr/001-offline-foundation.md) with exercised service components.
 
 ```mermaid
 flowchart LR
-    Input[Untrusted intent] --> Draft[Offline fixture router]
-    Draft --> Contract[Strict WorkSpecification]
-    Contract --> Gates[Risk, ambiguity, scope, review checks]
-    Gates --> Plan[Deterministic publication plan]
-    Plan --> Approval[Simulated approval validation]
-    Approval --> Fake[In-memory fake Linear and fault harness]
-    Fake --> Artifact[Versioned digested offline handoff]
+    Source[Untrusted request] --> Fixture[Fixture or scripted role runner]
+    Repo[Bounded static repository metadata] --> Fixture
+    Fixture --> Spec[Strict WorkSpecification]
+    Spec --> Gates[Deterministic proposal gates]
+    API[Bounded API with test identity] --> PG[PostgreSQL immutable records and outbox]
+    Gates --> PG
+    PG --> Temporal[Temporal approval wait and receipt validation]
+    Spec --> Plan[Exact deterministic publication plan]
+    Plan --> Sim[Explicit fake publication harness]
+    Sim --> Handoff[Offline versioned handoff]
 ```
 
-The diagram shows executable M0 modules, not live infrastructure. Drafting returns an authored proposal or a clarification hold. Objective review checks are not an independent model reviewer. Fake publication and handoff are isolated simulation functions, never network adapters.
+These are executable components, not a claim that every arrow in the target product is connected. The API drafts from fixtures. The three-role pipeline is a separate CLI/test path. Temporal validates persisted proposals and approvals but does not call models or publish. A human identity provider and live Linear transport are absent; default ingress denies all. The offline handoff remains a separate simulation path.
 
-## Module responsibilities
+## Modules and state ownership
 
 | Module | Responsibility |
 | --- | --- |
-| `domain/contracts.py` | Strict schemas, source integrity, canonical digest, traceability and graph validation |
-| `policies/validation.py` | Server policy, risk floor, ambiguity/review gates, scope and approval binding |
-| `workflows/lifecycle.py` | Explicit transition graph and pure foundation guards |
-| `services/drafting.py` | Exact source digest lookup and fail-closed unknown-input fallback |
-| `adapters/linear/offline.py` | Deterministic bounded descriptions, operation identities, fake writes/reconciliation |
-| `adapters/artifacts/handoff.py` | Public handoff export and integrity verification |
-| `evaluation/harness.py` | Frozen corpus identity and objective routing outcomes |
-| `cli.py` | Bounded local file input, JSON output, simulated demo |
+| `domain/contracts.py` | Immutable schemas, canonical digest, traceability and graph validation |
+| `policies/validation.py` | Trusted policy, risk floor, ambiguity/review gates, scope and approval binding |
+| `adapters/model/` | Strict role contracts, independent contexts, recorded provider, usage/budget receipts |
+| `adapters/repository/` | Local static metadata, bounded search, digested snapshots and mock GitHub reader |
+| `api/app.py` | Commands, test authentication, idempotency and immutable revisions; default deny |
+| `adapters/persistence/store.py` | PostgreSQL immutable artifacts, commands, audits, outbox and publication intents |
+| `workflows/governance.py` | Temporal approval wait, signal receipt validation, cancellation and timeout |
+| `workflows/activities.py` | Database activities and replay-safe outbox dispatch/reconciliation |
+| `workflows/lifecycle.py` | Full target graph's pure transition validator; unavailable live transitions denied |
+| `services/publication.py` | Durable fake-provider reservation, authorization and reconciliation harness |
+| `adapters/linear/` | Canonical plan/rendering, in-memory fake, mock-only GraphQL transport |
+| `adapters/artifacts/handoff.py` | Public handoff export and independent deserialization/integrity verification |
+| `evaluation/harness.py` | Frozen routing corpus and report identity; no semantic claims |
 
-## Planned production design
+PostgreSQL stores immutable source/specification/clarification/approval records and audit metadata. Temporal owns durable workflow history and waits; a database row is not a second lifecycle authority. Commands and outbox jobs commit together. Duplicate starts reconcile against workflow identity; decision signals carry only a stored receipt ID, never an authoritative approval boolean. A completed matching receipt query reconciles a lost outbox acknowledgement. Database constraints and PostgreSQL triggers enforce immutability independently of application calls. Reads recheck artifact digests.
 
-FastAPI receives authenticated commands with idempotency keys; it never accepts arbitrary state patches. PostgreSQL stores immutable intakes, source artifacts, specification revisions, clarification receipts, agent runs, review findings, approvals, publication intent, observed Linear work items, handoff records, and append-only audits. Temporal owns durable lifecycle history, long waits, retries, bounded loops, and cancellation. SQLAlchemy/Alembic own schema/migration discipline. Content-addressed artifact storage holds large evidence bytes. Models propose through strict provider-neutral interfaces in separate analyst, decomposition, and reviewer contexts. No model receives Linear credentials or a mutation capability.
+Publication intents use unique workspace/operation keys. The simulator reserves UNKNOWN before a fake dispatch, rechecks a trusted advancing clock per operation, and reconciles exact content after uncertainty. It does not invent a real Linear persistence model. Delivery OS imports a future public artifact adapter, never these database classes.
 
-| Concern | Production authority | M0 representation |
-| --- | --- | --- |
-| Source/specification | PostgreSQL immutable revisions | Packaged JSON fixtures and frozen objects |
-| Lifecycle | Temporal history | Pure transition validator |
-| Approval | Authenticated PostgreSQL receipt + workflow checks | Explicit simulated identity only |
-| Linear issue state | Linear | In-memory fake objects |
-| Mutation intent/reconciliation | PostgreSQL | In-memory operation records |
-| Repository state | GitHub/source provider | Advisory schema, synthetic security tests only |
-| Audit | Append-only PostgreSQL events | Strict schema only |
-| Large artifacts | Content-addressed storage | Exclusive-create local demo files |
+## HTTP surface
 
-The simulator is single-process and has no crash, concurrency, lease, or durable recovery guarantee. It is not a replacement persistence model. Delivery OS has its own storage and implementation provenance. It imports the public handoff, not these Python persistence classes.
+Implemented: `POST /v1/intakes`, `GET /v1/intakes/{id}`, `GET /v1/specifications/{id}`, `GET /v1/specifications/{id}/review`, `POST /v1/specifications/{id}/clarifications`, `POST /v1/specifications/{id}/approve`, `POST /v1/specifications/{id}/reject`, `/health`, `/ready`. The publish route always denies with 503. Publication/handoff retrieval and cancellation/revocation commands remain future work. No arbitrary state PATCH or UI exists.
 
-## Planned HTTP surface
+An approval is exact revision/digest-bound and checked against server scope, role and time. One immutable decision per revision prevents conflicting approval/rejection receipts. Clarification creates a new revision, invalidating old approval, and holds for reanalysis. Errors omit raw input and secrets. Review responses explicitly identify deterministic checks rather than model review.
 
-`POST /v1/intakes`, `GET /v1/intakes/{id}`, `POST /v1/specifications/{id}/clarifications`, `GET /v1/specifications/{id}`, `GET /v1/specifications/{id}/review`, `POST /v1/specifications/{id}/approve`, `POST /v1/specifications/{id}/reject`, `POST /v1/specifications/{id}/publish`, `GET /v1/publications/{id}`, `GET /v1/handoffs/{id}`, `GET /health`, and `GET /ready` remain planned. Command idempotency must reject key reuse with different payload digests. No HTTP server is implemented.
+## Repository and model boundary
 
-## Repository context and observability
+Repository inspection never imports, executes, installs dependencies, follows source URLs or changes the inspected tree. Allowed local roots, entry/file/byte/depth/time limits, link exclusion, secret heuristics and content digests bound the input. Only static metadata enters the recorded pipeline; its original context cannot be replaced by a decomposer output. Snapshots describe a bounded working tree, not a clean Git commit or a behavioral proof.
 
-M2 pins snapshot identity, bounds file counts/bytes, rejects path escape and symlinks, excludes secrets, and uses read-only tree/AST inspection. No dependency installation, subprocess execution, or URL fetch arises from repository content. Evidence describes likely components, tests, unknown edges, and confidence; it never proves correctness.
+Each role gets a fresh context identifier and role policy separate from untrusted JSON. Strict schemas, immutable requirements/uncertainties, review findings and deterministic gates constrain outputs. Provider usage and decimal estimates are distinct. The only provider is scripted, and role receipts are currently returned to callers rather than integrated into the durable lifecycle.
 
-AuditEvent includes trace, intake, specification/revision, workflow, agent-run, operation, and provider-request identifiers without free text. Future structured tracing measures intake-to-proposal, clarification wait, model latency/cost, work/requirement/question/finding counts, revision loops, duplicate suppression, stale approvals, and publication outcomes. M0 has structured redacted CLI error output; no telemetry backend or durable audit writer exists. Fixed-precision decimal cost and provider usage must be separate future receipts, with no hidden chain-of-thought.
+## Deployment and observability boundary
+
+Alembic migrations and PostgreSQL/Temporal development services are exercised locally. SQLAlchemy SQLite is available only with explicit testing mode. Docker/Compose definitions are untested templates; the API image starts with deny-all authentication. No live credentials, provider writes or paid model calls are required by default tests or CI.
+
+Durable audits contain bounded metadata, not free-form source/model text. Production trace exporters, separately measured wait/model/publication latency, retention, revocation and full service readiness remain in the backlog. See [implementation status](implementation-status.md) for precise evidence and gaps.

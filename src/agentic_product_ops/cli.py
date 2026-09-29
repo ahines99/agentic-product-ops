@@ -106,8 +106,38 @@ def main() -> int:
         "verify-handoff", help="Verify a simulated handoff artifact digest"
     )
     verify.add_argument("--input", type=Path, required=True)
+    inspect = commands.add_parser("inspect-repository", help="Bounded read-only AST snapshot")
+    inspect.add_argument("--root", type=Path, required=True)
+    inspect.add_argument("--repository-id", required=True)
+    inspect.add_argument("--expected-digest")
+    roles = commands.add_parser("roles-demo", help="Run isolated roles using authored recordings")
+    roles.add_argument("--input", type=Path, required=True)
+    roles.add_argument("--repository-root", type=Path)
+    roles.add_argument("--repository-id", default="sample-reporting")
     args = parser.parse_args()
     try:
+        if args.command in {"inspect-repository", "roles-demo"}:
+            from agentic_product_ops.adapters.repository.local import inspect_repository
+            from agentic_product_ops.services.recorded_pipeline import recorded_pipeline
+
+            if args.command == "inspect-repository":
+                snapshot = inspect_repository(
+                    args.repository_id,
+                    {args.repository_id: args.root},
+                    expected_digest=args.expected_digest,
+                )
+                print(snapshot.model_dump_json(indent=2))
+                return 0
+            context = (
+                inspect_repository(
+                    args.repository_id, {args.repository_id: args.repository_root}
+                ).context()
+                if args.repository_root
+                else None
+            )
+            result = recorded_pipeline(bounded_read(args.input, 16000).decode("utf-8"), context)
+            print(result.model_dump_json(indent=2))
+            return 0 if result.state == "PROPOSED" else 2
         if args.command == "draft":
             text = bounded_read(args.input, 16000).decode("utf-8")
             spec, state = draft(text)

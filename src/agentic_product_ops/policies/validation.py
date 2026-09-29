@@ -40,7 +40,7 @@ def risk_floor(spec: WorkSpecification) -> Tier:
             spec.objective,
             *(s.text for s in spec.source_statements),
             *(r.text for r in spec.requirements),
-            *(q.question for q in spec.unresolved_questions),
+            *(q.question + " " + (q.resolution or "") for q in spec.unresolved_questions),
             *(a.text for a in spec.assumptions),
             *(w.title + " " + w.description for w in spec.work_items),
             *(a.text for w in spec.work_items for a in w.acceptance_criteria),

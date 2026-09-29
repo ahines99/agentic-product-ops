@@ -6,3 +6,5 @@
 - [004: Publication uncertainty and simulation boundary](004-publication-uncertainty.md)
 - [005: Independent handoff and risk-tier boundary](005-handoff-boundary.md)
 - [006: Claim discipline and evaluation authorship](006-evaluation-evidence.md)
+- [007: Offline service expansion and state ownership](007-offline-service-expansion.md)
+- [008: Delivery OS public consumer compatibility](008-delivery-consumer-compatibility.md)

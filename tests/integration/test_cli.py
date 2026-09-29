@@ -56,3 +56,52 @@ def test_demo_does_not_overwrite(monkeypatch, capsys, tmp_path):
     before = (tmp_path / "specification.json").read_bytes()
     assert main() == 1
     assert (tmp_path / "specification.json").read_bytes() == before
+
+
+@pytest.mark.parametrize(
+    "name,code,calls", [("feature-request.md", 0, 3), ("ambiguous-request.md", 2, 1)]
+)
+def test_recorded_roles_with_actual_snapshot(monkeypatch, capsys, tmp_path, name, code, calls):
+    marker = tmp_path / "executed.txt"
+    (tmp_path / "module.py").write_text(
+        f"from pathlib import Path\nPath({str(marker)!r}).touch()\ndef sample(): pass\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "product-ops",
+            "roles-demo",
+            "--input",
+            str(ROOT / "examples" / name),
+            "--repository-root",
+            str(tmp_path),
+            "--repository-id",
+            "sample",
+        ],
+    )
+    assert main() == code
+    result = json.loads(capsys.readouterr().out)
+    assert len(result["receipts"]) == calls
+    assert not marker.exists()
+
+
+def test_inspection_cli_pin(monkeypatch, capsys, tmp_path):
+    (tmp_path / "module.py").write_text("def sample(): pass\n", encoding="utf-8")
+    args = [
+        "product-ops",
+        "inspect-repository",
+        "--root",
+        str(tmp_path),
+        "--repository-id",
+        "sample",
+    ]
+    monkeypatch.setattr(sys, "argv", args)
+    assert main() == 0
+    snapshot = json.loads(capsys.readouterr().out)
+    monkeypatch.setattr(sys, "argv", [*args, "--expected-digest", snapshot["digest"]])
+    assert main() == 0
+    capsys.readouterr()
+    (tmp_path / "module.py").write_text("def changed(): pass\n", encoding="utf-8")
+    assert main() == 1

@@ -5,13 +5,16 @@ import subprocess
 import sys
 import tempfile
 import venv
+from importlib.metadata import version
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> None:
-    wheels = sorted((ROOT / "dist").glob("agentic_product_ops-*.whl"))
+    wheels = sorted(
+        (ROOT / "dist").glob(f"agentic_product_ops-{version('agentic-product-ops')}-*.whl")
+    )
     if len(wheels) != 1:
         raise SystemExit("Build exactly one wheel in dist before smoke testing.")
     with tempfile.TemporaryDirectory(prefix="apo-wheel-") as directory:
@@ -95,6 +98,34 @@ def main() -> None:
             )
             if result.returncode != expected:
                 raise SystemExit(f"clean wheel {name} returned {result.returncode}")
+            result = subprocess.run(
+                [*command, "roles-demo", "--input", str(source)],
+                cwd=scratch,
+                env=env,
+                capture_output=True,
+                check=False,
+            )
+            if result.returncode != expected:
+                raise SystemExit(f"clean wheel roles {name} returned {result.returncode}")
+        repository = scratch / "sample-repository"
+        repository.mkdir()
+        (repository / "sample.py").write_text("def sample(): pass\n", encoding="utf-8")
+        subprocess.run(
+            [
+                *command,
+                "roles-demo",
+                "--input",
+                str(scratch / "feature-request.md"),
+                "--repository-root",
+                str(repository),
+                "--repository-id",
+                "sample",
+            ],
+            cwd=scratch,
+            env=env,
+            capture_output=True,
+            check=True,
+        )
         subprocess.run(
             [*command, "demo", "--output", str(scratch / "output")],
             cwd=scratch,

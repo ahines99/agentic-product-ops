@@ -2,6 +2,8 @@
 
 No live Linear tickets were created. IDs below are local planning identifiers. `Done M0` means executable local foundation coverage, not independent, live, or production acceptance. `Partial` distinguishes a schema/simulator from its production service. Dependencies reference earlier entries; work cannot skip its prerequisites merely because a schema exists.
 
+Version 0.2 completes the offline portions listed below. `Offline done` never means live or production accepted. Full milestone exits remain unchanged. The [remaining steps](remaining-work.md) group unfinished work into an execution sequence.
+
 | ID | Work / milestone | Depends on | Status | Acceptance criteria |
 | --- | --- | --- | --- | --- |
 | B01 | Project/domain naming, M0 | — | Done M0 | Package/CLI use Product Ops name; docs preserve Delivery OS execution boundary. |
@@ -14,31 +16,31 @@ No live Linear tickets were created. IDs below are local planning identifiers. `
 | B08 | Lifecycle, M0/M1 | B07 | Partial | M0 graph/guards/cancellation tested; production durable history and authenticated command transitions added. |
 | B09 | Approval contract, M0/M1 | B03, B08 | Partial | M0 exact ID/revision/digest/plan/scope/expiry/count checked; authenticated identity and revocation receipts required. |
 | B10 | Audit schema, M0/M1 | B09 | Partial | Trace/intake/spec/workflow/operation refs defined; append-only durable writer, redaction and query tests added. |
-| B11 | Provider-neutral model interface, M1 | B10 | Planned | Strict role input/output; fake provider; budget/outage fail without provider mutations. |
-| B12 | Requirements-analysis prompt contract, M1 | B11 | Planned | Trusted policy/config separate from source; citations and unresolved choices preserved on frozen cases. |
-| B13 | Independent review prompt contract, M1 | B12 | Planned | Distinct context receives all evidence; cannot edit/publish; blocking unsupported findings preserved. |
-| B14 | Model cost/usage receipts, M1 | B11 | Planned | Provider usage separate from decimal estimated cost; config versions and request IDs retained; no hidden reasoning. |
+| B11 | Provider-neutral model interface, M1 | B10 | Offline done | Strict role input/output and scripted provider; budget/outage/cancel holds tested; live provider remains separate. |
+| B12 | Requirements-analysis prompt contract, M1 | B11 | Partial | Trusted policy/config separate from untrusted source; recorded citations and unknowns preserved; independent semantic cases still required. |
+| B13 | Independent review prompt contract, M1 | B12 | Partial | Distinct context receives evidence and cannot edit/publish; blocking findings tested; no actual independent inference yet. |
+| B14 | Model cost/usage receipts, M1 | B11 | Partial | Provider usage, decimal estimate, request/prompt/model IDs implemented; durable integration and real tokenizer/billing comparison pending. |
 | B15 | Evaluation fixture format, M0 | B05, B06 | Done M0 | Strict source/category/expectation/authorship schema and digest verification exercised. |
 | B16 | First 15 authored cases, M0/M1 | B15 | Partial | 15 same-context M0 routing cases exist; independently authored semantic gold cases required before M1 exit. |
 | B17 | Corpus freeze/report preservation, M0 | B16 | Done M0 | Digest detects corpus change; report writer refuses overwrite; first run retained. |
-| B18 | Repository snapshot abstraction, M2 | B05, B17 | Partial | Advisory identity/evidence/unknown schema exists; immutable revision pin and content verification required. |
-| B19 | Read-only local repository adapter, M2 | B18 | Planned | Bounded allowlisted files; reject path escape/symlinks; no execution/install/writes; omit secrets. |
-| B20 | GitHub snapshot adapter, M2 | B19 | Planned | Tenant/repository allowlists, immutable commit identity, bounded authenticated read API and failure tests. |
-| B21 | Bounded file search, M2 | B19 | Planned | Byte/file/depth/time limits enforced; exclusions tested; truncation/uncertainty explicit. |
-| B22 | Python AST/import mapping, M2 | B21 | Planned | Parse bytes without import/exec; discover tests/routes where static; dynamic edges marked unknown. |
-| B23 | Repository-injection regressions, M0/M2 | B18 | Partial | Synthetic evidence policy-inert test exists; malicious actual snapshot fixtures cannot change policy or exfiltrate. |
+| B18 | Repository snapshot abstraction, M2 | B05, B17 | Offline done | Content digest pin/recheck, advisory evidence and explicit unknowns implemented; working-tree identity is not a clean Git commit. |
+| B19 | Read-only local repository adapter, M2 | B18 | Offline done | Allowlisted bounded files, link/path checks, inert source tests, no execution/install/write; heuristic secret exclusion and no raw bodies in context. |
+| B20 | GitHub snapshot adapter, M2 | B19 | Partial | MockTransport enforces configured repo and immutable commit/blob integrity; authenticated live reads and operational failure handling pending. |
+| B21 | Bounded file search, M2 | B19 | Offline done | Local byte/file/entry/depth/time bounds, exclusions, metadata search and explicit unknowns tested. |
+| B22 | Python AST/import mapping, M2 | B21 | Offline done | Parse without import/exec, static names/tests/route functions and imports; dynamic edges remain unknown. |
+| B23 | Repository-injection regressions, M0/M2 | B18 | Partial | Actual malicious local files are inert and sensitive bodies excluded; live-model indirect injection and relevance evaluation remain. |
 | B24 | Work decomposition schema/engine, M0/M3 | B02, B13, B22, B23 | Partial | Typed work items exist; distinct decomposition context produces coherent grounded ticket boundaries. |
 | B25 | Acceptance traceability, M0/M3 | B24 | Partial | Structural references/coverage validated; independently reviewed criteria have observable evidence and correct provenance. |
 | B26 | Dependency validator, M0 | B24 | Done M0 | Unknown/self/duplicate/cyclic edges rejected; local and top-level representations agree. |
 | B27 | Duplicate-ticket detector, M0/M3 | B24 | Partial | Normalized same-title detection exists; semantic overlap findings retained and independently evaluated. |
 | B28 | LinearPublicationPlan, M0/M3 | B25, B26, B27 | Partial | M0 deterministic plan/digests/bounds tested; native parent/project/relationship semantics validated. |
 | B29 | OAuth/app configuration, M4 | B09, B28 | Planned | Authenticated tenant/app identity, least privilege, encrypted token handling, no secrets in model/log context. |
-| B30 | Linear API adapter, M4 | B29 | Planned | Explicit tested GraphQL transport; bounded requests; controlled live fixture creates approved objects only. |
+| B30 | Linear API adapter, M4 | B29 | Partial | Mock-only GraphQL variables, response bounds/content checks and unknown outcomes tested; OAuth and controlled live creation absent. |
 | B31 | Team/project/repository/label allowlists, M0/M4 | B28, B29 | Partial | M0 deny-default allowlists; production tenant metadata and per-command rechecks required. |
 | B32 | Publication authorization service, M4 | B09, B30, B31 | Partial | Pure approval validator exists; advancing clock, actor auth, cancellation/revocation and transaction budget before each write. |
-| B33 | Stable operation keys, M0/M4 | B03, B28 | Partial | Keys and conflict checks in fake; durable unique constraints, leases and concurrent duplicate commands tested. |
+| B33 | Stable operation keys, M0/M4 | B03, B28 | Partial | Durable unique intents and row-locked reservation implemented; real PostgreSQL concurrent commands/fake publication tested; live dispatch coordination still gated. |
 | B34 | UNKNOWN reconciliation, M4 | B30, B32, B33 | Partial | Fake reconcile-or-hold exists; real marker/content lookup, provider IDs/timestamps, proven nonexistence or operator hold. |
-| B35 | External-write fault tests, M0/M4 | B34 | Partial | In-memory lost response tested; crash/restart, concurrency, partial batches, late response and accepted cancellation tested durably. |
+| B35 | External-write fault tests, M0/M4 | B34 | Partial | Durable fake restart/reconciliation, advancing expiry, persisted cancellation and PostgreSQL concurrency tested; live partial batches/late responses/revocation pending. |
 | B36 | Delivery OS handoff schema, M0/M5 | B03, B09, B28 | Partial | Digested simulation contract verified; real provider metadata and trusted issuer/signature policy required. |
 | B37 | Cross-repository handoff fixture, M5 | B35, B36 | Planned | Actual Delivery OS consumes exact approved digest in own store, rejects bad tier/unknowns, invalidates stale revisions. |
 | B38 | 40+ corpus and evaluation, M6 | B13, B14, B17, B24, B37 | Planned | At least 40 separately authored cases across all ten categories; failures, gold annotations, configs and denominators preserved. |
@@ -56,6 +58,8 @@ These are concrete runtime tasks omitted from the initial numbered list but requ
 | I03 | Temporal workflows and cancellation | I02 | Approval wait/restart, bounded revisions, accepted cancellation and timeout survive worker restart; state ownership documented. |
 | I04 | Container/local integration stack | I03 | Non-secret Docker/Compose stack starts reproducibly; readiness checks actual dependencies; isolated fault CI is separate from offline CI. |
 | I05 | Durable artifact/audit/observability | I02, I03, B14 | Content-addressed immutable bytes, append-only events, trace linkage, redaction, separate wait/model/publication metrics. |
+
+Current infrastructure evidence: I01 command ingress and test identity are exercised, with default-deny production boundary; production identity is absent. I02 migrations, schema comparison, immutable triggers and concurrency pass on real PostgreSQL. I03 approval waits, worker restart, history replay, forged receipt rejection, expiry, cancellation and connected outbox flow pass on real local Temporal; full reanalysis/model/publication lifecycle remains pending. I04 Docker definitions are supplied but not exercised, and hosted CI is not run. I05 immutable artifacts/audit metadata are stored; large-object storage, full role receipts and production observability remain pending.
 
 ## Milestone exits
 

@@ -19,3 +19,7 @@ Completed sequence:
 9. Run local checks on supported Python versions, isolated wheel smoke, secret/dependency checks, and deterministic regeneration; commit the clean foundation.
 
 Evidence and actual outcomes are recorded in [implementation status](implementation-status.md). Future gates remain in [backlog](backlog.md). No credentials or paid APIs are needed for M0.
+
+## Authorized offline continuation
+
+The subsequent instruction to continue without user input authorized a service expansion: recorded analyst/decomposer/reviewer contexts, bounded local repository metadata, mock GitHub/GraphQL contracts, test-authenticated command ingress, PostgreSQL migrations/immutable records/outbox, Temporal approval waiting and replay, durable fake publication, and a larger routing corpus. These now have executable local evidence. [ADR-007](adr/007-offline-service-expansion.md) supersedes the original runtime deferral; [offline expansion](offline-expansion.md) records commands and results. Live inference, identity, Linear publication and real Delivery OS intake remain distinct unfinished gates, not implied by local green tests.
