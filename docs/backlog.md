@@ -4,6 +4,8 @@ No live Linear tickets were created. IDs below are local planning identifiers. `
 
 Version 0.2 completes the offline portions listed below. `Offline done` never means live or production accepted. Full milestone exits remain unchanged. The [remaining steps](remaining-work.md) group unfinished work into an execution sequence.
 
+Version 0.3 additionally persists B11-B14 role intents, requests, responses, findings and usage through I03's preparation activity, requires review before approval, queues clarification reanalysis and adds an authenticated cancellation command. I01 now has an optional pinned-key JWT verifier tested with ephemeral signatures; real identity provisioning/rotation remains incomplete. B08/B09/I03 still need semantic revision loops and production revocation. See [0.3 evidence](durable-governance.md); these changes do not promote M1 to complete.
+
 | ID | Work / milestone | Depends on | Status | Acceptance criteria |
 | --- | --- | --- | --- | --- |
 | B01 | Project/domain naming, M0 | — | Done M0 | Package/CLI use Product Ops name; docs preserve Delivery OS execution boundary. |

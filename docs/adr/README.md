@@ -8,3 +8,4 @@
 - [006: Claim discipline and evaluation authorship](006-evaluation-evidence.md)
 - [007: Offline service expansion and state ownership](007-offline-service-expansion.md)
 - [008: Delivery OS public consumer compatibility](008-delivery-consumer-compatibility.md)
+- [009: Durable recorded governance and pinned identity](009-durable-recorded-governance.md)

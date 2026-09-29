@@ -2,7 +2,7 @@
 
 Agentic Product Ops is a governed AI-assisted requirements and work-decomposition system. It converts ambiguous product requests into evidence-linked requirements, unresolved questions, acceptance criteria, and proposed Linear work items. Humans approve the exact specification before any external write. Approved work can then be handed to Agentic Delivery OS for controlled implementation and independent verification.
 
-**Current version: 0.2.0, offline foundation and service expansion, not a completed MVP.** Executable components include authored three-role model recordings, bounded local repository inspection, strict contracts and deterministic gates, test-authenticated FastAPI commands, PostgreSQL records and a Temporal approval workflow. No live models, Linear writes or production human authentication are implemented. Publication and handoff remain explicitly simulated.
+**Current version: 0.3.0, offline foundation and durable governance, not a completed MVP.** Authored three-role analysis now persists through Temporal before approval. Other executable components include bounded repository inspection, strict deterministic gates, FastAPI commands, PostgreSQL records, clarification reanalysis, cancellation and an optional pinned-key token verifier. Live models, Linear writes and a deployed human identity system are absent. Publication and handoff remain simulated.
 
 Product Ops defines and governs approved work. Delivery OS executes approved work. They share a versioned public artifact contract, never a database or internal persistence models.
 
@@ -49,6 +49,7 @@ Default tests need no services or credentials; four runtime tests skip unless ex
 - [Evaluation methodology](docs/evaluation-methodology.md)
 - [Implementation status and limits](docs/implementation-status.md), [ordered backlog](docs/backlog.md)
 - [Remaining implementation steps](docs/remaining-work.md), [local runtime commands and results](docs/offline-expansion.md)
+- [Durable governance continuation and validation](docs/durable-governance.md)
 - [Contributing](CONTRIBUTING.md)
 
 The foundation validates structure and objective invariants, not semantic correctness. Lexical risk rules are a conservative floor, not a complete classifier. Hashes prove byte integrity, not human identity or authenticity. Unknown outcomes stop publication; they never trigger blind retries. Hosted CI, live providers, cross-repository consumption, and human value remain unverified until separately exercised.

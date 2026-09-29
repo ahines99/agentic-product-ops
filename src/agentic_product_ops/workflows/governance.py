@@ -91,7 +91,13 @@ class GovernanceWorkflow:
                     )
                     if self.cancel_requested:
                         self.state = "CANCELLED"
-                    elif verdict in {"APPROVED", "REJECTED", "EXPIRED", "REVISION_REQUIRED"}:
+                    elif verdict in {
+                        "APPROVED",
+                        "REJECTED",
+                        "EXPIRED",
+                        "REVISION_REQUIRED",
+                        "CANCELLED",
+                    }:
                         self.accepted_receipt = approval_id
                         self.state = verdict
                     # Invalid references cannot transition state or extend expiry.

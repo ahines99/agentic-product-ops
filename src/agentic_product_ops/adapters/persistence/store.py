@@ -21,6 +21,8 @@ from sqlalchemy import (
     select,
     update,
 )
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import IntegrityError
 
 from agentic_product_ops.domain.contracts import Contract, canonical_digest
@@ -104,6 +106,35 @@ def engine(url: str, *, testing: bool = False) -> Engine:
 class Store:
     def __init__(self, database: Engine):
         self.database = database
+
+    def lock_specification(self, conn: Connection, workspace: str, identifier: str) -> bool:
+        factory = pg_insert if conn.dialect.name == "postgresql" else sqlite_insert
+        conn.execute(
+            factory(controls)
+            .values(workspace=workspace, specification_id=identifier, cancelled=0)
+            .on_conflict_do_nothing()
+        )
+        return bool(
+            conn.execute(
+                select(controls.c.cancelled)
+                .where(
+                    controls.c.workspace == workspace,
+                    controls.c.specification_id == identifier,
+                )
+                .with_for_update()
+            ).scalar_one()
+        )
+
+    def cancelled(self, workspace: str, identifier: str) -> bool:
+        with self.database.connect() as conn:
+            return bool(
+                conn.execute(
+                    select(controls.c.cancelled).where(
+                        controls.c.workspace == workspace,
+                        controls.c.specification_id == identifier,
+                    )
+                ).scalar_one_or_none()
+            )
 
     def put(
         self,

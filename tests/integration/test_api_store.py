@@ -14,7 +14,9 @@ from agentic_product_ops.adapters.persistence.store import (
     metadata,
 )
 from agentic_product_ops.api.app import Principal, TestAuthenticator, create_app
+from agentic_product_ops.policies.validation import ServerPolicy
 from agentic_product_ops.services.drafting import load_fixture
+from agentic_product_ops.services.durable_analysis import analyze_specification
 
 
 @pytest.fixture
@@ -41,6 +43,13 @@ def intake(client, name="feature", key="intake-1"):
     )
     assert response.status_code == 201, response.text
     return response.json()["specification_id"]
+
+
+def analyze(store, identifier):
+    spec = store.get("offline-workspace", "specification", identifier)
+    return analyze_specification(
+        store, "offline-workspace", identifier, spec["content_digest"], ServerPolicy()
+    )
 
 
 def test_default_denies_and_never_ready():
@@ -70,6 +79,7 @@ def test_idempotent_intake_and_conflict(application):
 def test_approval_auth_bound_and_stale_denied(application):
     client, store = application
     identifier = intake(client)
+    analyze(store, identifier)
     spec = client.get(f"/v1/specifications/{identifier}").json()
     body = {"revision": spec["revision"], "content_digest": spec["content_digest"]}
     result = client.post(
@@ -165,6 +175,7 @@ def test_stored_artifact_integrity_is_rechecked(application):
 def test_decision_cannot_be_contradicted_and_identity_is_server_owned(application):
     client, store = application
     identifier = intake(client)
+    analyze(store, identifier)
     spec = client.get(f"/v1/specifications/{identifier}").json()
     body = {"revision": 1, "content_digest": spec["content_digest"]}
     assert (
@@ -195,3 +206,61 @@ def test_decision_cannot_be_contradicted_and_identity_is_server_owned(applicatio
             ).status_code
             == 403
         )
+
+
+def test_approval_requires_review_and_cancellation_blocks_future_commands(application):
+    client, store = application
+    identifier = intake(client)
+    spec = client.get(f"/v1/specifications/{identifier}").json()
+    body = {"revision": 1, "content_digest": spec["content_digest"]}
+    assert (
+        client.post(
+            f"/v1/specifications/{identifier}/approve",
+            json=body,
+            headers={"Idempotency-Key": "too-early"},
+        ).status_code
+        == 403
+    )
+    analyze(store, identifier)
+    for _ in range(2):
+        response = client.post(
+            f"/v1/specifications/{identifier}/cancel",
+            json=body,
+            headers={"Idempotency-Key": "cancel-once"},
+        )
+        assert response.status_code == 200
+        assert response.json()["cancelled"] is True
+    assert Store(store.database).cancelled("offline-workspace", identifier)
+    assert (
+        client.post(
+            f"/v1/specifications/{identifier}/approve",
+            json=body,
+            headers={"Idempotency-Key": "after-cancel"},
+        ).status_code
+        == 403
+    )
+
+
+def test_clarification_reanalysis_is_queued_and_stays_held(application):
+    client, store = application
+    identifier = intake(client, "ambiguous")
+    assert analyze(store, identifier).state == "AWAITING_CLARIFICATION"
+    spec = client.get(f"/v1/specifications/{identifier}").json()
+    result = client.post(
+        f"/v1/specifications/{identifier}/clarifications",
+        json={
+            "revision": 1,
+            "content_digest": spec["content_digest"],
+            "question_id": "Q1",
+            "answer": "10,000 rows",
+        },
+        headers={"Idempotency-Key": "answer"},
+    )
+    assert result.status_code == 200
+    assert result.json()["workflow"] == "queued"
+    assert any(row["workflow_id"].endswith("-r2") for row in store.pending_workflows())
+    revised = analyze(store, identifier)
+    assert revised.state == "AWAITING_CLARIFICATION"
+    assert revised.analysis.unresolved_questions[0].resolution == "10,000 rows"
+    review = client.get(f"/v1/specifications/{identifier}/review").json()
+    assert review["result"]["state"] == "AWAITING_CLARIFICATION"

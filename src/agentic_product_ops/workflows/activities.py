@@ -18,6 +18,7 @@ from agentic_product_ops.policies.validation import (
     proposal_ready,
     validate_approval,
 )
+from agentic_product_ops.services.durable_analysis import analyze_specification, recorded_review
 from agentic_product_ops.workflows.governance import GovernanceInput, GovernanceWorkflow
 
 
@@ -37,8 +38,21 @@ class GovernanceActivities:
 
     @activity.defn
     async def prepare_governance(self, request: GovernanceInput) -> str:
+        if self.store.cancelled(request.workspace, request.specification_id):
+            return "CANCELLED"
         try:
             spec = self.specification(request)
+            result = analyze_specification(
+                self.store,
+                request.workspace,
+                request.specification_id,
+                request.content_digest,
+                self.policy,
+            )
+            if self.store.cancelled(request.workspace, request.specification_id):
+                return "CANCELLED"
+            if result.state != "PROPOSED":
+                return result.state
             proposal_ready(spec, self.policy)
         except PolicyError:
             return "AWAITING_CLARIFICATION"
@@ -46,8 +60,11 @@ class GovernanceActivities:
 
     @activity.defn
     async def validate_governance_receipt(self, request: GovernanceInput, approval_id: str) -> str:
+        if self.store.cancelled(request.workspace, request.specification_id):
+            return "CANCELLED"
         try:
             spec = self.specification(request)
+            recorded_review(self.store, request.workspace, spec, self.policy)
         except PolicyError:
             return "REVISION_REQUIRED"
         try:
@@ -74,12 +91,37 @@ class GovernanceActivities:
 async def dispatch_outbox(store: Store, client: Client, task_queue: str) -> int:
     count = 0
     pending = sorted(
-        store.pending_workflows(), key=lambda row: row["workflow_id"].startswith("decision-")
+        store.pending_workflows(),
+        key=lambda row: {"decision": 1, "cancel": 2}.get(
+            json.loads(row["payload"]).get("action"), 0
+        ),
     )
     for item in pending:
         payload = json.loads(item["payload"])
+        if payload.get("action") == "cancel":
+            if not store.cancelled(item["workspace"], payload["specification_id"]):
+                raise PolicyError("cancellation receipt missing")
+            handle = client.get_workflow_handle(payload["target_workflow"])
+            try:
+                await handle.signal(GovernanceWorkflow.cancel)
+            except RPCError:
+                if await handle.query(GovernanceWorkflow.status) not in {
+                    "CANCELLED",
+                    "APPROVED",
+                    "REJECTED",
+                    "EXPIRED",
+                    "PAUSED",
+                    "AWAITING_CLARIFICATION",
+                    "REVISION_REQUIRED",
+                }:
+                    raise
+            store.mark_dispatched(item["workspace"], item["workflow_id"])
+            count += 1
+            continue
         if payload.get("action") == "decision":
-            handle = client.get_workflow_handle(f"product-ops-{payload['specification_id']}")
+            handle = client.get_workflow_handle(
+                payload.get("target_workflow", f"product-ops-{payload['specification_id']}")
+            )
             try:
                 await handle.signal(GovernanceWorkflow.decision_recorded, payload["approval_id"])
             except RPCError:

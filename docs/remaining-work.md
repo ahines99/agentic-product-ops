@@ -1,6 +1,8 @@
 # Remaining implementation sequence
 
-Version 0.2 is an offline service expansion, not an MVP. The [backlog](backlog.md) retains explicit acceptance criteria and dependency IDs. No live credentials or paid runs are authorized by initialization.
+Version 0.3 adds durable recorded governance, not an MVP. The [backlog](backlog.md) retains explicit acceptance criteria and dependency IDs. No live credentials or paid runs are authorized by initialization.
+
+Progress since this sequence was written: step 1's recorded role persistence/recovery is now connected to Temporal; step 2 now queues revision-specific reanalysis and implements authenticated specification cancellation; step 3 has an optional cryptographic token-verification component. Their remaining acceptance gaps are live execution/reconciliation, semantic clarification and bounded review revision, deployed identity/grants/key rotation and production revocation. The steps below describe the full exit requirements, not a claim that completed subparts must be rebuilt.
 
 1. **Durable role execution (B11-B14, I03, I05).** Persist immutable analyst/decomposer/reviewer inputs, outputs, findings, prompt/config IDs, usage and estimated cost. Invoke roles through Temporal activities with bounded retries and timeouts; restart without losing evidence or quietly repeating billable work. Keep proposal authority in deterministic validators.
 2. **Clarification and revisions (B06, B08-B10, I01-I03).** Resume analysis from authorized clarification receipts, create a new immutable specification, rerun review, bound revision attempts, and invalidate prior approval. Exercise answer/approval races, stale decisions, timeout, cancellation and revocation. Current clarified revisions intentionally remain blocked.

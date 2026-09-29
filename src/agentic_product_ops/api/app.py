@@ -11,10 +11,18 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import Field
-from sqlalchemy import Connection, insert, text
+from sqlalchemy import Connection, insert, text, update
 
+from agentic_product_ops.adapters.identity.contracts import Principal as Principal
 from agentic_product_ops.adapters.linear.offline import build_plan
-from agentic_product_ops.adapters.persistence.store import Conflict, Missing, Store, audits, outbox
+from agentic_product_ops.adapters.persistence.store import (
+    Conflict,
+    Missing,
+    Store,
+    audits,
+    controls,
+    outbox,
+)
 from agentic_product_ops.domain.contracts import (
     ID,
     ApprovalScope,
@@ -34,12 +42,7 @@ from agentic_product_ops.policies.validation import (
     validate_approval,
 )
 from agentic_product_ops.services.drafting import draft
-
-
-class Principal(Contract):
-    actor_id: ID
-    workspace_id: ID
-    roles: tuple[ID, ...]
+from agentic_product_ops.services.durable_analysis import load_analysis, recorded_review
 
 
 class Authenticator(Protocol):
@@ -75,13 +78,16 @@ class IntakeCommand(Contract):
     source: Text
 
 
-class DecisionCommand(Contract):
+class RevisionCommand(Contract):
     revision: Annotated[int, Field(ge=1)]
     content_digest: Digest
+
+
+class DecisionCommand(RevisionCommand):
     expires_in_seconds: Annotated[int, Field(gt=0, le=3600)] = 1800
 
 
-class ClarificationCommand(DecisionCommand):
+class ClarificationCommand(RevisionCommand):
     question_id: ID
     answer: Text
 
@@ -91,7 +97,7 @@ def create_app(
     policy: ServerPolicy | None = None,
     authenticator: Authenticator | None = None,
 ) -> FastAPI:
-    app = FastAPI(title="Agentic Product Ops", version="0.2.0", docs_url=None, redoc_url=None)
+    app = FastAPI(title="Agentic Product Ops", version="0.3.0", docs_url=None, redoc_url=None)
     active_policy = policy or ServerPolicy()
     auth = authenticator or DenyAll()
 
@@ -151,7 +157,7 @@ def create_app(
         db: Store,
         actor: Principal,
         identifier: UUID,
-        body: DecisionCommand | None = None,
+        body: RevisionCommand | None = None,
         connection: Connection | None = None,
     ) -> WorkSpecification:
         value = db.get(actor.workspace_id, "specification", str(identifier), connection=connection)
@@ -276,6 +282,15 @@ def create_app(
         db: Annotated[Store, Depends(database)],
     ) -> dict[str, Any]:
         spec = spec_for(db, actor, identifier)
+        try:
+            return {
+                "mode": "recorded_roles",
+                "result": load_analysis(db, actor.workspace_id, spec, active_policy).model_dump(
+                    mode="json"
+                ),
+            }
+        except Missing:
+            pass
         return {
             "mode": "deterministic_checks_only",
             "content_digest": spec.content_digest,
@@ -293,7 +308,13 @@ def create_app(
         require_approver(actor)
 
         def execute(conn: Connection) -> dict[str, Any]:
+            if db.lock_specification(conn, actor.workspace_id, str(identifier)):
+                raise PolicyError("specification cancelled")
             spec = spec_for(db, actor, identifier, body, conn)
+            try:
+                recorded_review(db, actor.workspace_id, spec, active_policy)
+            except Missing as exc:
+                raise PolicyError("analysis and review have not completed") from exc
             plan = build_plan(spec, active_policy)
             now = datetime.now(UTC)
             approval = SpecificationApproval(
@@ -346,6 +367,8 @@ def create_app(
                             "action": "decision",
                             "specification_id": str(identifier),
                             "approval_id": str(approval.approval_id),
+                            "target_workflow": f"product-ops-{identifier}"
+                            + (f"-r{spec.revision}" if spec.revision > 1 else ""),
                         }
                     ),
                 )
@@ -402,7 +425,11 @@ def create_app(
         require_approver(actor)
 
         def execute(conn: Connection) -> dict[str, Any]:
+            if db.lock_specification(conn, actor.workspace_id, str(identifier)):
+                raise PolicyError("specification cancelled")
             spec = spec_for(db, actor, identifier, body, conn)
+            if spec.revision >= 11:
+                raise PolicyError("clarification revision budget exhausted")
             question = next(
                 (q for q in spec.unresolved_questions if q.id == body.question_id), None
             )
@@ -441,12 +468,28 @@ def create_app(
                 revised.revision,
                 revised,
             )
+            conn.execute(
+                insert(outbox).values(
+                    workspace=actor.workspace_id,
+                    workflow_id=f"product-ops-{identifier}-r{revised.revision}",
+                    dispatched=0,
+                    payload=json.dumps(
+                        {
+                            "workspace": actor.workspace_id,
+                            "specification_id": str(identifier),
+                            "content_digest": revised.content_digest,
+                            "proposed_state": "AWAITING_CLARIFICATION",
+                        }
+                    ),
+                )
+            )
             audit(conn, actor, "clarification_recorded", str(identifier), revised.content_digest)
             return {
                 "revision": revised.revision,
                 "content_digest": revised.content_digest,
                 "requires_reanalysis": True,
                 "receipt_id": receipt_id,
+                "workflow": "queued",
             }
 
         return db.command(
@@ -454,6 +497,60 @@ def create_app(
             actor.actor_id,
             command_key,
             {"id": str(identifier), "action": "clarify", "body": body.model_dump(mode="json")},
+            execute,
+        )
+
+    @app.post("/v1/specifications/{identifier}/cancel")
+    def cancel(
+        identifier: UUID,
+        body: RevisionCommand,
+        actor: Annotated[Principal, Depends(identity)],
+        db: Annotated[Store, Depends(database)],
+        command_key: Annotated[str, Depends(key)],
+    ) -> dict[str, Any]:
+        require_approver(actor)
+
+        def execute(conn: Connection) -> dict[str, Any]:
+            db.lock_specification(conn, actor.workspace_id, str(identifier))
+            spec = spec_for(db, actor, identifier, body, conn)
+            conn.execute(
+                update(controls)
+                .where(
+                    controls.c.workspace == actor.workspace_id,
+                    controls.c.specification_id == str(identifier),
+                )
+                .values(cancelled=1)
+            )
+            receipt = {
+                "specification_id": str(identifier),
+                "revision": spec.revision,
+                "content_digest": spec.content_digest,
+                "actor_id": actor.actor_id,
+            }
+            db.put(conn, actor.workspace_id, "cancellation", str(identifier), 1, receipt)
+            conn.execute(
+                insert(outbox).values(
+                    workspace=actor.workspace_id,
+                    workflow_id=f"cancel-{identifier}",
+                    dispatched=0,
+                    payload=json.dumps(
+                        {
+                            "action": "cancel",
+                            "specification_id": str(identifier),
+                            "target_workflow": f"product-ops-{identifier}"
+                            + (f"-r{spec.revision}" if spec.revision > 1 else ""),
+                        }
+                    ),
+                )
+            )
+            audit(conn, actor, "cancellation_recorded", str(identifier), spec.content_digest)
+            return {"cancelled": True, "publication": "disabled"}
+
+        return db.command(
+            actor.workspace_id,
+            actor.actor_id,
+            command_key,
+            {"id": str(identifier), "action": "cancel", "body": body.model_dump(mode="json")},
             execute,
         )
 

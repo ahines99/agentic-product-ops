@@ -7,8 +7,6 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 
 from sqlalchemy import Connection, insert, select, update
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from agentic_product_ops.adapters.linear.offline import (
     FakeLinear,
@@ -37,22 +35,7 @@ class DurableSimulationPublisher:
         self.store, self.provider, self.clock = store, provider, clock
 
     def lock_control(self, conn: Connection, workspace: str, specification_id: str) -> bool:
-        factory = pg_insert if conn.dialect.name == "postgresql" else sqlite_insert
-        conn.execute(
-            factory(controls)
-            .values(workspace=workspace, specification_id=specification_id, cancelled=0)
-            .on_conflict_do_nothing()
-        )
-        return bool(
-            conn.execute(
-                select(controls.c.cancelled)
-                .where(
-                    controls.c.workspace == workspace,
-                    controls.c.specification_id == specification_id,
-                )
-                .with_for_update()
-            ).scalar_one()
-        )
+        return self.store.lock_specification(conn, workspace, specification_id)
 
     def cancel(self, workspace: str, specification_id: str) -> None:
         with self.store.database.begin() as conn:
