@@ -1,0 +1,1 @@
+Add a documentation page explaining the existing monthly report filters. Include examples for month and currency filters, and have a maintainer check that the examples match the existing documented behavior. Do not change application behavior.

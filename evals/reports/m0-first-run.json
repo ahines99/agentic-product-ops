@@ -1,0 +1,142 @@
+{
+  "schema_version": "1",
+  "mode": "offline_routing_regression",
+  "corpus_digest": "17b3d9279479d604fe8a825fbcca68a7612542ecd4add266ccc2a9f5b9a09b75",
+  "case_count": 15,
+  "passed": 15,
+  "results": [
+    {
+      "id": "M0-01",
+      "expected": "PROPOSED",
+      "actual": "PROPOSED",
+      "passed": true,
+      "blocking_questions": 0,
+      "specification_digest": "6bc98ad405ca71f9cd620c0814c0f20a05120d7d3d55730eb2300bca5de3f855"
+    },
+    {
+      "id": "M0-02",
+      "expected": "PROPOSED",
+      "actual": "PROPOSED",
+      "passed": true,
+      "blocking_questions": 0,
+      "specification_digest": "42997b1e601bda7a40c3da320494d086c1a2e5ee44a81f5e8c2bcb22881f065d"
+    },
+    {
+      "id": "M0-03",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 5,
+      "specification_digest": "c030b97ef6f2971689795ae2fbc7c6d9eba4583c10d2d53debefbde8768f056a"
+    },
+    {
+      "id": "M0-04",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "5840e60b660618d6e2bf3a3855e30877a90428a4fc16ad8ead61ac97dedcaf19"
+    },
+    {
+      "id": "M0-05",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "46935920b1e534186d553dd8a71b602bb8422867c590694e091d8f20a18e3834"
+    },
+    {
+      "id": "M0-06",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "a8f353c6c1140d442b5b197a42d0ca491245e9af77585da5a73b89b1bc365cba"
+    },
+    {
+      "id": "M0-07",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "16e8248e63175d798271c5ba74315505226b659dcaf22515b7b612c1c7f91c1f"
+    },
+    {
+      "id": "M0-08",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "2f08f9368f73126b9729bf760bc036e303cebf2a5f6d5b07d886b20cf5ceaba7"
+    },
+    {
+      "id": "M0-09",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "5dbfd96ed49f768f9548c6724c463196e4824b5530e4630931fc62aee26ef48c"
+    },
+    {
+      "id": "M0-10",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "021063a55a7094385f2c4b256e30bbf6db51329d43eeccc78be2f1f9496b0283"
+    },
+    {
+      "id": "M0-11",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "14c1dcd523e66550900ffe1cc90b264c9e53d59dab5ca354565df5db122cfc24"
+    },
+    {
+      "id": "M0-12",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "13c682100c8976f343b06a03890d0f80b4e96cc7fb02c05428bd5738525503b7"
+    },
+    {
+      "id": "M0-13",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "775464dfc2ac1598e9af51007b7761e4fa1d926bfddcb8f135afbf19780b0f79"
+    },
+    {
+      "id": "M0-14",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "e4c24a64a1a78239d1cd2be77353a7fbe93303d0c68d15b651391289ef2815b5"
+    },
+    {
+      "id": "M0-15",
+      "expected": "AWAITING_CLARIFICATION",
+      "actual": "AWAITING_CLARIFICATION",
+      "passed": true,
+      "blocking_questions": 1,
+      "specification_digest": "e3c043187725ea7ba4a49875960321825af2b0bcbf22090502c69142fd0f57eb"
+    }
+  ],
+  "model_calls": 0,
+  "provider_calls": 0,
+  "model_cost": "0",
+  "independent_authorship": false,
+  "human_validation": false,
+  "unmeasured": [
+    "extraction precision/recall",
+    "semantic ambiguity detection",
+    "ticket usefulness",
+    "repository grounding",
+    "human time savings",
+    "live latency/cost"
+  ]
+}

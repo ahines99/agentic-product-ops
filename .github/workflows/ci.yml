@@ -1,0 +1,38 @@
+name: Offline foundation
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.12', '3.13']
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+        with:
+          version: '0.12.18'
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+      - run: uv sync --locked --python ${{ matrix.python }}
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      - run: uv run pytest
+      - run: uv run python scripts/generate_fixtures.py
+      - run: uv run python scripts/freeze_corpus.py
+      - run: git diff --exit-code
+      - run: uv run python scripts/check_docs.py
+      - run: uv run python scripts/secret_scan.py
+      - run: uv run python scripts/check_reproducibility.py
+      - run: uv build --no-build-isolation
+      - run: uv run python scripts/wheel_smoke.py
+      - run: uv export --locked --no-emit-project --quiet --output-file out/requirements.txt
+      - run: uv run pip-audit -r out/requirements.txt --disable-pip --no-deps
+      - run: uv run python scripts/evaluate.py --output out/ci-evaluation.json
+      # No DB yet: migration check begins with the M1 persistence implementation.
+      # No credentials, model calls, or live Linear execution in this workflow.

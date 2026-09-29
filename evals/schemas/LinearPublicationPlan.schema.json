@@ -1,0 +1,131 @@
+{
+  "$defs": {
+    "LinearOperation": {
+      "additionalProperties": false,
+      "properties": {
+        "operation_key": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Operation Key",
+          "type": "string"
+        },
+        "work_item_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Work Item Id",
+          "type": "string"
+        },
+        "team_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Team Id",
+          "type": "string"
+        },
+        "project_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Project Id"
+        },
+        "labels": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          "title": "Labels",
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 50000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "request_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Request Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation_key",
+        "work_item_id",
+        "team_id",
+        "project_id",
+        "labels",
+        "title",
+        "description",
+        "request_digest"
+      ],
+      "title": "LinearOperation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "specification_digest": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Specification Digest",
+      "type": "string"
+    },
+    "workspace_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Workspace Id",
+      "type": "string"
+    },
+    "publication_generation": {
+      "minimum": 1,
+      "title": "Publication Generation",
+      "type": "integer"
+    },
+    "operations": {
+      "items": {
+        "$ref": "#/$defs/LinearOperation"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "title": "Operations",
+      "type": "array"
+    },
+    "content_digest": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Content Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "specification_digest",
+    "workspace_id",
+    "publication_generation",
+    "operations",
+    "content_digest"
+  ],
+  "title": "LinearPublicationPlan",
+  "type": "object"
+}

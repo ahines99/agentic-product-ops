@@ -1,0 +1,138 @@
+{
+  "$defs": {
+    "ApprovalScope": {
+      "additionalProperties": false,
+      "properties": {
+        "workspace_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Workspace Id",
+          "type": "string"
+        },
+        "team_ids": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          "title": "Team Ids",
+          "type": "array"
+        },
+        "repository_ids": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          "title": "Repository Ids",
+          "type": "array"
+        },
+        "plan_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Plan Digest",
+          "type": "string"
+        },
+        "operation_keys": {
+          "items": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Operation Keys",
+          "type": "array"
+        },
+        "allowed_mutation_count": {
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "title": "Allowed Mutation Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "team_ids",
+        "repository_ids",
+        "plan_digest",
+        "operation_keys",
+        "allowed_mutation_count"
+      ],
+      "title": "ApprovalScope",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "approval_id": {
+      "format": "uuid",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "specification_id": {
+      "format": "uuid",
+      "title": "Specification Id",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "content_digest": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Content Digest",
+      "type": "string"
+    },
+    "actor_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Actor Id",
+      "type": "string"
+    },
+    "decision": {
+      "enum": [
+        "approve",
+        "reject"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/ApprovalScope"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "policy_version": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Policy Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "approval_id",
+    "specification_id",
+    "revision",
+    "content_digest",
+    "actor_id",
+    "decision",
+    "scope",
+    "issued_at",
+    "expires_at",
+    "policy_version"
+  ],
+  "title": "SpecificationApproval",
+  "type": "object"
+}

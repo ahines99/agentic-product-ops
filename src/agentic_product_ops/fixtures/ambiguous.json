@@ -1,0 +1,154 @@
+{
+  "schema_version": "1",
+  "specification_id": "ff8afa90-81fd-56a1-9b53-0f93f6609f81",
+  "revision": 1,
+  "source_digest": "53e46a1771d8ca22371fc5d661b6fa45e9ecbac2d49e9dfbf7c736c9a2e15afa",
+  "title": "Clarify monthly revenue export",
+  "objective": "Clarify monthly revenue export",
+  "source_statements": [
+    {
+      "id": "S0",
+      "text": "We need customers to export the monthly revenue report as CSV. It should respect their current filters, only admins should be able to export it, and we need analytics on usage.\n"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "Export the monthly report as CSV.",
+      "kind": "functional",
+      "provenance": "explicit_source",
+      "source_refs": [
+        "S0"
+      ],
+      "confidence": "1",
+      "needs_human_decision": false
+    },
+    {
+      "id": "R2",
+      "text": "Respect current filters.",
+      "kind": "functional",
+      "provenance": "explicit_source",
+      "source_refs": [
+        "S0"
+      ],
+      "confidence": "1",
+      "needs_human_decision": false
+    },
+    {
+      "id": "R3",
+      "text": "Only administrators may export.",
+      "kind": "security",
+      "provenance": "explicit_source",
+      "source_refs": [
+        "S0"
+      ],
+      "confidence": "1",
+      "needs_human_decision": false
+    },
+    {
+      "id": "R4",
+      "text": "Instrument usage.",
+      "kind": "analytics",
+      "provenance": "explicit_source",
+      "source_refs": [
+        "S0"
+      ],
+      "confidence": "1",
+      "needs_human_decision": false
+    }
+  ],
+  "unresolved_questions": [
+    {
+      "id": "Q1",
+      "question": "What is the maximum supported row count?",
+      "why_it_matters": "This changes product behavior, data exposure, or measurable acceptance.",
+      "affected_requirement_ids": [
+        "R1"
+      ],
+      "blocking": true,
+      "resolution": null,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "Q2",
+      "question": "What happens for oversized exports?",
+      "why_it_matters": "This changes product behavior, data exposure, or measurable acceptance.",
+      "affected_requirement_ids": [
+        "R1"
+      ],
+      "blocking": true,
+      "resolution": null,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "Q3",
+      "question": "What is the analytics event schema?",
+      "why_it_matters": "This changes product behavior, data exposure, or measurable acceptance.",
+      "affected_requirement_ids": [
+        "R1"
+      ],
+      "blocking": true,
+      "resolution": null,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "Q4",
+      "question": "Which sensitive fields must be excluded?",
+      "why_it_matters": "This changes product behavior, data exposure, or measurable acceptance.",
+      "affected_requirement_ids": [
+        "R1"
+      ],
+      "blocking": true,
+      "resolution": null,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "Q5",
+      "question": "What is the performance target?",
+      "why_it_matters": "This changes product behavior, data exposure, or measurable acceptance.",
+      "affected_requirement_ids": [
+        "R1"
+      ],
+      "blocking": true,
+      "resolution": null,
+      "resolved_by": null,
+      "resolved_at": null
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "A1",
+      "text": "Use sequential local identifiers for presentation only.",
+      "non_behavioral": true
+    }
+  ],
+  "repository_context": null,
+  "risk": {
+    "tier": 2,
+    "reasons": [
+      "Authorization and financial data require security review."
+    ],
+    "policy_version": "m0-v1"
+  },
+  "dependencies": [],
+  "work_items": [],
+  "approval_policy": {
+    "policy_version": "m0-v1",
+    "workspace_id": "offline-workspace",
+    "max_age_seconds": 3600,
+    "required_role": "product_approver"
+  },
+  "provenance": {
+    "mode": "authored_fixture",
+    "created_at": "2026-09-28T00:00:00Z",
+    "producer": "foundation-author",
+    "source_kind": "prompt",
+    "policy_refs": [],
+    "clarification_refs": []
+  },
+  "content_digest": "c030b97ef6f2971689795ae2fbc7c6d9eba4583c10d2d53debefbde8768f056a"
+}

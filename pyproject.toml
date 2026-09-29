@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling==1.29.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentic-product-ops"
+version = "0.1.0"
+description = "Offline foundation for governed product requirements and work publication"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license = "MIT"
+dependencies = ["pydantic>=2.12,<3"]
+
+[project.scripts]
+product-ops = "agentic_product_ops.cli:main"
+
+[dependency-groups]
+dev = ["uv==0.12.18", "hatchling==1.29.0", "ruff>=0.15", "mypy>=1.19", "pytest>=9", "pytest-cov>=7", "build>=1.4", "pip-audit>=2.10", "detect-secrets>=1.5"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentic_product_ops"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+"scripts/**" = ["S603", "S607"]
+"scripts/generate_fixtures.py" = ["E501"] # Authored fixture prose preserves exact source bytes.
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src", "scripts"]
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --cov=agentic_product_ops --cov-report=term-missing"
+
+[tool.coverage.run]
+branch = true
+source = ["agentic_product_ops"]
