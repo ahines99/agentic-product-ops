@@ -19,6 +19,11 @@ Use `--input request.txt` for longer input. Acceptance with inference disabled r
 intake; it does not spend money or create work tickets. `run-issue` remains an optional intake
 method for people who prefer to begin in Linear. No UI or Jira integration is implemented.
 
+The currently running separate prompt API listens on `127.0.0.1:18013`. From this integration
+worktree, select it with `--directory '..\pilot\prompt'` before the `prompt` subcommand.
+Authenticated intake/replay and unauthenticated denial were exercised live without model calls
+or Linear writes. It is a local process, not yet a login-supervised production service.
+
 Approved, explicitly enrolled work can be advanced by the local controller: guarded publication,
 signed v2 export, authenticated loopback Delivery admission, then Delivery's own durable start
 queue. The controller retries transport failures through producer receipts and consumer

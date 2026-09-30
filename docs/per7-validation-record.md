@@ -69,7 +69,12 @@ within its $2 allocation. Delivery made zero model calls under its $3 allocation
 $5 PER-7 cap was preserved. Reservations are conservative estimates, not verified billing.
 Paid execution is disabled; this authorization does not fund future prompts.
 
-The prompt endpoint is implemented and tested, but this live run began from a Linear issue.
+The live PER-7 run began from a Linear issue. The separate authenticated prompt API is now
+running on loopback port 18013 with paid execution/publication disabled. A live acceptance
+request (`a48b232b-1dd7-49cb-861d-8803ed621dfd`) was recorded as held; repeating its command
+returned the same intake ID and an unauthenticated request was denied with HTTP 401.
+This process is not yet enrolled in the Windows login supervisor; future requests have no
+new inference allowance. The older supervised monitor remains unchanged.
 Product Ops can propose multiple items; actual Delivery admission currently rejects multi-item
 DAGs and replacement revisions. The exercised execution lane permits this exact inert addition;
 general software still has its existing separate plan/review controls. There is no UI, hosted
@@ -123,11 +128,17 @@ git diff d9604888843e2b0ba60cc49565339a910e3ec393 b44c681ffa1df5fe0094520219a283
 git status --short
 ```
 
-For future prompt intake, against the running general pilot API with inference disabled:
+For future prompt intake, against the separate running prompt API with inference disabled:
 
 ```powershell
-.\.venv\Scripts\python.exe -m agentic_product_ops.pilot.cli --directory '..\pilot' prompt --repo agentic-product-ops --text 'Describe the requested change'
+.\.venv\Scripts\python.exe -m agentic_product_ops.pilot.cli --directory '..\pilot\prompt' prompt --repo agentic-product-ops --text 'Describe the requested change'
 ```
 
 This records held intake only. Fresh budget and exact proposal approval remain necessary before
 new paid analysis/publication/execution. Do not replay the expired PER-7 approval to authorize work.
+
+If the separate prompt process has stopped, start it from the integration worktree:
+
+```powershell
+.\.venv\Scripts\python.exe -m agentic_product_ops.pilot.cli --directory '..\pilot\prompt' serve
+```
