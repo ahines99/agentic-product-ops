@@ -150,7 +150,7 @@ def open_console(directory: Path) -> None:
                     stdout=log,
                     stderr=log,
                     stdin=subprocess.DEVNULL,
-                    creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
                     start_new_session=os.name != "nt",
                 )
             (directory / "console-service.pid").write_text(str(process.pid), encoding="ascii")
