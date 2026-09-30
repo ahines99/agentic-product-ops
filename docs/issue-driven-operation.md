@@ -6,7 +6,7 @@ For example: “Use OPS-17, repository example.” Alternatively, put `Repositor
 
 ## Executable now
 
-Version 0.5.1 provides authenticated Linear source reading, name-to-local-repository resolution, bounded static snapshots, durable idempotent intake, source-edit conflict detection, budget-disabled holds, source freshness gates and a combined API/worker launcher. Existing analyst/decomposer/reviewer and governed publication paths remain available under their existing authorizations.
+Version 0.5.1 introduced authenticated Linear source reading, name-to-local-repository resolution, bounded static snapshots, durable idempotent intake, source-edit conflict detection, budget-disabled holds, source freshness gates and a combined API/worker launcher. Version 0.5.2 adds the [local monitor](linear-monitor.md) and login supervision, running with paid execution and publication disabled. Existing analyst/decomposer/reviewer and governed publication paths remain subject to their separate authorizations.
 
 The operator agent configures `repository_search_roots` in its private profile. A name must match exactly one immediate child Git directory across these roots. Additional accessible repositories can be configured without expanding the issue's authority. No cloning or target repository code execution occurs. Remote-only names are not automatically resolved; the older pinned GitHub selector remains separate.
 
@@ -25,7 +25,7 @@ The intake receipt reports `queued` when paid execution is enabled or `held_paid
 
 - The new issue lookup path is mock-transport tested; no user-selected live issue has been supplied for acceptance yet.
 - Single-operator retries reuse one issue intake. Edits conflict; automatic supersession is not implemented. Source deletion, edits or provider outages block subsequent approval/publication/handoff. A remote edit can still race a successful freshness check.
-- There is no background Linear watcher yet. Creating an issue alone does not currently trigger Product Ops. Watcher enrollment, generated-issue exclusion and recovery are the next integration milestone.
+- The registered watcher receives events and attempts intake for newly enrolled issues with a repository declaration. It currently holds execution and publication. Genuine Linear-origin issue delivery still needs observation; no live test ticket was created.
 - Exact work approval remains required. No live writes, fresh model calls or Delivery OS execution are implied by an intake receipt.
 - Actual Delivery OS acceptance, independent semantic evaluation, continuing spend policy and hosted CI remain open. This release is not autonomous MVP completion.
 

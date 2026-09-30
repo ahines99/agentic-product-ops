@@ -15,7 +15,7 @@ from sqlalchemy.engine import make_url
 
 from agentic_product_ops.adapters.linear.native_plan import LinearScope
 from agentic_product_ops.cli import bounded_read
-from agentic_product_ops.domain.contracts import ID, Contract
+from agentic_product_ops.domain.contracts import ID, Contract, Timestamp
 
 
 class PilotSettings(Contract):
@@ -36,6 +36,11 @@ class PilotSettings(Contract):
     allow_paid_execution: bool = False
     allow_publication: bool = False
     repository_search_roots: tuple[str, ...] = ()
+    linear_monitor_enabled: bool = False
+    linear_monitor_enrolled_at: Timestamp | None = None
+    linear_webhook_port: Annotated[int, Field(ge=1024, le=65535)] = 18010
+    cloudflared_path: str | None = None
+    cloudflared_sha256: Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")] | None = None
 
     @model_validator(mode="after")
     def local_profile(self) -> Self:
@@ -59,6 +64,16 @@ class PilotSettings(Contract):
             not Path(root).is_absolute() for root in self.repository_search_roots
         ):
             raise ValueError("repository search roots must be bounded absolute paths")
+        if self.linear_monitor_enabled and (
+            self.linear_monitor_enrolled_at is None
+            or self.linear_webhook_port == self.api_port
+            or self.cloudflared_path is None
+            or not Path(self.cloudflared_path).is_absolute()
+            or self.cloudflared_sha256 is None
+        ):
+            raise ValueError(
+                "monitor requires enrollment, separate port and pinned tunnel executable"
+            )
         return self
 
 

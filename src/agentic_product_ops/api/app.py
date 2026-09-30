@@ -133,7 +133,7 @@ def create_app(
     source_guard: Callable[[str], None] | None = None,
     intake_queue_enabled: bool = True,
 ) -> FastAPI:
-    app = FastAPI(title="Agentic Product Ops", version="0.5.1", docs_url=None, redoc_url=None)
+    app = FastAPI(title="Agentic Product Ops", version="0.5.2", docs_url=None, redoc_url=None)
     active_policy = policy or ServerPolicy()
     auth = authenticator or DenyAll()
     roots = dict(repository_roots or {})

@@ -40,6 +40,7 @@ class LinearSource(Contract):
     title: Annotated[str, Field(min_length=1, max_length=1024)]
     description: Annotated[str, Field(max_length=14000)]
     updated_at: Timestamp
+    created_at: Timestamp | None = None
 
     def digest(self) -> str:
         return canonical_digest(self.model_dump(mode="json"))
@@ -56,7 +57,7 @@ class LinearIssueReader:
         reference = issue_reference(reference)
         data = self.adapter._query(
             "query ProductOpsSource($id: String!) { organization { id } viewer { id } "
-            "issue(id: $id) { id identifier title description updatedAt "
+            "issue(id: $id) { id identifier title description updatedAt createdAt "
             "team { id organization { id } } } }",
             {"id": reference},
         )
@@ -81,6 +82,7 @@ class LinearIssueReader:
                         "title": issue["title"],
                         "description": "" if issue["description"] is None else issue["description"],
                         "updated_at": issue["updatedAt"],
+                        "created_at": issue.get("createdAt"),
                     }
                 )
             )

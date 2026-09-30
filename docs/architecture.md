@@ -19,7 +19,7 @@ flowchart LR
 
 These are exercised component connections, not a claim of deployed end-to-end service. The offline CLI runs authored recordings; the configured pilot has exercised Anthropic roles with a bounded live smoke. The Responses adapter remains mock-tested. Native publication is wired to the configured pilot's guarded HTTP handler but has only mock mutation evidence and never runs automatically from Temporal. The reference consumer is not installed in Delivery OS.
 
-The [issue-driven entry point](issue-driven-operation.md) adds read-only Linear lookup and local repository-name resolution. A source snapshot is stored atomically with its initial specification. Paid-disabled intake creates no dispatch; issue edits conflict and block later approval/publication/export. The combined launcher owns API and worker lifetimes. There is no continuous Linear watcher yet; [ADR 015](adr/015-issue-driven-intake.md) defines this boundary.
+The [issue-driven entry point](issue-driven-operation.md) adds read-only Linear lookup and local repository-name resolution. A source snapshot is stored atomically with its initial specification. Paid-disabled intake creates no dispatch; issue edits conflict and block later approval/publication/export. The combined launcher owns API, worker and optional monitor lifetimes. The [monitor](linear-monitor.md) adds an isolated signed webhook listener, durable inbox/cursor/retries and reconciliation in the same monolith. [ADR 016](adr/016-local-linear-monitor.md) defines its no-execution acceptance boundary.
 
 ## Ownership and modules
 

@@ -77,6 +77,8 @@ def main() -> None:
                 "-c",
                 "from pathlib import Path; from importlib.metadata import version; "
                 "import agentic_product_ops as p; "
+                "import agentic_product_ops.pilot.monitor; "
+                "import agentic_product_ops.api.linear_webhook; "
                 f"assert Path(p.__file__).is_relative_to({str(target)!r}); "
                 f"assert version('agentic-product-ops') == {project_version!r}",
             ],

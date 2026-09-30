@@ -164,6 +164,10 @@ async def run(runtime: PilotRuntime) -> None:
         )
     )
     tasks = [asyncio.create_task(server.serve()), asyncio.create_task(worker(runtime))]
+    if getattr(runtime.settings, "linear_monitor_enabled", False):
+        from agentic_product_ops.pilot.monitor import LinearMonitor
+
+        tasks.append(asyncio.create_task(LinearMonitor(runtime).run()))
     try:
         done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
         for task in done:
