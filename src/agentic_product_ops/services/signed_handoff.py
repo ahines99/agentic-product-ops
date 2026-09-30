@@ -9,7 +9,7 @@ from sqlalchemy import select
 
 from agentic_product_ops.adapters.linear.native_plan import NativePlan, build_native_plan
 from agentic_product_ops.adapters.linear.offline import OperationEvidence
-from agentic_product_ops.adapters.persistence.store import Store, operations
+from agentic_product_ops.adapters.persistence.store import Missing, Store, operations
 from agentic_product_ops.domain.contracts import (
     SpecificationApproval,
     WorkSpecification,
@@ -81,6 +81,10 @@ def export_signed_handoff(
             dispatch = DispatchAuthority.model_validate_json(
                 json.dumps({**record, "operation_key": operation.operation_key})
             )
+            if receipt.status != "SUCCEEDED" or str(dispatch.approval_id) != approval_id:
+                # Only a fully observed publication, dispatched under this one approval, is
+                # handed off. A publication completed across a renewed approval stays held.
+                raise PolicyError("handoff requires complete publication under one approval")
             validate_approval(
                 spec,
                 approval,
@@ -111,4 +115,15 @@ def export_signed_handoff(
         envelope = SignedHandoff(payload=payload, payload_digest=digest, signature=signature)
         # Export identity includes the digest, retaining every signed envelope without overwrite.
         store.put(conn, workspace, "signed_handoff", digest, 1, envelope)
+        try:
+            store.get(workspace, "handoff_export", specification_id, spec.revision, connection=conn)
+        except Missing:
+            store.put(
+                conn,
+                workspace,
+                "handoff_export",
+                specification_id,
+                spec.revision,
+                {"first_payload_digest": digest, "approval_id": approval_id},
+            )
         return envelope

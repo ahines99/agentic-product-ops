@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 from agentic_product_ops.adapters.linear.native_plan import NativePlan
 from agentic_product_ops.api.app import TestAuthenticator, create_app
 from agentic_product_ops.domain.contracts import SpecificationApproval, seal_specification
-from agentic_product_ops.policies.validation import ServerPolicy
+from agentic_product_ops.policies.validation import PolicyError, ServerPolicy
 from agentic_product_ops.services.durable_analysis import analyze_specification
 from agentic_product_ops.services.native_publication import NativePublisher
 from agentic_product_ops.services.signed_handoff import export_signed_handoff
@@ -239,11 +239,18 @@ def test_new_approved_revision_supersedes_consumer_work_and_rejects_old(reviewed
                 json.dumps(response.json()["approval"])
             )
         tick[0] = approval.issued_at
-        provider = adapter(next_plan, LinearRecording(next_plan, authority, tick))
+        recording = LinearRecording(next_plan, authority, tick)
+        provider = adapter(next_plan, recording)
         try:
-            NativePublisher(store, provider, authority, lambda: tick[0]).publish(
-                next_spec, next_plan, approval, ServerPolicy()
-            )
+            # By default a new revision holds: its tickets would sit beside the published ones.
+            with pytest.raises(PolicyError, match="earlier revision"):
+                NativePublisher(store, provider, authority, lambda: tick[0]).publish(
+                    next_spec, next_plan, approval, ServerPolicy()
+                )
+            assert not recording.queries
+            NativePublisher(
+                store, provider, authority, lambda: tick[0], allow_revision_republication=True
+            ).publish(next_spec, next_plan, approval, ServerPolicy())
         finally:
             provider.close()
         second = export_signed_handoff(

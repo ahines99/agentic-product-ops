@@ -135,7 +135,7 @@ def test_durable_ack_failure_replay_and_restart(inbox, event, monkeypatch):
     assert reopened.pending() == []
 
 
-def mock_adapter(event, handler):
+def mock_adapter(event, handler, scopes=("read",)):
     scope = LinearScope(
         organization_id=event.organization_id,
         actor_id=uuid4(),
@@ -151,7 +151,7 @@ def mock_adapter(event, handler):
         scope,
         token=SecretStr("recording"),
         token_kind="api_key",  # noqa: S106
-        scopes=("read",),
+        scopes=scopes,
         transport=httpx.MockTransport(respond),
     )
 
@@ -276,7 +276,20 @@ def test_owned_webhook_restart_updates_only_owned_id(event):
             "webhookUpdate": {"success": True, "webhook": {"id": str(identifier), "enabled": True}}
         }
 
+    # A read-scoped adapter holds the same credential but cannot send the mutation.
     adapter = mock_adapter(event, handler)
+    try:
+        with pytest.raises(PolicyError, match="explicit write authority"):
+            configure_webhook(
+                adapter,
+                identifier,
+                "https://new.trycloudflare.com/webhooks/linear",
+                secrets.token_urlsafe(32),
+            )
+        assert not mutations
+    finally:
+        adapter.close()
+    adapter = mock_adapter(event, handler, scopes=("read", "admin"))
     try:
         configure_webhook(
             adapter,

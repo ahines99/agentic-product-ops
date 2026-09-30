@@ -286,13 +286,13 @@ def remote(args: argparse.Namespace) -> dict[str, Any]:
         path = "/v1/intakes"
     else:
         path = f"/v1/specifications/{args.id}"
-        if args.command in {"show", "review", "plan"}:
+        if args.command in {"show", "review", "plan", "state"}:
             method = "GET"
             if args.command != "show":
                 path += "/" + args.command
         else:
             path += "/" + ("clarifications" if args.command == "answer" else args.command)
-            if args.command != "publish":
+            if args.command not in {"publish", "reconcile"}:
                 body = {"revision": args.revision, "content_digest": args.digest}
             if args.command in {"approve", "reject"}:
                 body["plan_digest"] = args.plan_digest
@@ -338,6 +338,13 @@ def main() -> int:
     init.add_argument("--repository-root", type=Path, action="append", default=[])
     for name in ("serve", "worker", "status", "run", "open"):
         commands.add_parser(name)
+    renew = commands.add_parser(
+        "grant-renew", help="Issue the next operator grant revision; older approvals go stale"
+    )
+    renew.add_argument("--days", type=int, default=30)
+    revoke = commands.add_parser("revoke", help="Permanently revoke an identity or approval")
+    revoke.add_argument("--kind", choices=("actor", "subject", "token", "approval"), required=True)
+    revoke.add_argument("--identity", required=True)
     issue = commands.add_parser("run-issue", help="Intake one Linear issue and repository name")
     issue.add_argument("--issue", required=True)
     issue.add_argument("--repo", help="Optional when the issue has a Repository: name line")
@@ -357,6 +364,8 @@ def main() -> int:
         "show",
         "review",
         "plan",
+        "state",
+        "reconcile",
         "approve",
         "reject",
         "answer",
@@ -389,7 +398,17 @@ def main() -> int:
             initialize(args)
         elif args.command == "open":
             open_console(args.directory)
-        elif args.command in {"serve", "worker", "status", "handoff", "analyze", "evidence", "run"}:
+        elif args.command in {
+            "serve",
+            "worker",
+            "status",
+            "handoff",
+            "analyze",
+            "evidence",
+            "run",
+            "grant-renew",
+            "revoke",
+        }:
             runtime = PilotRuntime(args.directory)
             try:
                 if args.command == "run":
@@ -416,6 +435,10 @@ def main() -> int:
                             indent=2,
                         )
                     )
+                elif args.command == "grant-renew":
+                    print(json.dumps(runtime.renew_grant(args.days)))
+                elif args.command == "revoke":
+                    print(json.dumps(runtime.revoke(args.kind, args.identity)))
                 elif args.command == "evidence":
                     print(json.dumps(runtime.evidence(str(args.id)), indent=2))
                 elif args.command == "handoff":

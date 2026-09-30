@@ -110,6 +110,7 @@ def configure_webhook(
             "mutation ProductOpsWebhookUpdate($id: String!, $input: WebhookUpdateInput!) { "
             "webhookUpdate(id: $id, input: $input) { success webhook { id enabled } } }",
             {"id": str(identifier), "input": {"url": url, "enabled": True, "secret": secret}},
+            write=True,
         )["webhookUpdate"]
     else:
         result = adapter._query(
@@ -126,6 +127,7 @@ def configure_webhook(
                     "enabled": True,
                 }
             },
+            write=True,
         )["webhookCreate"]
     if result["success"] is not True or result["webhook"]["id"] != str(identifier):
         raise PolicyError("webhook management outcome requires reconciliation")

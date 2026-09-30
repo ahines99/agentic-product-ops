@@ -7,9 +7,19 @@ from datetime import UTC, datetime
 from sqlalchemy import Connection, func, insert, select, update
 
 from agentic_product_ops.adapters.linear.native_graphql import NativeGraphQLAdapter
-from agentic_product_ops.adapters.linear.native_plan import NativePlan, build_native_plan
+from agentic_product_ops.adapters.linear.native_plan import (
+    NativeOperation,
+    NativePlan,
+    build_native_plan,
+)
 from agentic_product_ops.adapters.linear.offline import OperationEvidence
-from agentic_product_ops.adapters.persistence.store import Conflict, Store, operations
+from agentic_product_ops.adapters.persistence.store import (
+    Conflict,
+    Missing,
+    Store,
+    artifacts,
+    operations,
+)
 from agentic_product_ops.domain.contracts import SpecificationApproval, WorkSpecification
 from agentic_product_ops.policies.validation import PolicyError, ServerPolicy, validate_approval
 from agentic_product_ops.services.authority import Authority
@@ -25,11 +35,15 @@ class NativePublisher:
         authority: Authority,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
         source_guard: Callable[[str], None] | None = None,
+        allow_revision_republication: bool = False,
     ) -> None:
         if authority.store is not store:
             raise ValueError("publication authority must share Product Ops transaction store")
         self.store, self.provider, self.authority, self.clock = store, provider, authority, clock
         self.source_guard = source_guard
+        # Operator assembly choice, never source text: publish a new revision's tickets although
+        # an earlier revision already wrote some. Downstream supersedes; Linear keeps both sets.
+        self.allow_revision_republication = allow_revision_republication
 
     def publish(
         self,
@@ -95,6 +109,15 @@ class NativePublisher:
                     },
                 )
 
+        with self.store.database.begin() as conn:
+            if not self.allow_revision_republication and self._earlier_revision_written(
+                conn, workspace, identifier, spec.revision
+            ):
+                # New revisions derive new provider identities. Without a supersession policy,
+                # writing them beside an earlier revision's tickets would duplicate work.
+                raise PolicyError("earlier revision already has publication writes")
+            validate(conn)
+
         receipts: list[OperationEvidence] = []
         for operation in plan.operations:
             dispatch = False
@@ -156,11 +179,13 @@ class NativePublisher:
                         )
                     )
                     continue
+                elif not self._dispatched(conn, workspace, operation.operation_key):
+                    # Dispatch authority is committed immediately before the mutation is sent.
+                    # Its absence proves no write left this process, so the intent may be
+                    # dispatched under the authority just validated.
+                    dispatch = True
             provider_id = None
             try:
-                if not dispatch:
-                    # A failed preflight did not acquire dispatch authority. It cannot be retried.
-                    self.store.get(workspace, "native_dispatch_authority", operation.operation_key)
                 provider_id = (
                     self.provider.create(operation, guard)
                     if dispatch
@@ -168,50 +193,137 @@ class NativePublisher:
                 )
             except Exception:
                 provider_id = None  # Intent remains UNKNOWN; never persist provider errors.
-            receipt = OperationEvidence(
-                operation_key=operation.operation_key,
-                request_digest=operation.request_digest,
-                attempt=1,
-                status="SUCCEEDED" if provider_id else "UNKNOWN",
-                provider_id=provider_id,
-                provider_request_id=self.provider.last_request_id if provider_id else None,
-                observed_at=self.clock(),
-            )
-            with self.store.database.begin() as conn:
-                self.store.lock_specification(conn, workspace, identifier)
-                # Preserve late success even if authority changed during the already-reserved write.
-                # The next operation must pass validate again and cannot inherit that authority.
-                if provider_id:
-                    conn.execute(
-                        update(operations)
-                        .where(
-                            operations.c.workspace == workspace,
-                            operations.c.operation_key == operation.operation_key,
-                            operations.c.request_digest == operation.request_digest,
-                        )
-                        .values(
-                            status="SUCCEEDED",
-                            provider_id=provider_id,
-                            provider_request_id=receipt.provider_request_id,
-                            observed_at=receipt.observed_at.isoformat(),
-                        )
-                    )
-                self.store.put(
-                    conn,
-                    workspace,
-                    "native_publication_observation",
-                    operation.operation_key,
-                    self._observation_revision(operation.operation_key, conn) + 1,
-                    {"mode": self.provider.mode, "evidence": receipt.model_dump(mode="json")},
-                )
+            # Preserve late success even if authority changed during the already-reserved write.
+            # The next operation must pass validate again and cannot inherit that authority.
+            receipt = self._observe(workspace, identifier, operation, provider_id)
             receipts.append(receipt)
             if receipt.status == "UNKNOWN":
                 break
         return tuple(receipts)
 
-    def _observation_revision(self, key: str, conn: Connection) -> int:
-        from agentic_product_ops.adapters.persistence.store import artifacts
+    def reconcile(
+        self, spec: WorkSpecification, plan: NativePlan, policy: ServerPolicy
+    ) -> tuple[OperationEvidence, ...]:
+        """Read-only recovery of recorded intents. It can observe a write, never send one.
 
+        Observation needs no unexpired approval: an expired or revoked approval must not hide
+        a ticket that its earlier, authorized dispatch already created.
+        """
+        if self.authority.workspace != policy.workspace_id or self.provider.scope != plan.scope:
+            raise PolicyError("publication tenant configuration mismatch")
+        workspace, identifier = policy.workspace_id, str(spec.specification_id)
+        with self.store.database.begin() as conn:
+            recorded = self.store.get(
+                workspace, "specification", identifier, spec.revision, connection=conn
+            )
+            stored_plan = self.store.get(
+                workspace, "publication_plan", identifier, spec.revision, connection=conn
+            )
+            if (
+                recorded["content_digest"] != spec.content_digest
+                or plan.specification_digest != spec.content_digest
+                or stored_plan != plan.model_dump(mode="json")
+            ):
+                raise PolicyError("unrecorded publication plan")
+        receipts: list[OperationEvidence] = []
+        for operation in plan.operations:
+            with self.store.database.begin() as conn:
+                row = (
+                    conn.execute(
+                        select(operations).where(
+                            operations.c.workspace == workspace,
+                            operations.c.operation_key == operation.operation_key,
+                        )
+                    )
+                    .mappings()
+                    .first()
+                )
+                if row is None:
+                    break  # No intent exists; only governed publication may create one.
+                if row["request_digest"] != operation.request_digest:
+                    raise Conflict("native operation identity reused with different content")
+                if row["status"] == "SUCCEEDED":
+                    receipts.append(
+                        OperationEvidence.model_validate_json(
+                            json.dumps({name: row[name] for name in OperationEvidence.model_fields})
+                        )
+                    )
+                    continue
+                dispatched = self._dispatched(conn, workspace, operation.operation_key)
+            # An undispatched intent has nothing to observe and is left for governed publication.
+            provider_id = self.provider.reconcile(operation) if dispatched else None
+            receipt = self._observe(workspace, identifier, operation, provider_id)
+            receipts.append(receipt)
+            if receipt.status == "UNKNOWN":
+                break
+        return tuple(receipts)
+
+    def _observe(
+        self, workspace: str, identifier: str, operation: NativeOperation, provider_id: str | None
+    ) -> OperationEvidence:
+        receipt = OperationEvidence(
+            operation_key=operation.operation_key,
+            request_digest=operation.request_digest,
+            attempt=1,
+            status="SUCCEEDED" if provider_id else "UNKNOWN",
+            provider_id=provider_id,
+            provider_request_id=self.provider.last_request_id if provider_id else None,
+            observed_at=self.clock(),
+        )
+        with self.store.database.begin() as conn:
+            self.store.lock_specification(conn, workspace, identifier)
+            if provider_id:
+                conn.execute(
+                    update(operations)
+                    .where(
+                        operations.c.workspace == workspace,
+                        operations.c.operation_key == operation.operation_key,
+                        operations.c.request_digest == operation.request_digest,
+                    )
+                    .values(
+                        status="SUCCEEDED",
+                        provider_id=provider_id,
+                        provider_request_id=receipt.provider_request_id,
+                        observed_at=receipt.observed_at.isoformat(),
+                    )
+                )
+            self.store.put(
+                conn,
+                workspace,
+                "native_publication_observation",
+                operation.operation_key,
+                self._observation_revision(operation.operation_key, conn) + 1,
+                {"mode": self.provider.mode, "evidence": receipt.model_dump(mode="json")},
+            )
+        return receipt
+
+    def _dispatched(self, conn: Connection, workspace: str, key: str) -> bool:
+        try:
+            self.store.get(workspace, "native_dispatch_authority", key, connection=conn)
+            return True
+        except Missing:
+            return False
+
+    def _earlier_revision_written(
+        self, conn: Connection, workspace: str, identifier: str, revision: int
+    ) -> bool:
+        for earlier in range(1, revision):
+            try:
+                stored = self.store.get(
+                    workspace, "publication_plan", identifier, earlier, connection=conn
+                )
+            except Missing:
+                continue
+            keys = [operation["operation_key"] for operation in stored["operations"]]
+            if conn.execute(
+                select(operations.c.operation_key)
+                .where(operations.c.workspace == workspace, operations.c.operation_key.in_(keys))
+                .limit(1)
+            ).first():
+                return True
+        return False
+
+    def _observation_revision(self, key: str, conn: Connection) -> int:
         return int(
             conn.execute(
                 select(func.max(artifacts.c.revision)).where(

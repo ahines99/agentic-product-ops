@@ -36,6 +36,7 @@ class PilotSettings(Contract):
     maximum_spend: Annotated[str, Field(pattern=r"^\d+(\.\d{1,2})?$")]
     allow_paid_execution: bool = False
     allow_publication: bool = False
+    allow_revision_republication: bool = False
     local_console_enabled: bool = False
     detailed_tickets: bool = False
     repository_search_roots: tuple[str, ...] = ()

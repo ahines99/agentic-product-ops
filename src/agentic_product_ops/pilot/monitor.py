@@ -48,7 +48,8 @@ class LinearMonitor:
             settings.linear_scope,
             token=secret_from_env(Path(settings.linear_key_file), "LINEAR_API_KEY"),
             token_kind="api_key",  # noqa: S106
-            scopes=("read",),
+            # Only the explicit webhook-management adapter declares a write-capable scope.
+            scopes=("read", "admin") if manage else ("read",),
             allow_network=True,
             allow_mutations=manage,
         )

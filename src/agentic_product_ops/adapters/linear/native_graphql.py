@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from collections.abc import Callable
 from typing import Any, Literal
@@ -12,6 +13,7 @@ from pydantic import SecretStr
 
 from agentic_product_ops.adapters.linear.graphql import UnknownOutcome
 from agentic_product_ops.adapters.linear.native_plan import LinearScope, NativeOperation
+from agentic_product_ops.policies.validation import PolicyError
 from product_ops_handoff.linear_markdown import descriptions_match
 
 ISSUE_FIELDS = """id title description team { id } project { id }
@@ -61,7 +63,18 @@ class NativeGraphQLAdapter:
     def close(self) -> None:
         self.client.close()
 
-    def _query(self, query: str, variables: dict[str, Any]) -> dict[str, Any]:
+    def _query(
+        self, query: str, variables: dict[str, Any], *, write: bool = False
+    ) -> dict[str, Any]:
+        # Single wire gate: a mutation needs declared caller intent, enabled writes and a
+        # write-capable scope. A document sent as a read can never carry one.
+        if (re.search(r"\bmutation\b", query) is not None) != write or (
+            write
+            and not (
+                self.allow_mutations and {"write", "issues:create", "admin"} & set(self.scopes)
+            )
+        ):
+            raise PolicyError("Linear mutation outside explicit write authority")
         self.last_request_id = None
         deadline = time.monotonic() + 10
         try:
@@ -189,7 +202,7 @@ class NativeGraphQLAdapter:
                 f"{field}(input: $input) {{ success {object_field} {{ {fields} }} }} }}"
             )
             before_dispatch()  # Recheck authority and time after metadata reads.
-            value = self._query(query, {"input": json.loads(operation.payload)})[field]
+            value = self._query(query, {"input": json.loads(operation.payload)}, write=True)[field]
             if value["success"] is not True or not self._matches(operation, value[object_field]):
                 raise ValueError("mutation response mismatch")
             return str(operation.target_id)

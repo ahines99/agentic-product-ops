@@ -52,12 +52,14 @@ from agentic_product_ops.policies.validation import (
 )
 from agentic_product_ops.services.authority import Authority
 from agentic_product_ops.services.clarifications import load_clarifications
+from agentic_product_ops.services.decisions import record_decision
 from agentic_product_ops.services.drafting import draft
 from agentic_product_ops.services.durable_analysis import (
     analysis_mode,
     load_analysis,
     recorded_review,
 )
+from agentic_product_ops.services.publication_state import publication_state
 from agentic_product_ops.services.risk_reassessment import RiskCommand
 from agentic_product_ops.services.ticket_readiness import delivery_findings, ticket_findings
 
@@ -133,6 +135,8 @@ def create_app(
     repository_resolver: Callable[[RepositorySelection], Snapshot] | None = None,
     force_model_intake: bool = False,
     publication_handler: Callable[[str, Principal, str], dict[str, Any]] | None = None,
+    reconciliation_handler: Callable[[str, Principal], dict[str, Any]] | None = None,
+    state_handler: Callable[[str], dict[str, Any]] | None = None,
     readiness: Callable[[], dict[str, Any]] | None = None,
     risk_handler: Callable[[str, Principal, RiskCommand, str], dict[str, Any]] | None = None,
     linear_source_reader: Callable[[str], LinearSource] | None = None,
@@ -679,15 +683,9 @@ def create_app(
             )
             if authority:
                 authority.bind_approval(conn, actor, approval, spec)
-            db.put(
-                conn,
-                actor.workspace_id,
-                "decision",
-                str(identifier),
-                spec.revision,
-                {"approval_id": str(approval.approval_id), "decision": approval.decision},
-            )
-            if decision_queue_enabled:
+            renewal = record_decision(db, conn, actor.workspace_id, str(identifier), approval, now)
+            # A renewed revision's workflow already completed; durable records carry authority.
+            if decision_queue_enabled and not renewal:
                 conn.execute(
                     insert(outbox).values(
                         workspace=actor.workspace_id,
@@ -707,11 +705,17 @@ def create_app(
             audit(
                 conn,
                 actor,
-                "approval_recorded" if approve else "rejection_recorded",
+                ("approval_renewed" if renewal else "approval_recorded")
+                if approve
+                else "rejection_recorded",
                 str(identifier),
                 approval.content_digest,
             )
-            return {"approval": approval.model_dump(mode="json"), "publication": "disabled"}
+            return {
+                "approval": approval.model_dump(mode="json"),
+                "publication": "disabled",
+                "renewal": renewal,
+            }
 
         return db.command(
             actor.workspace_id,
@@ -924,6 +928,31 @@ def create_app(
         if publication_handler is not None:
             return publication_handler(str(identifier), actor, command_key)
         raise HTTPException(503, "live publication is disabled; no provider credentials configured")
+
+    @app.post("/v1/specifications/{identifier}/reconcile")
+    def reconcile(
+        identifier: UUID, actor: Annotated[Principal, Depends(identity)]
+    ) -> dict[str, Any]:
+        # Read-only observation of recorded write intents; it cannot create provider objects.
+        require_approver(actor)
+        if reconciliation_handler is None:
+            raise HTTPException(503, "publication reconciliation is not configured")
+        return reconciliation_handler(str(identifier), actor)
+
+    @app.get("/v1/specifications/{identifier}/state")
+    def lifecycle_state(
+        identifier: UUID,
+        actor: Annotated[Principal, Depends(identity)],
+        db: Annotated[Store, Depends(database)],
+    ) -> dict[str, Any]:
+        if state_handler is not None:
+            return state_handler(str(identifier))
+        state = publication_state(db, actor.workspace_id, str(identifier), datetime.now(UTC))
+        return {
+            "specification_id": str(identifier),
+            "state": state.value if state else "PRE_DECISION_WORKFLOW",
+            "source": "durable_records",
+        }
 
     @app.get("/v1/publications/{identifier}")
     def publication(

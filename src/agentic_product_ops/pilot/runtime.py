@@ -1,10 +1,10 @@
 """Local pilot dependencies, live provider guards and explicit native publication assembly."""
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 import httpx
@@ -18,6 +18,7 @@ from agentic_product_ops.adapters.identity.local import LocalOperatorAuthenticat
 from agentic_product_ops.adapters.linear.intake import LinearIssueReader, LinearSource
 from agentic_product_ops.adapters.linear.native_graphql import NativeGraphQLAdapter
 from agentic_product_ops.adapters.linear.native_plan import LinearScope, NativePlan, ProviderBinding
+from agentic_product_ops.adapters.linear.offline import OperationEvidence
 from agentic_product_ops.adapters.model.anthropic import AnthropicProvider
 from agentic_product_ops.adapters.model.contracts import ModelBudget, RuntimeConfiguration
 from agentic_product_ops.adapters.persistence.encryption import StorageEncryption
@@ -34,10 +35,12 @@ from agentic_product_ops.pilot.config import (
     secret_from_env,
 )
 from agentic_product_ops.policies.validation import PolicyError, ServerPolicy
-from agentic_product_ops.services.authority import Authority
+from agentic_product_ops.services.authority import ActorGrant, Authority
+from agentic_product_ops.services.decisions import current_decision
 from agentic_product_ops.services.documentation import constrained_policy
 from agentic_product_ops.services.linear_source import validate_linear_source
 from agentic_product_ops.services.native_publication import NativePublisher
+from agentic_product_ops.services.publication_state import publication_state
 from agentic_product_ops.services.revisions import revise_specification
 from agentic_product_ops.services.risk_reassessment import RiskCommand, reassess_risk
 from agentic_product_ops.services.signed_handoff import export_signed_handoff
@@ -230,7 +233,7 @@ class PilotRuntime:
         spec = WorkSpecification.model_validate_json(
             json.dumps(self.store.get(workspace, "specification", identifier))
         )
-        decision = self.store.get(workspace, "decision", identifier, spec.revision)
+        decision = current_decision(self.store, workspace, identifier, spec.revision)
         approval = SpecificationApproval.model_validate_json(
             json.dumps(self.store.get(workspace, "approval", decision["approval_id"]))
         )
@@ -326,28 +329,108 @@ class PilotRuntime:
         )
         try:
             receipts = NativePublisher(
-                self.store, adapter, self.authority, source_guard=self.source_guard
+                self.store,
+                adapter,
+                self.authority,
+                source_guard=self.source_guard,
+                allow_revision_republication=self.settings.allow_revision_republication,
             ).publish(spec, plan, approval, self.policy)
-            result = {
-                "mode": "live_provider",
-                "specification_digest": spec.content_digest,
-                "receipts": [r.model_dump(mode="json") for r in receipts],
-                "complete": len(receipts) == len(plan.operations)
-                and all(r.status == "SUCCEEDED" for r in receipts),
-            }
-            if result["complete"]:
-                with self.store.database.begin() as conn:
-                    self.store.put(
-                        conn,
-                        self.settings.workspace,
-                        "publication",
-                        identifier,
-                        spec.revision,
-                        result,
-                    )
-            return result
+            return self._publication_result(identifier, spec, plan, receipts)
         finally:
             adapter.close()
+
+    def reconcile(self, identifier: str, actor: Principal) -> dict[str, Any]:
+        """Observe recorded intents read-only. Allowed with publication off or approval expired."""
+        self.authority.check(actor)
+        spec, plan, _ = self.records(identifier)
+        adapter = NativeGraphQLAdapter(
+            self.settings.linear_scope,
+            token=secret_from_env(Path(self.settings.linear_key_file), "LINEAR_API_KEY"),
+            token_kind="api_key",  # noqa: S106
+            # The write scope only satisfies relation preflight; disabled mutations cannot send.
+            scopes=("read", "write"),
+            allow_network=True,
+            allow_mutations=False,
+        )
+        try:
+            receipts = NativePublisher(self.store, adapter, self.authority).reconcile(
+                spec, plan, self.policy
+            )
+            return self._publication_result(identifier, spec, plan, receipts)
+        finally:
+            adapter.close()
+
+    def _publication_result(
+        self,
+        identifier: str,
+        spec: WorkSpecification,
+        plan: NativePlan,
+        receipts: tuple[OperationEvidence, ...],
+    ) -> dict[str, Any]:
+        result = {
+            "mode": "live_provider",
+            "specification_digest": spec.content_digest,
+            "receipts": [r.model_dump(mode="json") for r in receipts],
+            "complete": len(receipts) == len(plan.operations)
+            and all(r.status == "SUCCEEDED" for r in receipts),
+        }
+        if result["complete"]:
+            try:
+                return self.store.get(
+                    self.settings.workspace, "publication", identifier, spec.revision
+                )
+            except Missing:
+                pass
+            with self.store.database.begin() as conn:
+                self.store.put(
+                    conn, self.settings.workspace, "publication", identifier, spec.revision, result
+                )
+        return result
+
+    def state(self, identifier: str) -> dict[str, Any]:
+        state = publication_state(
+            self.store, self.settings.workspace, identifier, datetime.now(UTC)
+        )
+        return {
+            "specification_id": identifier,
+            "state": state.value if state else "PRE_DECISION_WORKFLOW",
+            "source": "durable_records",
+        }
+
+    def renew_grant(self, days: int = 30) -> dict[str, Any]:
+        """Issue the next grant revision for the same operator, subject, roles and scope.
+
+        Approvals bound to the previous grant become stale and need a fresh human decision.
+        """
+        if not 1 <= days <= 30:
+            raise PolicyError("grant renewal is limited to 30 days")
+        workspace, operator = self.settings.workspace, self.settings.operator
+        previous = ActorGrant.model_validate_json(
+            json.dumps(self.store.get(workspace, "actor_grant", operator))
+        )
+        if (
+            not previous.enabled
+            or self.authority.is_revoked("actor", operator)
+            or self.authority.is_revoked("subject", previous.subject)
+        ):
+            raise PolicyError("a disabled or revoked identity cannot be renewed")
+        now = self.authority.clock()
+        grant = previous.model_copy(
+            update={
+                "revision": previous.revision + 1,
+                "issued_at": now,
+                "expires_at": now + timedelta(days=days),
+            }
+        )
+        self.authority.register(grant, administrator=operator)
+        return {"revision": grant.revision, "expires_at": grant.expires_at.isoformat()}
+
+    def revoke(
+        self, kind: Literal["actor", "subject", "token", "approval"], identity: str
+    ) -> dict[str, Any]:
+        """Monotonic local revocation; there is deliberately no command that undoes it."""
+        self.authority.revoke(kind, identity, administrator=self.settings.operator)
+        return {"revoked": kind}
 
     def handoff(self, identifier: str) -> dict[str, Any]:
         self.source_guard(identifier)
@@ -457,6 +540,8 @@ class PilotRuntime:
             repository_resolver=resolver,
             force_model_intake=True,
             publication_handler=self.publish,
+            reconciliation_handler=self.reconcile,
+            state_handler=self.state,
             readiness=self.readiness,
             risk_handler=self.risk,
             linear_source_reader=self.read_linear_source,
