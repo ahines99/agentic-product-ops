@@ -1,6 +1,6 @@
 # Historical version 0.2 validation record
 
-Preserved from commit `09301145b36d7cccbd59f2449b8e1056dffb1e06`. This describes 0.2; see [current status](implementation-status.md) for later work.
+Preserved from commit `09301145b36d7cccbd59f2449b8e1056dffb1e06`. This describes 0.2; see [current status](implementation-status-v0.6.md) for later work.
 
 Updated 2026-09-28, version 0.2.0. M0 foundation plus an offline service expansion. **MVP, M1 exit, and portfolio release are not complete.** The original [M0 validation record](m0-validation-record.md) is historical; this document is authoritative for the current tree.
 
@@ -20,7 +20,7 @@ Updated 2026-09-28, version 0.2.0. M0 foundation plus an offline service expansi
 | Evaluation | Original 15-case report retained; expanded 45-case frozen routing report | Same-context authoring, zero model calls; not independent semantic evaluation |
 | Packaging/CI | Lock, lint, formatting, strict typing, tests, docs, secret/audit checks, reproducible builds, clean-wheel smoke | Local evidence only; hosted Actions and Docker not exercised |
 
-Current validation commands and local infrastructure evidence are in [offline expansion](offline-expansion.md). An entirely green suite does not satisfy milestone exits in the [ordered backlog](backlog.md).
+Current validation commands and local infrastructure evidence are in [offline expansion](offline-expansion.md). An entirely green suite does not satisfy milestone exits in the [ordered backlog](../backlog.md).
 
 Final local result: 109 default tests passed on each of Python 3.12.10 and 3.13.15, with four explicit service-test skips. All four service tests passed separately against local PostgreSQL/Temporal on Python 3.12. Lock, lint, formatting, typing, docs, secrets, dependency audit, reproducible builds and clean-wheel checks passed. Hosted CI and Docker were not run. TestClient emits one known unsuppressed deprecation warning.
 
@@ -33,7 +33,7 @@ Final local result: 109 default tests passed on each of Python 3.12.10 and 3.13.
 5. Clarification creates an immutable new revision and requires reanalysis; it never automatically clears the approval gate. The Temporal workflow handles proposal holds and approval decisions, not the complete target state graph, resumed clarification loop, model activities, publication, or handoff activities. HTTP cancellation/revocation endpoints are not implemented.
 6. PostgreSQL owns records; Temporal owns workflow history. SQLite is explicitly a test double. Runtime tests use a disposable loopback PostgreSQL and local Temporal development server, not a production cluster. Docker/Compose is provided but untested here; image tags are pinned, image digests are not.
 7. Durable publication is simulation-only. UNKNOWN survives restart and cannot blindly recreate; cancellation stops future reservations but cannot roll back an already reserved in-flight call. No OAuth, live reconciliation, native Linear dependency/project mapping, provider-wide exactly-once guarantee, or webhook service exists.
-8. Handoffs are unsigned offline artifacts. Hashes do not authenticate their issuer. Read-only inspection of the adjacent Delivery OS public model found no digest-verifying intake; no sibling code was imported, executed, or modified. See [ADR-008](adr/008-delivery-consumer-compatibility.md).
+8. Handoffs are unsigned offline artifacts. Hashes do not authenticate their issuer. Read-only inspection of the adjacent Delivery OS public model found no digest-verifying intake; no sibling code was imported, executed, or modified. See [ADR-008](../adr/008-delivery-consumer-compatibility.md).
 9. Forty-five routing cases do not satisfy the separately authored 40+ semantic release corpus. Requirements quality, false resolution, human usefulness/time savings, paid-model latency/cost, external usage, and production acceptance remain unmeasured.
 10. Audit records are durable, bounded metadata; production tracing/export, retention policy, key rotation and real revocation are not implemented. CLI exports are exclusive-create files, not transactional multi-file storage. Risk is a lexical floor; matching references and normalized titles do not prove truth or semantic uniqueness.
 

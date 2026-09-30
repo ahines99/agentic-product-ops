@@ -29,10 +29,10 @@ The [issue-driven entry point](issue-driven-operation.md) adds read-only Linear 
 | `adapters/model/`, `services/revisions.py` | Distinct roles, strict structured output, token preflight and cost reservation, bounded reviewed revisions |
 | `services/durable_analysis.py` | Intent-before-call, immutable request/response/result/usage, cached recovery, uncertain-call hold |
 | `adapters/repository/`, `services/grounding.py` | Inert local AST reads, pinned GitHub metadata, lexical evidence coverage and explicit gaps |
-| `api/`, `services/authority.py`, `adapters/identity/` | Authenticated commands, server-owned grants, pinned JWT keys, durable revocation, encrypted OAuth vault |
+| `api/`, `services/authority.py`, `adapters/identity/` | Authenticated commands, server-owned grants, local operator token, durable revocation |
 | `adapters/persistence/` | PostgreSQL records, immutable triggers, control locks, command results and transactional outbox; optional artifact encryption |
 | `workflows/` | Temporal history, approval waits, stored-receipt validation, restart/replay, revision outbox and cancellation |
-| `adapters/linear/`, `services/native_publication.py` | Scoped native issue/relation plan, OAuth PKCE, exact metadata checks, per-write authority and UNKNOWN reconciliation |
+| `adapters/linear/`, `services/native_publication.py` | Scoped native issue/relation plan, one mutation gate, exact metadata checks, per-write authority and UNKNOWN reconciliation |
 | `services/signed_handoff.py`, `product_ops_handoff/` | Signed public envelope and separately persisted reference intake without producer imports |
 | `services/operations.py`, `evaluation/` | Bounded redacted exports, routing evidence and explicitly adjudicated semantic reports |
 
@@ -52,4 +52,4 @@ Runtime configuration is operator owned. Each role receives a distinct context a
 
 ## Operations
 
-Pinned development containers, real PostgreSQL/Temporal integration and isolated backup/restore are exercised. SQLite is an explicit test double, plus the independent reference consumer's own store. AES-GCM protects configured artifact/operation payloads; raw role access expiry preserves immutable ciphertext and audit metadata. Metadata exports separate role and publication duration; no production collector or human-wait instrumentation is claimed. See [status](implementation-status.md), [validation](v04-validation-record.md), and [ADRs](adr/README.md).
+Pinned development containers, real PostgreSQL/Temporal integration and isolated backup/restore are exercised. SQLite is an explicit test double, plus the independent reference consumer's own store. AES-GCM protects configured artifact/operation payloads; raw role access expiry preserves immutable ciphertext and audit metadata. Metadata exports separate role and publication duration; no production collector or human-wait instrumentation is claimed. See [status](implementation-status.md), [validation](history/v04-validation-record.md), and [ADRs](adr/README.md).

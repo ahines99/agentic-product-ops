@@ -4,7 +4,7 @@ Date: 2026-09-30. Branch `feature/finalize-offline-engineering`, built on
 `feature/documentation-handoff` (`b7b78f6`). Not merged into `main`, not pushed.
 
 Scope: the recovery and hardening changes in
-[ADR-021](adr/021-publication-recovery-and-write-gate.md). No paid model call, no Linear request,
+[ADR-021](../adr/021-publication-recovery-and-write-gate.md). No paid model call, no Linear request,
 no Delivery OS change and no change to the running pilot services was made.
 
 ## Results
@@ -22,7 +22,7 @@ Build hashes: wheel `e8965846dc68bcdbdff8434f81e92c2ce44c3812df645ccc0276416d0e1
 sdist `1763eba59b50f9679ecf1a8247c86445d99995365bcb77f7d1661f7cc059d848`.
 
 These are the final numbers, after fixes from an independent review of the first draft (see
-[implementation status](implementation-status.md)). All service checks below were rerun on the
+[implementation status](implementation-status-v0.6.md)). All service checks below were rerun on the
 final code against a fresh database.
 
 The five default skips are the service tests. They were run separately on Python 3.12 against a

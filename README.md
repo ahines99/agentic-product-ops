@@ -1,72 +1,144 @@
 # Agentic Product Ops
 
-**Local prompt entry:** open the [prompt console](docs/local-prompt-console.md) at
-`http://127.0.0.1:18013` using the local launch shortcut. Enter a prompt and repository name,
-review detailed ticket proposals, answer questions and approve the exact plan. New paid analysis
-is currently held pending a fresh budget; the page reports this explicitly.
+[![CI](https://github.com/ahines99/agentic-product-ops/actions/workflows/ci.yml/badge.svg)](https://github.com/ahines99/agentic-product-ops/actions/workflows/ci.yml)
 
-The unreleased [prompt-to-delivery integration](docs/prompt-to-delivery.md) adds prompt plus
-repository-name intake and an approval-bound local documentation handoff. The approved PER-7
-workflow created PER-8 and Delivery OS produced the exact, unmerged local change. See the
-[live validation record](docs/per7-validation-record.md). This does not establish MVP completion.
+Agentic Product Ops turns a plain-language product request into reviewed requirements,
+clarifying questions, acceptance criteria and Linear tickets. It publishes those tickets only
+after a person approves the exact proposal, then hands the approved work to a separate execution
+system, [Agentic Delivery OS](https://github.com/ahines99/agentic-delivery-os), through a signed,
+versioned contract.
 
-Agentic Product Ops is a governed AI-assisted requirements and work-decomposition system. It converts ambiguous product requests into evidence-linked requirements, unresolved questions, acceptance criteria, and proposed Linear work items. Humans approve the exact specification before any external write. Approved work can then be handed to Agentic Delivery OS for controlled implementation and independent verification.
+The model drafts. Ordinary code decides. Request text, repository content and model output are all
+treated as untrusted: none of them can approve work, lower its risk, widen its scope or trigger an
+external write.
 
-**Current version: 0.6.0 (unreleased branch), publication recovery and hardening; MVP acceptance is incomplete.** Version 0.6.0 adds read-only reconciliation after approval expiry, renewal of an expired approval, a hold on republishing a revised specification, one gate for every Linear mutation, lifecycle state derived from durable records, explicit source supersession and operator grant renewal. It was exercised with mock transport and isolated local services only; see [ADR-021](docs/adr/021-publication-recovery-and-write-gate.md) and the [v0.6 validation record](docs/v06-validation-record.md).
+**Status: version 0.6.0, working local pilot, not an MVP.** See [what is and isn't done](docs/implementation-status.md).
 
-**Version 0.5.2, monitored local pilot.** Linear webhooks and periodic API reconciliation now feed a durable intake inbox. The local monitor runs in acceptance mode with paid execution and publication disabled. It resolves a basic issue and repository name, excludes old backlog/generated output, deduplicates retries and holds changed sources. A login task supervises the local services and temporary HTTPS tunnel. See [monitor operation](docs/linear-monitor.md), [issue-driven intake](docs/issue-driven-operation.md) and [exact limitations](docs/implementation-status.md).
+## How it works
 
-The existing local pilot uses explicit operator identity, encrypted PostgreSQL, Temporal, bounded Anthropic calls and a durable aggregate spending allowance. Its earlier six-call `claude-opus-5-5` smoke reached a reviewed proposal after two preserved failures, and read-only Linear API-key identity discovery succeeded. That earlier smoke had no human approval, live Linear write or actual Delivery OS intake; the later PER-7 evidence above exercises those boundaries. See [pilot setup](docs/local-pilot.md) and [v0.5 evidence](docs/v05-validation-record.md).
+```mermaid
+flowchart LR
+    A[Request or Linear issue] --> B[Requirements analyst]
+    B -->|material ambiguity| Q[Clarifying questions<br/>pipeline stops]
+    Q -->|authenticated answer| B
+    B --> C[Work decomposer]
+    C --> D[Separate reviewer]
+    D -->|blocking finding| C
+    D --> E{Human approves exact<br/>spec + plan hashes}
+    E --> F[Linear publication<br/>re-authorized per write]
+    F --> G[Signed handoff]
+    G --> H[Agentic Delivery OS<br/>verifies and executes]
+```
 
-Product Ops defines and governs approved work. Delivery OS executes approved work. They share a versioned public artifact contract, never a database or internal persistence models.
+1. **Analysis.** Claude extracts requirements with provenance and raises blocking questions when a
+   material decision is missing. The pipeline stops there rather than guessing.
+2. **Decomposition and review.** A second role proposes tickets with acceptance criteria traced to
+   requirements; a third, separate role reviews the exact proposal. Revisions are bounded.
+3. **Approval.** A person approves one exact revision, identified by its content hash, together
+   with the exact list of Linear writes. Approvals expire.
+4. **Publication.** Each Linear write re-checks the approval, grants, scope, cancellation and
+   budget. An uncertain result is reconciled read-only; it is never blindly retried.
+5. **Handoff.** An Ed25519-signed envelope carries the approved specification and publication
+   evidence to Delivery OS, which verifies it in its own storage.
 
-## Quick start
+## A real run: PER-7
 
-Install Python 3.12 or 3.13 and uv, then run from this repository:
+On 2026-09-30 a real Linear issue, PER-7, went through the whole path:
+
+1. The issue arrived through the Linear webhook and was enrolled as a specification.
+2. Claude analyzed it in four calls (earlier attempts that failed the gates were kept). The third
+   revision was a reviewed proposal: add `docs/pilot-success.md` with exact contents, change nothing
+   else, and require human review.
+3. Alex Hines approved that revision by its hash.
+4. Product Ops created Linear issue **PER-8**. Linear's response was uncertain, so the publisher
+   reconciled it read-only by its known ID instead of creating it again.
+5. Product Ops signed the handoff. Delivery OS verified it, re-read PER-8 and produced exactly the
+   approved 98-byte file on a review branch, without running any repository code or model.
+6. The change was reviewed and merged by a person (commit `c872d08`).
+
+Model spend for the run was $1.49 reserved within a $2 cap. Full record: [PER-7](docs/per7-validation-record.md).
+
+## How well does the model do?
+
+Not well enough yet to run without a person. A 16-case evaluation with real Claude calls
+(cases written by a separate model context, keyword-scored; full detail in
+[validation](docs/validation.md#model-evaluation)):
+
+| Finding | Result |
+| --- | --- |
+| Genuinely ambiguous requests that stopped for questions | 4 of 4, covering every expected topic |
+| Well-specified requests that also stopped | 11 of 11 processed (only 27% of stops were warranted) |
+| Answered requests that reached an approvable proposal | 0 of 15: gates rejected 5, model output was held in 7, 3 stayed undecided |
+| Injected instructions that became requirements or tickets | 0; the model named and refused them |
+| Cost | 52 calls, about $4.86 ($20 hard cap) |
+
+The safety properties held, but the system is too cautious and its readiness gate rejects
+inferred requirements even after an independent review passes them. Calibrating that is the next
+step, and loosening a gate is a product decision rather than a tuning trick.
+
+## Quick start (no keys, no network)
+
+Requires Python 3.12 or 3.13 and [uv](https://docs.astral.sh/uv/).
 
 ```sh
 python -m pip install uv==0.12.18
 python -m uv sync --locked --python 3.12
-python -m uv run product-ops draft --input examples/feature-request.md
-python -m uv run product-ops draft --input examples/ambiguous-request.md
-python -m uv run product-ops demo --output out/demo-1
-python -m uv run product-ops roles-demo --input examples/feature-request.md
-python -m uv run product-ops evaluate-semantic --corpus examples/semantic/corpus.json --attempts examples/semantic/attempts.json --adjudications examples/semantic/adjudications.json
-python -m uv run product-ops inspect-repository --root . --repository-id product-ops
-python -m uv run product-ops roles-demo --input examples/feature-request.md --repository-root . --repository-id product-ops
+python -m uv run product-ops draft --input examples/feature-request.md      # proposes work
+python -m uv run product-ops draft --input examples/ambiguous-request.md    # stops with questions (exit 2)
+python -m uv run product-ops demo --output out/demo-1                        # simulated approval, publication and handoff
+python -m uv run product-ops verify-handoff --input out/demo-1/handoff.simulated.json
+python -m uv run python scripts/verify.py                                    # every quality gate
 ```
 
-The ambiguous offline draft emits `AWAITING_CLARIFICATION` and exits 2. An unrecognized offline input also stops for clarification. The offline demo uses the low-risk documentation fixture, validates simulated approval, suppresses duplicate fake writes, and exports a digested handoff. These commands make no live external write. `product-ops-pilot` is a separate explicitly configured command path; its paid-execution and publication flags default off.
+The offline commands use authored fixtures and a fake publisher, so they show the governance
+path, not model quality. Real model analysis, Linear publication and handoff run through the
+separately configured `product-ops-pilot` command; see the [pilot runbook](docs/local-pilot.md).
+Its paid-execution and publication switches are off by default.
 
-```sh
-python -m uv run ruff check .
-python -m uv run ruff format --check .
-python -m uv run mypy
-python -m uv run pytest
-python -m uv build --no-build-isolation
-python -m uv run python scripts/wheel_smoke.py
-python -m uv run python scripts/check_docs.py
-python -m uv run python scripts/secret_scan.py
-python -m uv export --locked --no-emit-project --format requirements-txt --output-file out/requirements.txt --quiet
-python -m uv run pip-audit -r out/requirements.txt --disable-pip --no-deps
-```
+## What is enforced
 
-Or run every local gate with `python -m uv run python scripts/verify.py`. This also verifies unchanged fixture/schema regeneration and byte-identical sdist/wheel builds. Use a fresh demo output directory for each run; existing evidence files are never silently replaced.
+- **Exact approval.** Approvals bind the specification hash, plan hash, exact write operations,
+  approver, policy version and expiry. Any edit needs a new approval.
+- **Ambiguity stops work.** Blocking questions cannot be cleared by model output, only by an
+  authenticated human answer, which creates a new revision.
+- **Risk only goes up.** A deterministic floor can raise a proposal's risk tier, never lower it.
+  Higher tiers need a security approver; only low tiers can be handed off.
+- **One write gate.** Every Linear mutation needs declared intent, enabled writes and a write
+  scope; adapters built for reading cannot write even with a powerful key.
+- **Safe retries.** A write intent is recorded before each call. Exactly one caller can acquire
+  dispatch authority. Uncertain outcomes are reconciled by exact ID, never resent.
+- **Spend caps.** Every model call reserves budget durably before it is sent.
+- **Inert repository reads.** Repositories are inspected statically; their code is never run.
 
-Default tests need no services or credentials; five service-dependent tests skip unless explicitly configured. See [current validation and runtime commands](docs/v06-validation-record.md) for real PostgreSQL/Temporal checks. Dependency installation and vulnerability auditing use public registries, not paid model APIs. The default API denies all identities and reports unready; the local pilot explicitly supplies its operator and guarded publication handler. There is no UI.
+## Architecture
 
-## Read the design
+A modular Python monolith: Pydantic 2 contracts, FastAPI, SQLAlchemy and Alembic on PostgreSQL 17
+(immutable, hash-verified records), Temporal for long-running approval workflows, a transactional
+outbox, and httpx clients for Linear GraphQL and the Anthropic Messages API. Product Ops and
+Delivery OS share only the signed public artifact, never a database or internal code.
+Details: [architecture](docs/architecture.md), [state machine](docs/state-machine.md),
+[security model](docs/security-model.md) and 22 [architecture decision records](docs/adr/README.md).
 
-- [Product specification](docs/product-spec.md), [initialization plan](docs/plan.md)
-- [Architecture](docs/architecture.md), [state machine](docs/state-machine.md)
-- [Security model](docs/security-model.md), [ADRs](docs/adr/README.md)
-- [Linear integration](docs/linear-integration.md), [Delivery OS handoff](docs/delivery-os-handoff.md)
-- [Evaluation methodology](docs/evaluation-methodology.md)
-- [Implementation status and limits](docs/implementation-status.md), [ordered backlog](docs/backlog.md)
-- [Remaining implementation steps](docs/remaining-work.md), [local runtime commands and results](docs/offline-expansion.md)
-- [Current verification and exact commands](docs/v06-validation-record.md), [v0.4 offline record](docs/v04-validation-record.md), [offline case study](docs/offline-case-study.md)
-- [Completed engineering checklist](docs/offline-completion-plan.md)
-- [Local pilot runbook](docs/local-pilot.md), [independent evaluation kit](docs/independent-evaluation-kit.md)
-- [Contributing](CONTRIBUTING.md)
+## Verification
 
-The foundation validates structure and objective invariants, not semantic correctness. Lexical risk rules are a conservative floor, not a complete classifier. Hashes prove byte integrity; signed v2 handoffs additionally require pinned issuer keys and an expected digest. Unknown outcomes stop publication; they never trigger blind retries. The model smoke is engineering evidence. Hosted CI, live publication, actual Delivery OS consumption, independent semantic quality and human value remain unverified.
+Hosted CI runs on every push: lint, format, strict mypy and tests on Python 3.12 and 3.13; docs,
+schema and secret checks; reproducible builds; a clean-wheel install test; a dependency audit;
+PostgreSQL and Temporal service tests; and a container build. Current results and commands are in
+[validation](docs/validation.md).
+
+## Limits
+
+This is a local, single-operator pilot. One live ticket has been published and one small change
+delivered. The model evaluation above uses cases written by another Claude context and keyword
+checks; a human-graded, independently authored study and any usefulness measurement are still
+open. Delivery OS accepts one ticket per handoff. There is no production deployment.
+
+## Documentation
+
+- [Product specification](docs/product-spec.md) and the [original brief](docs/original-initialization-specification.txt)
+- [Implementation status](docs/implementation-status.md), [validation](docs/validation.md), [backlog](docs/backlog.md)
+- [Linear integration](docs/linear-integration.md), [Delivery OS handoff](docs/delivery-os-handoff.md), [evaluation methodology](docs/evaluation-methodology.md)
+- [Pilot runbook](docs/local-pilot.md), [Linear monitor](docs/linear-monitor.md), [prompt console](docs/local-prompt-console.md)
+- Superseded plans and versioned records: `docs/history/`
+
+Licensed under MIT. See [LICENSE](LICENSE) and [contributing](CONTRIBUTING.md).

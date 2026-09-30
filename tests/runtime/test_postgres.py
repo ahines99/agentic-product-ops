@@ -12,18 +12,22 @@ from sqlalchemy import select, update
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import DBAPIError
 
-from agentic_product_ops.adapters.linear.offline import FakeLinear, build_plan
 from agentic_product_ops.adapters.persistence.store import (
+    Conflict,
     Store,
     artifacts,
     commands,
     engine,
     metadata,
 )
-from agentic_product_ops.cli import simulated_approval
-from agentic_product_ops.policies.validation import ServerPolicy
-from agentic_product_ops.services.publication import DurableSimulationPublisher
+from agentic_product_ops.policies.validation import PolicyError, ServerPolicy
+from agentic_product_ops.services.native_publication import NativePublisher
 from alembic import command
+from tests.integration.test_native_publication import (
+    LinearRecording,
+    adapter,
+    prepare_reviewed,
+)
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("PRODUCT_OPS_TEST_DATABASE_URL"),
@@ -64,19 +68,28 @@ def test_real_migrations_immutability_and_concurrent_commands(valid, now):
     with pytest.raises(DBAPIError, match="immutable"):
         with database.begin() as conn:
             conn.execute(artifacts.delete())
-    provider = FakeLinear()
-    policy = ServerPolicy()
-    plan, approval = build_plan(valid, policy), simulated_approval(valid, now)
+    # Eight concurrent publishers with a frozen clock produce byte-identical dispatch records.
+    # Exclusive dispatch authority must still allow exactly one send per operation.
+    store, authority, spec, plan, approval, tick = prepare_reviewed(database, valid)
+    recording = LinearRecording(plan, authority, tick)
 
     def publish(_):
-        return DurableSimulationPublisher(Store(database), provider, lambda: now).publish(
-            valid, plan, approval, policy, "offline-reviewer"
-        )
+        provider = adapter(plan, recording)
+        try:
+            return NativePublisher(store, provider, authority, lambda: tick[0]).publish(
+                spec, plan, approval, ServerPolicy()
+            )
+        except (PolicyError, Conflict, DBAPIError):
+            return ()
+        finally:
+            provider.close()
 
     with ThreadPoolExecutor(max_workers=4) as executor:
         list(executor.map(publish, range(8)))
-    assert all(receipt.status == "SUCCEEDED" for receipt in publish(0))
-    assert provider.calls == len(valid.work_items)
+    for _ in range(len(plan.operations)):
+        final = publish(0)
+    assert final and all(receipt.status == "SUCCEEDED" for receipt in final)
+    assert len(recording.mutations) == len(plan.operations)
     with database.begin() as conn:
         cfg.attributes["connection"] = conn
         command.downgrade(cfg, "base")

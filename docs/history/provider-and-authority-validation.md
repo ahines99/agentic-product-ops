@@ -1,6 +1,6 @@
 # Provider, clarification and authority engineering evidence
 
-Historical intermediate increment dated 2026-09-29. Superseded release totals and final commands are in [0.4 validation](v04-validation-record.md). See [completion checklist](offline-completion-plan.md) and [ADR-010](adr/010-revisions-providers-and-durable-authority.md).
+Historical intermediate increment dated 2026-09-29. Superseded release totals and final commands are in [0.4 validation](v04-validation-record.md). See [completion checklist](offline-completion-plan.md) and [ADR-010](../adr/010-revisions-providers-and-durable-authority.md).
 
 Default suite before adding the separately enabled Temporal revision test: 175 passed, 4 skipped. The new service-only test adds one default skip. Real service run: PostgreSQL invariant test 1 passed; Temporal/connected governance plus revision suite 11 passed. This includes concurrent revision attempts, two-attempt review exhaustion, preserved first failure, stale revision approval denial and a new approval after a reviewed clarification revision. Test fixtures initially queried unrelated rows in the shared disposable PostgreSQL database; those assertions were corrected to the specific specification/execution and the service run then passed. No product gate was relaxed.
 

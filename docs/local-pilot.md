@@ -1,6 +1,6 @@
 # Local operator pilot
 
-Version 0.5 adds `product-ops-pilot` alongside the unchanged offline commands. Read [ADR-014](adr/014-local-anthropic-pilot.md) and [observed evidence](v05-validation-record.md). This is a local development pilot, not an accepted MVP or a hosted deployment.
+Version 0.5 adds `product-ops-pilot` alongside the unchanged offline commands. Read [ADR-014](adr/014-local-anthropic-pilot.md) and [observed evidence](history/v05-validation-record.md). This is a local development pilot, not an accepted MVP or a hosted deployment.
 
 ## Existing installation
 

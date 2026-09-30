@@ -35,6 +35,12 @@ def reviewed(tmp_path, valid, request):
         valid = load_fixture("handoff")
     db = engine(f"sqlite:///{tmp_path / 'native.db'}", testing=True)
     metadata.create_all(db)
+    yield prepare_reviewed(db, valid)
+    db.dispose()
+
+
+def prepare_reviewed(db, valid):
+    """Intake, record review and approve an exact native plan through the API."""
     store, tick = (
         Store(db, encryption=StorageEncryption({"test-key": secrets.token_bytes(32)}, "test-key")),
         [datetime.now(UTC)],
@@ -111,8 +117,7 @@ def reviewed(tmp_path, valid, request):
             json.dumps(response.json()["approval"])
         )
     tick[0] = approval.issued_at
-    yield store, authority, spec, plan, approval, tick
-    db.dispose()
+    return store, authority, spec, plan, approval, tick
 
 
 class LinearRecording:

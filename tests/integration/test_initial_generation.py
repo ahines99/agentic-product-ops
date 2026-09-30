@@ -1,19 +1,18 @@
 import json
 from decimal import Decimal
 
-import httpx
 import pytest
-from pydantic import SecretStr
 from sqlalchemy import select
 
 from agentic_product_ops.adapters.model.contracts import (
     Analysis,
     Decomposition,
     ModelBudget,
+    ModelResponse,
+    ProviderUsage,
     Review,
     RuntimeConfiguration,
 )
-from agentic_product_ops.adapters.model.responses import ResponsesProvider
 from agentic_product_ops.adapters.persistence.store import Store, artifacts, engine, metadata
 from agentic_product_ops.domain.contracts import seal_specification
 from agentic_product_ops.policies.validation import PolicyError, ServerPolicy, proposal_ready
@@ -42,12 +41,9 @@ def test_transport_to_durable_proposal_or_clarification(
     roles = []
 
     def handler(request):
-        if request.url.path.endswith("input_tokens"):
-            return httpx.Response(200, json={"object": "response.input_tokens", "input_tokens": 20})
-        wire = json.loads(request.content)
-        role = wire["text"]["format"]["name"]
+        role = request.role
         roles.append(role)
-        payload = json.loads(wire["input"][2]["content"])
+        payload = json.loads(request.untrusted_payload)
         if role == "requirements_analyst":
             value = Analysis(
                 source_digest=seed.source_digest,
@@ -73,33 +69,23 @@ def test_transport_to_durable_proposal_or_clarification(
             )
         else:
             value = Review(specification_digest=payload["candidate"]["content_digest"], findings=())
-        return httpx.Response(
-            200,
-            json={
-                "id": "resp-authored",
-                "status": "completed",
-                "error": None,
-                "output": [
-                    {
-                        "type": "message",
-                        "role": "assistant",
-                        "content": [
-                            {"type": "output_text", "text": value.model_dump_json()},
-                        ],
-                    }
-                ],
-                "usage": {"input_tokens": 20, "output_tokens": 10},
-            },
+        return ModelResponse(
+            output_json=value.model_dump_json(),
+            usage=ProviderUsage(
+                input_tokens=20, output_tokens=10, provider_request_id="authored-recording"
+            ),
         )
 
-    provider = ResponsesProvider(
-        model="test-model",
-        api_key=SecretStr("ephemeral-mock-only"),
-        transport=httpx.MockTransport(handler),
-    )
+    class Recording:
+        """Authored role outputs, never semantic-quality evidence."""
+
+        def complete(self, request):
+            return handler(request)
+
+    provider = Recording()
     config = RuntimeConfiguration(
-        configuration_id="mock-responses-v1",
-        provider_id="openai-mock",
+        configuration_id="recorded-roles-v1",
+        provider_id="recording",
         model="test-model",
         budget=ModelBudget(
             max_calls=6,

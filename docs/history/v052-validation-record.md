@@ -28,4 +28,4 @@ Private evidence is ignored under `out/` and `.local/pilot/`: validation logs, `
 
 ## Remaining acceptance boundary
 
-A real newly created Linear issue is needed to observe provider-origin delivery. Later continuing-inference operation, governed source supersession, independent semantic evaluation and actual Delivery OS consumption remain open. The local Quick Tunnel has no production availability guarantee; the machine must be awake and signed in. These checks do not establish autonomous MVP completion. See [monitor runbook](linear-monitor.md) and [ADR 016](adr/016-local-linear-monitor.md).
+A real newly created Linear issue is needed to observe provider-origin delivery. Later continuing-inference operation, governed source supersession, independent semantic evaluation and actual Delivery OS consumption remain open. The local Quick Tunnel has no production availability guarantee; the machine must be awake and signed in. These checks do not establish autonomous MVP completion. See [monitor runbook](../linear-monitor.md) and [ADR 016](../adr/016-local-linear-monitor.md).

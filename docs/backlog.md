@@ -17,6 +17,9 @@ Version 0.6.0 recovery and hardening ([ADR-021](adr/021-publication-recovery-and
 | R06 | Explicit source supersession | P09 | Done offline; live open | Approver-only, same issue, real edit, no publication writes; old specification cancelled atomically with the new intake. |
 | R07 | Operator grant renewal and revocation commands | P01 | Done offline | Renewal keeps subject, roles and scope for at most 30 days and stales old approvals; revocation is monotonic. |
 | R08 | Per-profile worker routing | C01 | Done offline; two-profile live check open | New profiles get their own queue; workers dispatch only their own workspace's outbox rows. |
+| R09 | Remove unwired adapters and consolidate records | R01-R08 | Done (ADR-022) | OpenAI, OAuth, JWT, mock GraphQL and simulation publishers removed; their useful tests ported to production paths; superseded docs moved to `docs/history/`. |
+| R10 | Paid model evaluation harness and first 16-case run | R09 | Done | Explicit flag, key file and durable spend cap; resumable; every attempt kept; results in [validation](validation.md#model-evaluation). |
+| R11 | Calibrate the blocking-question threshold | R10 | Open | On a held-out set written by someone other than the model, well-specified requests reach a reviewed proposal while ambiguous ones still stop, without changing the deterministic gate. |
 
 Local prompt-entry continuation (dependency order):
 
@@ -28,7 +31,7 @@ Local prompt-entry continuation (dependency order):
 | C04 | Approved multi-item delivery and supersession | C03, existing signed handoff | Open | Atomic admission, durable dependency scheduling and cancellation/revision invalidation pass real producer/consumer checks without duplicate starts. |
 | C05 | Hosted review and operational acceptance | C04 | Open | Explicitly authorized GitHub App publication, human merge, hosted CI and independent product acceptance are evidenced. |
 
-No live Linear tickets were created. IDs are local planning identifiers. Version 0.4 completed credential-free engineering; version 0.5 adds the local pilot rows below; `Offline done` does not mean live, independent semantic, human or production acceptance. Dependencies refer to earlier work and cannot be skipped because a schema exists. Rows marked partial/open retain explicit external acceptance work; see [remaining sequence](remaining-work.md) and [validation](v04-validation-record.md).
+No live Linear tickets were created. IDs are local planning identifiers. Version 0.4 completed credential-free engineering; version 0.5 adds the local pilot rows below; `Offline done` does not mean live, independent semantic, human or production acceptance. Dependencies refer to earlier work and cannot be skipped because a schema exists. Rows marked partial/open retain explicit external acceptance work; see [remaining sequence](implementation-status.md) and [validation](history/v04-validation-record.md).
 
 | ID | Work / milestone | Depends on | Status | Acceptance criteria |
 | --- | --- | --- | --- | --- |
@@ -60,7 +63,7 @@ No live Linear tickets were created. IDs are local planning identifiers. Version
 | B26 | Dependency validator, M0 | B24 | Done M0 | Unknown/self/duplicate/cyclic edges rejected; local and top-level representations agree. |
 | B27 | Duplicate-ticket detector, M0/M3 | B24 | Partial | Normalized same-title detection exists; semantic overlap findings retained and independently evaluated. |
 | B28 | LinearPublicationPlan, M0/M3 | B25, B26, B27 | Offline done; live acceptance open | Native issue and blocking-relation plan binds UUIDs, operation order/prerequisites/digests/budget; projects/labels preexisting, epic creation explicitly denied; actual provider acceptance required. |
-| B29 | OAuth/app configuration, M4 | B09, B28 | Offline done; deployment acceptance open | App-actor PKCE, single-use state, tenant/config binding, AES-GCM token vault and uncertain exchange/refresh holds tested; local pilot selects API-key authentication instead; OAuth remains unused and optional. |
+| B29 | OAuth/app configuration, M4 | B09, B28 | Removed in 0.6.0 (ADR-022) | The OAuth flow was never wired; the pilot uses an API key. Rebuild against the chosen deployment if one is selected. |
 | B30 | Linear API adapter, M4 | B29 | Offline done; live acceptance open | Bounded fixed-origin metadata/create/reconcile API tested for exact content/scope and uncertain outcomes; authorized live fixture publication still required. |
 | B31 | Team/project/repository/label allowlists, M0/M4 | B28, B29 | Offline done; tenant acceptance open | Current organization/app/team/project/label and repository grants rechecked immediately before mutation; mocked cross-scope failures denied; actual mapping acceptance required. |
 | B32 | Publication authorization service, M4 | B09, B30, B31 | Offline done; live acceptance open | Stored review/spec/approval/plan, current grants/revocation, expiry/cancel, prerequisites and budget checked per operation with immutable dispatch snapshot; pilot publisher assembled in P05, disabled pending human approval and live authorization. |
@@ -77,7 +80,7 @@ No live Linear tickets were created. IDs are local planning identifiers. Version
 
 | ID | Task | Depends on | Offline evidence and remaining acceptance criteria |
 | --- | --- | --- | --- |
-| I01 | FastAPI and identity | B02-B10 | Bounded authenticated/idempotent commands, durable grants/revocation and ephemeral JWTs pass; deployed human identity and factory configuration still required. |
+| I01 | FastAPI and identity | B02-B10 | Bounded authenticated/idempotent commands and durable grants/revocation pass with the local operator token. JWT login was removed as unwired (ADR-022); deployed human identity is still required. |
 | I02 | PostgreSQL/SQLAlchemy/Alembic | I01 | Real migrations, immutable triggers, command/operation concurrency, backup/restore fingerprints and restored-trigger denial pass; production DB/TLS/ACL acceptance remains. |
 | I03 | Temporal orchestration | I02 | Real approval wait/restart/replay, digest-bound revised analysis, receipt validation, timeout and cancellation pass; automatic live publication assembly remains disabled. |
 | I04 | Pinned container stack and CI | I03 | Digest-pinned Docker/Compose build/start/probe pass; API healthy but intentionally unready/default deny. Actions matrix/service/container jobs supplied; remote configured; hosted run requires an authorized push. |

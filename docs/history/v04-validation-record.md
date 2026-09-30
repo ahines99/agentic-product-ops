@@ -84,4 +84,4 @@ In this Windows workspace Docker is inside WSL: prefix Docker commands with `wsl
 
 Tests exposed and corrected a shared-database fixture that queried unrelated runs, a revision fixture that bypassed migration-installed immutability triggers, and a repository snapshot assertion that used the context field name instead of the snapshot field name. No product approval/ambiguity gate was weakened. Secret scanning identified newly checked-in result/input/output hashes; only exact named JSON SHA-256 fields were added to the existing narrow nonsecret exception, leaving detectors and other content enabled.
 
-The [case study](offline-case-study.md), [implementation status](implementation-status.md), [backlog](backlog.md) and [external next steps](remaining-work.md) describe what these results do and do not establish.
+The [case study](offline-case-study.md), [implementation status](implementation-status-v0.6.md), [backlog](../backlog.md) and [external next steps](remaining-work.md) describe what these results do and do not establish.

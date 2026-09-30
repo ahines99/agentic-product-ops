@@ -21,3 +21,4 @@
 - [019: Explicit source-package boundary](019-explicit-source-package-boundary.md)
 - [020: Local prompt console and execution briefs](020-local-prompt-console-and-execution-briefs.md)
 - [021: Publication recovery, one Linear write gate and derived lifecycle state](021-publication-recovery-and-write-gate.md)
+- [022: Remove unwired adapters, consolidate records and measure the model](022-remove-unwired-adapters-and-measure-the-model.md)

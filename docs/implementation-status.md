@@ -1,107 +1,48 @@
 # Implementation status
 
-## Version 0.6.0, 2026-09-30 (branch `feature/finalize-offline-engineering`, unmerged)
+Version 0.6.0, 2026-09-30. **Not an MVP.** The project's own release gate (an independently
+authored and graded evaluation of at least 40 cases) has not been met. Everything below is what
+exists and what has actually been exercised. Earlier status text is kept in
+[history](history/implementation-status-v0.6.md).
 
-This pass closes the engineering gaps an independent review found in 0.5.2 that needed no
-owner decision. Details and limits are in [ADR-021](adr/021-publication-recovery-and-write-gate.md);
-commands and results are in the [v0.6 validation record](v06-validation-record.md).
+## What works, and how it was exercised
 
-An independent review of the first draft of this branch found that two concurrent publishers
-could both send the same write for an intent that had never been dispatched. That is fixed and
-covered by a deterministic interleaving test. The same review led to exporting handoffs under
-the dispatch approval, refusing pointless renewals, and reconciling every recorded revision.
-
-| Change | Exercised with | Not exercised |
+| Capability | Evidence | Boundary |
 | --- | --- | --- |
-| Read-only reconciliation that works after approval expiry | Mock Linear transport | Live Linear |
-| Dispatch of an intent that never acquired dispatch authority | Mock Linear transport | Live Linear |
-| Renewal of an expired approval for the same exact revision | API tests on SQLite | A human renewal in the pilot |
-| Hold when a new revision would publish beside an earlier revision's tickets | Mock transport and the reference consumer | Live Linear |
-| One wire gate for every Linear mutation; webhook manager declares `admin` | Mock transport | Live webhook update under the new gate |
-| Lifecycle state after the decision derived from durable records; `state` endpoint | SQLite and isolated PostgreSQL/Temporal | The running pilot |
-| Handoff refused for incomplete publication or writes under two approvals | Signed-handoff tests | Actual Delivery OS |
-| Explicit supersession of an edited Linear issue | API tests with recorded source | A real edited issue |
-| `grant-renew` and `revoke` pilot commands | Runtime tests on SQLite | The pilot profile's grant |
-| Per-profile worker queue and workspace-filtered outbox dispatch | Unit tests | Two live profiles |
-| Wider lexical risk floor; "author" no longer matches `auth` | Unit tests | Stored pilot specifications |
-| `POST /v1/intakes` requires an approver or intake-reader role | API tests | |
+| Strict, content-hashed WorkSpecification contracts; traceability and dependency checks | Unit and property tests | Structure, not semantic correctness |
+| Requirements analysis, clarification questions, decomposition and a separate reviewer with Claude | 6-call smoke (2026-09-29), PER-7 live run, [16-case evaluation](validation.md#model-evaluation) | Cases written by another Claude context; keyword checks, not human grading |
+| Ambiguity gate: stop and ask instead of guessing | Evaluation: 4 of 4 ambiguous requests stopped | Over-asks: stopped on 11 of 11 well-specified requests |
+| End-to-end proposal quality on general requests | Evaluation round 2: 0 of 15 answered cases reached an approvable proposal | Readiness gate rejects reviewed inferences; model output held in 7 cases. Calibration (R11) is open |
+| Exact human approval bound to specification, plan, operations and expiry; renewal only after expiry | API and publisher tests | One local operator identity |
+| Governed Linear publication with per-write re-authorization, one mutation gate and read-only reconciliation | PER-8 created live; mock-transport fault tests; PostgreSQL concurrency test | One live ticket |
+| Signed, versioned handoff to Agentic Delivery OS | PER-7: Delivery OS verified the envelope and produced the exact approved change, which was reviewed and merged | Single-file documentation change only |
+| Linear intake by signed webhook and polling; explicit supersession of edited issues | Live webhook registration and one genuine event (PER-7); API tests | Local tunnel, no uptime target |
+| Durable workflow on PostgreSQL and Temporal with a transactional outbox | Service tests on real PostgreSQL 17 and a Temporal dev server, locally and in hosted CI | Development services, not production |
+| Spend control reserved before every model call | All paid runs stayed under their caps | Token-based estimates; invoices not reconciled |
+| Static repository inspection (no code execution) | Local snapshots used in the smoke and PER-7 | GitHub reader mock-tested only |
 
-The running pilot (scheduled task, tunnel and webhook) was not touched. It still runs 0.5.2 code
-until the branch is merged and the services are restarted. Stored pilot specifications whose text
-matches a newly added risk term will fail the floor check after that restart until reassessed.
+## Not done
 
-Still open after this pass, and why:
+**Needs an owner decision, money or another repository:**
 
-- **Needs the owner:** live publication and reconciliation acceptance, hosted CI (needs a push),
-  the independent 40-case semantic study and its budget, any Delivery OS code change (multi-item
-  admission, cross-system cancellation), a per-prompt inference budget policy, a risk policy that
-  would let general model proposals reach handoff, and a second approver identity.
-- **Deliberately not built:** a command that declares a dispatched-but-unobserved write absent and
-  permits a resend; handoff of a publication whose writes span two approvals (needs a public
-  contract change the consumer would have to accept).
+1. A decision on whether the readiness gate may accept inferred requirements that an independent
+   review has passed, followed by calibration on a held-out set (backlog R11).
+2. An independent 40-case semantic study with human grading, and a usefulness or time-saving
+   measurement with real users.
+3. A risk policy that lets general model proposals, not only the constrained documentation lane,
+   reach a Delivery OS handoff.
+4. Delivery OS support for multi-ticket delivery and cross-system cancellation.
+5. A per-request inference budget before continuous analysis is enabled.
+6. A second approver identity and least-privilege Linear credentials for any shared deployment.
+7. Any production deployment: hosting, login, TLS, monitoring and recovery objectives.
 
-## Earlier status (before 0.6.0)
+**Deliberately not built:** a command that declares an unobserved write absent and resends it,
+and handoff of a publication whose writes were authorized by two different approvals. See
+[ADR-021](adr/021-publication-recovery-and-write-gate.md).
 
-Final local-entry pass, 2026-09-30: the opt-in [prompt console](local-prompt-console.md) provides
-prompt/repository intake, held-state feedback, clarification and exact-plan approval. The new
-`pilot-execution-v1` policy adds detailed ticket execution briefs and structural readiness gates
-without modifying prior approved payloads. New inference/publication remain off. Visual browser
-validation and a fresh paid semantic-quality check are not claimed. General dependency scheduling,
-budget/enrollment automation and policy-isolated worker routing remain incomplete.
+## Where things are
 
-Current integration branch, 2026-09-30 UTC: the exact PER-7 revision 3 was approved by the
-human operator, Product Ops created PER-8, and actual Delivery OS admitted and executed the
-signed handoff. The result is one exact 98-byte Markdown addition in a local review branch,
-with an OPEN/UNMERGED change request and HUMAN_REVIEW state. Target main remains unchanged.
-See [live evidence and commands](per7-validation-record.md),
-[prompt intake and remaining milestones](prompt-to-delivery.md), and
-[ADR-017](adr/017-constrained-documentation-delivery.md).
-
-The four PER-7 model calls reserved $1.489624 under the $2 Product Ops allocation;
-Delivery used no model calls under its separate $3 allocation. Billing remains unverified.
-Paid execution is disabled. General multi-ticket execution, source supersession/cancellation
-propagation, independent semantic acceptance, hosted verification and production operation
-remain open. This controlled pilot is not MVP completion.
-
-## Historical v0.5.2 baseline
-
-The statements below describe the earlier release, before the integration evidence above.
-
-Version 0.5.2, 2026-09-29. **Offline initialization is complete; the authorized local Anthropic smoke is complete. MVP, independent semantic acceptance, live work publication and actual Delivery OS acceptance remain incomplete.** The [Linear monitor](linear-monitor.md) now has live webhook registration, reconciliation and synthetic HTTPS delivery evidence. A genuine Linear-origin issue notification remains unobserved. It runs with paid execution and publication disabled. See [prior smoke evidence](v05-validation-record.md), [pilot commands](local-pilot.md), [backlog](backlog.md) and [remaining work](remaining-work.md). Earlier validation records describe their own releases only.
-
-The [v0.5.1 validation record](v051-validation-record.md) records current local checks and the exact automation boundary.
-The [v0.5.2 validation record](v052-validation-record.md) supersedes its monitoring boundary with webhook/reconciliation and local recovery evidence, while preserving the distinction between synthetic delivery and a real Linear-origin event.
-
-| Area | Executable and exercised | Evidence boundary |
-| --- | --- | --- |
-| Contracts and governance | Strict immutable WorkSpecification, source/provenance, DAG, scope, digest, ambiguity, risk and exact approval | Structural validity is not semantic correctness |
-| Initial analysis | Live Anthropic analyst/decomposer/reviewer through durable roles; two preserved failures followed by a reviewed proposal and native plan | One same-context engineering case, no independent semantic score |
-| Anthropic and spending | Fixed origin, explicit model/key, structured output, token preflight, no tools/retries, thinking discarded, durable aggregate reservations | Six paid calls; token-derived estimates, not verified billing |
-| Clarification and risk revisions | Authenticated additive answers; explicit security-operator risk changes; new revisions, fresh reviews and approvals; stale/cancelled/revoked cases hold | Recorded-provider tests; no live human clarification or risk decision yet |
-| Repository selection | Any repository only with both policy and grant; ticket-owned absolute local Git path or pinned GitHub identity; bounded metadata, no execution | Actual local snapshot used in smoke; GitHub transport remains mock-tested |
-| Local identity/API | Owner-private operator token, current 30-day grants, revocation, loopback API, idempotent commands, bounded readiness and explicit controls | Single-operator local trust; no enterprise login, TLS deployment or human approval yet |
-| Persistence/orchestration | Separate encrypted pilot PostgreSQL, immutable artifacts, Temporal workflows/outbox, durable role reuse | Real local services; separate disposable test database; no production operations acceptance |
-| Linear | API-key identity/team discovery live; native plan and guarded publisher assembled; exact authority rechecked per mutation | No live create/reconcile/rate-limit acceptance; publication still requires exact approval even when configured on |
-| Issue-driven operation | Read-only issue lookup, short local repository names, atomic source binding, duplicate/edit conflict handling, source checks before approval/dispatch/export, combined launcher | No live source issue supplied or automatic source supersession; no fresh inference authorization |
-| Linear monitoring | Signed isolated webhook listener, encrypted inbox, durable polling cursor/backoff, exclusions, owned registration recovery, Windows login supervisor | Live registration/polling and synthetic public delivery passed; no genuine Linear-origin issue event, production tunnel SLA or external uptime alerting |
-| Handoff | Signed public v2 export and independent reference consumer | Actual Delivery OS remains unchanged; pilot tier 3 cannot hand off |
-| Evaluation | Strict frozen gold/attempt/adjudication contracts; original ten categories; independent authoring kit | No independent 40-case corpus, adjudication, indirect-injection study or human usefulness measurement |
-| Release | Locked dependencies, CI configuration, lint/types/tests, docs/schema/secrets, build/reproducibility and clean-wheel checks | Local results only; remote configured but not pushed; hosted Actions not run |
-
-## Exact known limitations
-
-1. Offline `draft`/`roles-demo` remain authored simulations. The separately configured pilot exercises genuine inference. Its smoke retains six calls across three attempts: composition rejected mixed provenance; review rejected a malformed digest; the final reviewer returned advisory findings and no blockers. That is not evidence of general requirements accuracy.
-2. Provider-reported usage totaled 78,037 input and 10,821 output tokens. Standard-rate estimate is $0.528568; conservative configured-rate estimate is $0.840716; reservations total $2.341864 under the $10 authorization. Actual billing is unverified. Unknown reservations are never refunded automatically. Paid execution is disabled after the completed smoke; no further spend is authorized by a green test suite.
-3. Generic intake starts at tier 3. Human risk reassessment cannot cross the lexical floor. Whole-snapshot metadata can conservatively hold documentation work at tier 3 when security terms occur. The smoke has no human approval and cannot enter the tier-0/1 handoff path. The new reassessment path has recorded-provider tests, not real human acceptance.
-4. Repository reads expose static metadata, not complete behavior. Lexical checks can miss paraphrases; secret heuristics are not complete DLP; filesystem checks are not an OS sandbox. Any-repository permission is a deliberate operator capability, not access to unavailable private repositories. GitHub requires a fixed origin and pinned SHA and has not been live-validated here.
-5. Local token possession is the operator identity. It does not distinguish people or processes already able to read that account's private files. Grants expire after 30 days. No public identity administration, multi-user login, production TLS, remote-host configuration, ingress rate limiting or production collector is provided by the pilot. Key backup/recovery and physical retention remain operator responsibilities. Partial identity initialization is never silently overwritten.
-6. The default API still denies all identities. The configured API has guarded publication and risk handlers. Local readiness checks a recent worker heartbeat and configuration, not external-provider acceptance. Both paid execution/publication flags were disabled after the smoke; services can run for read-only intake while those gates remain closed. Calls already dispatched can finish after cancellation; future dispatches are held.
-7. Linear API-key identity/admin/team discovery, one owned webhook create/update and read-only reconciliation are exercised live. Issue mutation permissions, real issue normalization, retry/rate limits and work-publication UNKNOWN reconciliation remain unverified. The webhook's public path has signed synthetic delivery evidence, not a genuine Linear-origin issue notification yet. There is no epic/project creation, hierarchy, republish-generation policy or semantic duplicate detector. Exact work approval and authorization remain required before publishing tickets.
-8. Signed v2 requires pinned issuer/public key/audience and an expected digest. The reference consumer's separate SQLite store is not Delivery OS integration. No sibling code was changed or executed, and actual downstream stale-plan invalidation is untested.
-9. Pilot secrets are local owner-protected files; database artifact encryption is enabled for this profile, optional elsewhere. Raw-role read expiry retains ciphertext rather than proving erasure. Database/outbox/audit metadata need infrastructure protection. Bounded evidence scans hold above their configured limits. Restoring a database without its original storage key cannot recover encrypted content.
-10. Local PostgreSQL/Temporal/container/restore evidence is development evidence. No hosted CI, production recovery/SLO acceptance, image provenance attestation or deployment approval exists. The wheel includes the pilot CLI but initialization migrations require the checkout. Windows smoke export copies produced by shell redirection are UTF-16; canonical stored artifacts are JSON.
-11. No independently authored/adjudicated semantic corpus or actual-model adversarial evaluation has been completed. Signatures authenticate evaluation attestations, not truth. The scorer leaves MVP completion false. Human usefulness claims require actual participants and measurements. One upstream Starlette TestClient deprecation warning remains unsuppressed.
-
-## Next milestone
-
-Observe one user-created Linear issue through the registered webhook. Implement governed source supersession and a separately authorized continuing-inference mode after this no-execution monitoring acceptance. Exact specification approval remains required. Independent semantic acceptance, actual Delivery OS integration and hosted CI remain separate acceptance steps; the agent owns their implementation and setup work.
+- Current evidence and commands: [validation](validation.md).
+- Live end-to-end record: [PER-7](per7-validation-record.md).
+- Ordered backlog with acceptance criteria: [backlog](backlog.md).
+- Decisions: [ADRs](adr/README.md). Superseded plans and versioned records: `docs/history/`.

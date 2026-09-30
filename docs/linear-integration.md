@@ -1,8 +1,8 @@
 # Linear integration
 
-The local pilot uses an explicit Linear API key, as selected by the operator; OAuth is optional and unused. Organization/viewer/team/admin discovery, one owned webhook's registration/update and read-only reconciliation succeeded live. The work publisher is disabled in the private profile and still requires exact current human approval before each native operation. No live ticket/comment writes have been exercised; webhook configuration is the only live mutation performed. See [monitor operation](linear-monitor.md), [pilot commands](local-pilot.md) and [ADR-014](adr/014-local-anthropic-pilot.md).
+The local pilot uses an explicit Linear API key, as selected by the operator. An earlier OAuth flow was never wired and was removed in 0.6.0 ([ADR-022](adr/022-remove-unwired-adapters-and-measure-the-model.md)). Organization/viewer/team/admin discovery, one owned webhook's registration/update and read-only reconciliation succeeded live. The work publisher is disabled in the private profile and still requires exact current human approval before each native operation. No live ticket/comment writes have been exercised; webhook configuration is the only live mutation performed. See [monitor operation](linear-monitor.md), [pilot commands](local-pilot.md) and [ADR-014](adr/014-local-anthropic-pilot.md).
 
-Version 0.4 introduced native GraphQL planning, OAuth PKCE/encrypted token storage and durable publication orchestration, exercised with mock HTTP transport. Version 0.5 wired a guarded pilot publication handler and exercised read-only identity discovery; no live ticket creation occurred. Version 0.5.1 adds [issue-driven intake](issue-driven-operation.md), currently exercised with mock source transport. The original in-memory demo and `FAKE-` records remain explicitly simulated.
+Version 0.4 introduced native GraphQL planning and durable publication orchestration, exercised with mock HTTP transport. Version 0.5 wired a guarded pilot publication handler and exercised read-only identity discovery; no live ticket creation occurred. Version 0.5.1 adds [issue-driven intake](issue-driven-operation.md), currently exercised with mock source transport. The original in-memory demo and `FAKE-` records remain explicitly simulated.
 
 ## Recovery after expiry or uncertainty (version 0.6.0)
 
@@ -21,9 +21,9 @@ These paths are covered by mock-transport tests only. See [ADR-021](adr/021-publ
 
 ## Identity and scope
 
-Trusted configuration maps local workspace/team/project/label aliases to provider UUIDs and binds the Linear organization and app actor. The adapter reads current organization, viewer, team, project team membership and label scope before mutation. Source text cannot change these bindings. OAuth uses app actor, PKCE S256, one-use state, fixed redirect/origin and encrypted secrets. Durable exchange/refresh intent prevents uncertain automatic repeats. Default OAuth scope is read plus issue creation; native relation writes require `write` and an explicit operator decision.
+Trusted configuration maps local workspace/team/project/label aliases to provider UUIDs and binds the Linear organization and app actor. The adapter reads current organization, viewer, team, project team membership and label scope before mutation. Source text cannot change these bindings. Every mutation passes one adapter gate that requires declared intent, enabled writes and a write-capable scope.
 
-Provider facts were checked against [OAuth](https://linear.app/developers/oauth-2-0-authentication), [app actor authorization](https://linear.app/developers/oauth-actor-authorization), [GraphQL](https://linear.app/developers/graphql), and the official SDK schema during implementation. Mock conformance is not live compatibility acceptance.
+Provider facts were checked against [GraphQL](https://linear.app/developers/graphql) and the official SDK schema during implementation. Mock conformance is not live compatibility acceptance.
 
 ## Native plan v2
 
@@ -39,4 +39,4 @@ Reconciliation reads exact deterministic target IDs and compares complete conten
 
 The API/Temporal default runtime never calls NativePublisher automatically. The configured pilot requires its publication switch, exact human approval and current authority. Credential loading from the user-specified private file is configured; possession of that key does not authorize creating tickets. Issue-origin work additionally revalidates the source before each mutation dispatch. Controlled live write acceptance remains open.
 
-The [local webhook monitor](linear-monitor.md) and reconciliation are implemented in acceptance mode. Registration/reconciliation and synthetic HTTPS delivery have live evidence; a real Linear-origin issue notification is still unobserved. Hosted MCP publication is not implemented. Native handoff consumes successful publication receipts without executing delivery work. See [ADR-011](adr/011-native-linear-publication.md), [ADR 016](adr/016-local-linear-monitor.md), [status](implementation-status.md) and [remaining steps](remaining-work.md).
+The [local webhook monitor](linear-monitor.md) and reconciliation are implemented in acceptance mode. Registration/reconciliation and synthetic HTTPS delivery have live evidence; a real Linear-origin issue notification is still unobserved. Hosted MCP publication is not implemented. Native handoff consumes successful publication receipts without executing delivery work. See [ADR-011](adr/011-native-linear-publication.md), [ADR 016](adr/016-local-linear-monitor.md), [status](implementation-status.md) and [remaining steps](implementation-status.md).

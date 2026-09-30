@@ -2,7 +2,7 @@
 
 Historical release evidence; current capability and commands are in [0.4 validation](v04-validation-record.md).
 
-Version 0.2.0, 2026-09-28. See [implementation status](implementation-status.md) for capabilities and exact limitations, and [remaining steps](remaining-work.md) for the path to MVP/release. No live credentials, Linear objects, paid model calls, UI or Delivery OS persistence changes were made.
+Version 0.2.0, 2026-09-28. See [implementation status](implementation-status-v0.6.md) for capabilities and exact limitations, and [remaining steps](remaining-work.md) for the path to MVP/release. No live credentials, Linear objects, paid model calls, UI or Delivery OS persistence changes were made.
 
 ## Setup and default checks
 

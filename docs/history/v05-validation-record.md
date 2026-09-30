@@ -4,7 +4,7 @@ Date: 2026-09-29. This record extends the completed [v0.4 offline record](v04-va
 
 ## Live engineering smoke
 
-The [public receipt](../evals/reports/anthropic-smoke-2026-09-29.json) binds all three configurations and their role receipts. Private full artifacts remain in encrypted pilot PostgreSQL and `.local/pilot/`; source and repository bodies are not published in the receipt.
+The [public receipt](../../evals/reports/anthropic-smoke-2026-09-29.json) binds all three configurations and their role receipts. Private full artifacts remain in encrypted pilot PostgreSQL and `.local/pilot/`; source and repository bodies are not published in the receipt.
 
 | Attempt | Result | Paid calls | Preserved outcome |
 | --- | --- | --- | --- |
@@ -81,7 +81,7 @@ python -m uv run product-ops-pilot status
 python -m uv run product-ops-pilot evidence --id dddf28ad-2d90-4d44-a622-995f4a25531b
 ```
 
-The ambiguous offline command intentionally exits 2. Demo output paths must be new. Pilot status/evidence read the preserved database without inference. Full setup and future human approval commands are in [local pilot](local-pilot.md); exact remaining acceptance steps are in [remaining work](remaining-work.md).
+The ambiguous offline command intentionally exits 2. Demo output paths must be new. Pilot status/evidence read the preserved database without inference. Full setup and future human approval commands are in [local pilot](../local-pilot.md); exact remaining acceptance steps are in [remaining work](remaining-work.md).
 
 ## Repository state
 

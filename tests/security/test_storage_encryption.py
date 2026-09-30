@@ -1,4 +1,3 @@
-import json
 import secrets
 from datetime import UTC, datetime, timedelta
 
@@ -15,7 +14,6 @@ from agentic_product_ops.adapters.persistence.store import (
 )
 from agentic_product_ops.policies.validation import ServerPolicy
 from agentic_product_ops.services.durable_analysis import analyze_specification
-from agentic_product_ops.services.operations import artifact_manifest, operational_metrics
 
 
 def test_encrypted_artifacts_retain_integrity_and_retention_metadata(tmp_path, valid):
@@ -46,16 +44,10 @@ def test_encrypted_artifacts_retain_integrity_and_retention_metadata(tmp_path, v
     assert store.get("offline-workspace", "specification", identity) == valid.model_dump(
         mode="json"
     )
-    metrics = operational_metrics(store, "offline-workspace")
-    assert metrics["role_run_count"] == 3 and metrics["role_runs_with_usage"] == 3
-    assert valid.title not in json.dumps(metrics)
     tick[0] += timedelta(seconds=61)
     with pytest.raises(Missing, match="retention"):
         store.get("offline-workspace", "role_request", role_id)
     assert store.get("offline-workspace", "specification", identity)
-    manifest = artifact_manifest(store, "offline-workspace", now=tick[0])
-    assert any(row["access"] == "expired" for row in manifest["entries"])
-    assert valid.title not in json.dumps(manifest)
     wrong = Store(db, encryption=StorageEncryption({"other": secrets.token_bytes(32)}, "other"))
     with pytest.raises(ValueError, match="authentication"):
         wrong.get("offline-workspace", "specification", identity)

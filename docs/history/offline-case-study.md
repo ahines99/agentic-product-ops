@@ -1,6 +1,6 @@
 # Offline case study: approved documentation work
 
-This reproducible case study uses the low-risk documentation request in [handoff-request.md](../examples/handoff-request.md). The business intent is decomposed into documented work with traceable acceptance evidence. It deliberately avoids claiming revenue-export tier-2 work is safe for the tier-0/1 handoff consumer.
+This reproducible case study uses the low-risk documentation request in [handoff-request.md](../../examples/handoff-request.md). The business intent is decomposed into documented work with traceable acceptance evidence. It deliberately avoids claiming revenue-export tier-2 work is safe for the tier-0/1 handoff consumer.
 
 1. Intake persists the exact request and specification under an ephemeral authenticated test actor. Authored analyst/decomposer/reviewer results are saved as immutable evidence; deterministic scope, ambiguity, risk and coverage checks must pass.
 2. The native plan renders exact issues and dependency relations, including every mutation in its digest and count. The test actor explicitly approves that plan and specification revision. This is simulated human input, not an actual human-review study.

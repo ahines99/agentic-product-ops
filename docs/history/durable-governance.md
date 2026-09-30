@@ -2,7 +2,7 @@
 
 Historical release evidence; current capability and commands are in [0.4 validation](v04-validation-record.md).
 
-Date: 2026-09-29. Version 0.2's verified expansion was committed as `09301145b36d7cccbd59f2449b8e1056dffb1e06`. This continuation connects recorded analysis to durable approval and adds cancellation plus a pinned-key identity adapter. [ADR-009](adr/009-durable-recorded-governance.md) explains the authority and recovery decisions.
+Date: 2026-09-29. Version 0.2's verified expansion was committed as `09301145b36d7cccbd59f2449b8e1056dffb1e06`. This continuation connects recorded analysis to durable approval and adds cancellation plus a pinned-key identity adapter. [ADR-009](../adr/009-durable-recorded-governance.md) explains the authority and recovery decisions.
 
 ## Executable behavior
 
@@ -44,4 +44,4 @@ Both full verifier runs passed on Windows with CPython 3.12.10 and 3.13.15:
 
 The four runtime tests were run on Python 3.12 against PostgreSQL 17.11 and Temporal CLI 1.9.1/server 1.32.0. Test servers started for this work were stopped afterward. The Starlette/httpx TestClient deprecation warning remains visible; it is not a failed assertion and is not suppressed. Public package installation/auditing used network access; no model calls or money were spent.
 
-The original 15- and 45-case routing reports remain unchanged; no semantic-quality or independent-authorship claim has been added. See [current status](implementation-status.md) and [remaining steps](remaining-work.md) for exact gaps. In particular, semantic answer-to-requirement revision, live model execution/reconciliation, deployed identity/revocation/key rotation, live Linear, trusted downstream intake and production operations are not complete.
+The original 15- and 45-case routing reports remain unchanged; no semantic-quality or independent-authorship claim has been added. See [current status](implementation-status-v0.6.md) and [remaining steps](remaining-work.md) for exact gaps. In particular, semantic answer-to-requirement revision, live model execution/reconciliation, deployed identity/revocation/key rotation, live Linear, trusted downstream intake and production operations are not complete.

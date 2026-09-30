@@ -1,6 +1,6 @@
 # Historical M0 validation record
 
-Preserved from commit `527459ec9110f3306e27f8179ca48b4929f248b8`. This describes version 0.1.0; see [current implementation status](implementation-status.md) for subsequent changes.
+Preserved from commit `527459ec9110f3306e27f8179ca48b4929f248b8`. This describes version 0.1.0; see [current implementation status](implementation-status-v0.6.md) for subsequent changes.
 
 Status: M0 offline foundation. Updated 2026-09-28. MVP and portfolio release are **not complete**.
 
@@ -67,4 +67,4 @@ During development, initial failures were missing README build metadata, syntax/
 
 ## Next milestone
 
-M1: provider-neutral structured requirements/ambiguity analysis, separate independent-review context, authenticated clarification and approval receipts, decimal usage/cost accounting, and a frozen separately authored corpus. Add PostgreSQL/Temporal/ingress through I01–I05 before making durable service claims. See [ordered backlog](backlog.md) for exact acceptance criteria.
+M1: provider-neutral structured requirements/ambiguity analysis, separate independent-review context, authenticated clarification and approval receipts, decimal usage/cost accounting, and a frozen separately authored corpus. Add PostgreSQL/Temporal/ingress through I01–I05 before making durable service claims. See [ordered backlog](../backlog.md) for exact acceptance criteria.

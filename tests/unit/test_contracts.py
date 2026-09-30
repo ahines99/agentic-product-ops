@@ -127,3 +127,13 @@ def test_canonicalization_and_revision_history(valid):
     revised = seal_specification(payload)
     assert revised.content_digest != valid.content_digest
     assert valid.model_dump_json() == original_bytes
+
+
+def test_generated_titles_are_cut_at_a_word_boundary():
+    from agentic_product_ops.services.revisions import title_from
+
+    objective = "Replace re-displayable encrypted API keys with salted hashes " * 8
+    title = title_from(objective)
+    assert len(title) <= 240 and title.endswith("...")
+    assert objective.startswith(title[:-3]) and objective[len(title) - 3] == " "
+    assert title_from("Short objective") == "Short objective"

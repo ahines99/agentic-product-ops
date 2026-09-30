@@ -35,6 +35,14 @@ from agentic_product_ops.services.drafting import draft
 from agentic_product_ops.services.durable_analysis import DurableRoleRunner
 
 
+def title_from(objective: str, limit: int = 240) -> str:
+    """Titles derive from the objective and are cut at a word boundary, never mid-word."""
+    if len(objective) <= limit:
+        return objective
+    cut = objective[: limit - 3].rsplit(" ", 1)[0].rstrip(" ,;:.-")
+    return (cut or objective[: limit - 3]) + "..."
+
+
 def revise_specification(
     store: Store,
     identifier: str,
@@ -118,7 +126,10 @@ def revise_specification(
                 "On initial intake, the empty seed's Q1 is a routing placeholder, not an "
                 "established product ambiguity. Extract actual requirements and actual unknowns. "
                 "Preserve S0 exactly. Return exact source excerpts with unique IDs and cite them. "
-                "On a clarification revision preserve every original requirement and answer. "
+                "On a clarification revision preserve every original requirement and answer, "
+                "and return unresolved_questions exactly as given, including "
+                "affected_requirement_ids; link new requirements to an answer only through "
+                "their source_refs. "
                 "Use only the configured team/project/label scope and supplied repository ID. "
                 "Do not fabricate approvals or answers. Decomposer must include every requirement "
                 "in work item requirement_ids and every criterion must cite real requirements."
@@ -163,7 +174,7 @@ def revise_specification(
                     body.update(
                         revision=base.revision + 1,
                         objective=analysis.objective,
-                        title=analysis.objective[:240],
+                        title=title_from(analysis.objective),
                         source_statements=[
                             s.model_dump(mode="json") for s in analysis.source_statements
                         ],
@@ -197,7 +208,7 @@ def revise_specification(
             if initial:
                 body.update(
                     objective=analysis.objective,
-                    title=analysis.objective[:240],
+                    title=title_from(analysis.objective),
                     source_statements=[
                         s.model_dump(mode="json") for s in analysis.source_statements
                     ],

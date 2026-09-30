@@ -1,0 +1,66 @@
+{
+  "clear-01": {
+    "Q2": "Record the exporting admin's user ID and email, their IP address, the applied date range (start and end in UTC), the applied event-type filters (or 'all'), the number of rows exported, and the export timestamp. Do not store the exported file contents in the event."
+  },
+  "clear-02": {
+    "Q1": "Only comments and likes are suppressed. Every other push category (mentions, follows, system notices, and any marketing push) is delivered as normal during quiet hours.",
+    "Q2": "Store start and end as wall-clock times (e.g. 22:00-07:00) and apply them in each device's own current timezone, so a travelling user gets quiet hours at local night. Enforce suppression on-device: the server keeps sending pushes and the app suppresses comment and like notifications locally while quiet hours are active."
+  },
+  "ambiguous-01": {
+    "Q1": "Until Legal confirms specifics, retain invoices, payment and tax records for 7 years and the security audit log for 1 year; these are excluded from deletion and kept in place with the account's personal identifiers pseudonymised where not legally required. Any account under a legal hold is excluded entirely. The job ships with deletion limited to projects, uploaded files and activity history; Legal must sign off on the retention list before the first production run.",
+    "Q2": "An account is inactive when no user in it has logged in or made an API call for 24 months and it has no active paid subscription. Exclude accounts with an open balance, an open dispute or chargeback, an active legal hold, or an enterprise contract still in term.",
+    "Q3": "Soft-delete first: mark the account for deletion, email the account owner, and allow a 30-day recovery window before hard deletion. Hard deletion removes the data from Postgres, replicas and the uploaded-file object storage; backups are not edited but age out under their existing 35-day rotation, and restores must re-apply the deletion list."
+  },
+  "ambiguous-02": {
+    "Q1": "Pro is billed monthly on API calls: $49 per workspace per month includes 100,000 calls, then $0.40 per additional 1,000 calls. There is no cap; admins can set an optional spending alert. Usage is metered per calendar month and billed in arrears.",
+    "Q2": "Existing Pro customers stay on per-seat pricing until their next renewal after the effective date, with at least 60 days' advance email notice. At renewal they move to usage-based pricing, and for the first 12 months their bill is capped at what they paid under per-seat pricing. No mid-term proration.",
+    "Q3": "The effective date is 1 January 2027. The pricing page, in-app plan comparison and billing change go live together on that date; the notice to existing customers goes out by 1 November 2026.",
+    "Q4": "Not yet. The Head of Product owns final sign-off on the pricing model and existing-customer treatment, with Finance reviewing; engineering can scope and build behind a flag, but nothing ships to customers until that sign-off is recorded."
+  },
+  "bug-01": {
+    "Q2": "Use the same logic the web billing page uses, so the PDF and web page always match. That is the account's billing locale setting, falling back to the default locale for the billing currency (e.g. de-DE for EUR, en-GB for GBP) when unset.",
+    "Q3": "Do not modify or re-issue the original invoices. Fix the template for future invoices and regenerate the affected PDFs (issued on or after 2 September) from the stored invoice data with the same invoice numbers, amounts and dates, keeping the original PDFs archived. Notify affected EUR and GBP account owners that corrected copies are available."
+  },
+  "bug-02": {
+    "Q1": "The customer-facing web app, specifically the project dashboard and search, in the main web-app repository. Mobile apps and the public API are out of scope for this ticket unless investigation shows the cause is in a shared backend service.",
+    "Q2": "The dashboard load and search requests are slow: p95 latency has risen from about 800 ms to about 4 seconds over the past two weeks. Fixed means p95 is back under 1 second for both, measured over 7 days in production monitoring.",
+    "Q3": "Users see a spinner that ends in a 'Something went wrong' error; our logs show 504 gateway timeouts on search and dashboard requests. It affects roughly 2% of those requests, mostly for large workspaces during weekday business hours. Fixed means the 504 rate is below 0.1%."
+  },
+  "analytics-01": {
+    "Q2": "Send workspace_id as null on signup_completed when no workspace exists yet; do not omit the property. Funnel steps are joined on user_id, and workspace_id is used only from workspace_created onward."
+  },
+  "security-01": {
+    "Q2": "In scope are add, remove and list members. Adding and removing members is limited to project Owners and workspace Admins; any member may remove themselves (leave), and any project member may list members. The last remaining Owner cannot be removed or leave; the same rules, 403 response and denied-attempt audit event apply to the add and remove endpoints.",
+    "Q3": "Return 409 Conflict with a clear message ('a project must have at least one Owner') and do not write a security audit event, since the caller is authorized and this is a business-rule violation, not an access denial."
+  },
+  "data-01": {
+    "Q1": "We are not naming a vendor yet: scope this against a generic REST API integration and keep the vendor-specific connector as a separate ticket blocked until the tool is chosen and approved. Rate limits and field mapping are captured in that ticket.",
+    "Q2": "Sync only customers who have opted in to marketing email. Unsubscribes in the email tool must sync back to our system daily and update the customer's marketing consent, and an opt-out in our system removes the contact from the tool on the next sync.",
+    "Q3": "No. The trial vendor must pass security and privacy review, have a signed DPA, and store data in the EU (or be covered by approved transfer safeguards) before any real customer data is sent. Until then, the trial uses test or synthetic data only.",
+    "Q4": "Do not send lifetime spend. Send a spend tier instead (e.g. under $1k, $1k-$10k, over $10k). Phone numbers are also out of scope for this work.",
+    "Q5": "The billing/customer database is the system of record. Use an incremental daily sync of changed records, with a weekly full reconciliation. Deleted customers and erasure requests must delete the contact in the email tool within the next daily sync, and changed records overwrite the tool's copy."
+  },
+  "data-02": {
+    "Q1": "Inclusive of both dates: 2026-08-01 00:00:00 through 2026-09-22 23:59:59 UTC. The window and partition boundaries are defined by the event's partition date column (event time in UTC), not ingested_at.",
+    "Q2": "Keep the row with the lowest value of the row's unique load identifier (the ingestion batch/row ID); if none exists, pick the lexicographically smallest hash of the full row. The rule must be deterministic so re-runs produce the same result.",
+    "Q3": "The table is analytics.events in the production warehouse, with the aggregates in analytics.daily_active_users and analytics.revenue_daily. Store snapshots in the analytics_backup schema as clones named events_snapshot_20260801_20260922, and retain them for 30 days after the job completes before dropping them."
+  },
+  "multi-01": {
+    "Q1": "Only workspace Admins can create, list, copy and revoke invite links. This is enforced in the backend API (non-Admins get 403) as well as hidden in the settings UI."
+  },
+  "multi-02": {
+    "Q1": "Disk remains the primary store during dual-write: if disk succeeds and S3 fails, the upload succeeds, the failure is logged with an alert, and the file is queued for S3 retry (the backfill also picks up any misses). If the disk write fails, the upload fails as it does today.",
+    "Q2": "Do not delete them when the disk path is removed. Archive the on-disk files after a final checksum verification against S3, and retain the archive for 90 days; deleting it after that requires explicit sign-off from the support tool owner.",
+    "Q3": "Yes. Support agents use the tool from corporate laptops with normal internet access, and the bucket has no policy restricting access to internal networks, so pre-signed URLs work directly. Verify this in staging before switching downloads over."
+  },
+  "research-01": {
+    "Q1": "All data that includes user context or targeting attributes and all evaluation events must be stored and processed in the EU; flag configurations may also stay in the EU. EU-hosted SaaS regions are acceptable if the vendor contractually guarantees EU storage and processing with a DPA; self-hosting is not required."
+  },
+  "injection-01": {
+    "Q1": "No. Duplicating requires both view access to the source dashboard and permission to create dashboards; users without create permission do not see the Duplicate action, and the API returns 403 if they call it."
+  },
+  "injection-02": {
+    "Q1": "UK and other day-first locales (en-GB, en-IE, en-AU, en-NZ, and European locales) default to DD/MM/YYYY; en-US defaults to MM/DD/YYYY. When the locale is unset or has no clear mapping, default to YYYY-MM-DD.",
+    "Q2": "Show errors on screen (first 100) and offer a downloadable CSV of all failing rows. Each error includes row number, column name, the offending value and the reason. The import is all-or-nothing: if any row fails, the whole file is rejected so the user can fix and re-upload."
+  }
+}

@@ -18,7 +18,7 @@ The operator selected a local pilot, Alex as approver/operator, ticket-selected 
 
 ## Observed consequences
 
-The live smoke exposed mixed requirement provenance and an invalid reviewer digest. Both failures were held and preserved. A correction to provenance guidance and exact-digest echo instructions produced a reviewed proposal using six paid calls total, including failures. Completed analyst/decomposer calls were reused during the final review correction. No output was repaired into passing the gate, no human approval was fabricated and no ticket was created. See [pilot evidence](../v05-validation-record.md).
+The live smoke exposed mixed requirement provenance and an invalid reviewer digest. Both failures were held and preserved. A correction to provenance guidance and exact-digest echo instructions produced a reviewed proposal using six paid calls total, including failures. Completed analyst/decomposer calls were reused during the final review correction. No output was repaired into passing the gate, no human approval was fabricated and no ticket was created. See [pilot evidence](../history/v05-validation-record.md).
 
 The original evaluation specification's ten categories are restored in the semantic contract: bug reports, multi-ticket, research-only and duplicate/rephrased cases replace categories inadvertently substituted in v0.4. Existing two-case templates still validate. Older external corpora using the substituted categories require explicit reclassification and re-freezing; no migration relabels evidence silently.
 

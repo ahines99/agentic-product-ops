@@ -18,7 +18,6 @@ dependencies = [
     "temporalio>=1.20,<2",
     "uvicorn>=0.38,<1",
     "httpx>=0.28,<1",
-    "PyJWT[crypto]>=2.12,<3",
     "jsonschema>=4.26,<5",
     "cryptography>=50,<51",
     "markdown-it-py==4.2.0",
