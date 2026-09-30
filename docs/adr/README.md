@@ -19,3 +19,4 @@
 - [017: Constrained documentation delivery and prompt intake](017-constrained-documentation-delivery.md)
 - [018: Linear Markdown read-back equivalence](018-linear-markdown-readback.md)
 - [019: Explicit source-package boundary](019-explicit-source-package-boundary.md)
+- [020: Local prompt console and execution briefs](020-local-prompt-console-and-execution-briefs.md)

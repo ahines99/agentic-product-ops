@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Agentic Product Ops — New request</title>
+  <link rel="stylesheet" href="/console.css">
+  <script src="/console.js" defer></script>
+</head>
+<body>
+<main>
+  <header><span class="eyebrow">AGENTIC PRODUCT OPS · LOCAL</span><button id="logout" class="quiet" hidden>Sign out</button></header>
+  <h1>Describe the work.<br><span>Review the plan.</span></h1>
+  <p class="intro">Start with a request and a repository. Product Ops prepares detailed Linear tickets. You approve the work; Delivery OS implements it.</p>
+  <p id="connection" class="notice" role="status">Connecting to your local operator session…</p>
+  <form id="intake">
+    <label for="repository">Repository name</label>
+    <input id="repository" name="repository" maxlength="128" placeholder="agentic-product-ops" required autocomplete="off">
+    <label for="prompt">What would you like to change?</label>
+    <textarea id="prompt" name="prompt" rows="7" maxlength="16000" placeholder="Describe the outcome you want, who it is for, and anything that must stay unchanged." required></textarea>
+    <p class="hint">A basic request is enough to start. Missing decisions become questions for you.</p>
+    <button id="submit" type="submit" disabled>Prepare proposed tickets</button>
+  </form>
+  <section id="result" hidden aria-live="polite">
+    <div class="section-title"><h2>Your request</h2><button id="refresh" class="quiet">Refresh</button></div>
+    <p id="status" class="notice"></p>
+    <p id="request-id" class="hint"></p>
+    <ul id="blockers"></ul>
+    <div id="questions"></div>
+    <div id="tickets"></div>
+    <details id="exact-plan" hidden><summary>Exact publication plan for approval</summary><pre id="plan"></pre></details>
+    <p id="approval-note" class="hint"></p>
+    <button id="approve" disabled>Approve this exact ticket set</button>
+  </section>
+  <footer>Human approval precedes Linear publication. Delivery OS owns implementation and evidence. Every merge remains human.</footer>
+</main>
+</body>
+</html>

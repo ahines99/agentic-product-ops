@@ -13,6 +13,7 @@ from agentic_product_ops.domain.contracts import (
     Tier,
     WorkSpecification,
 )
+from agentic_product_ops.services.ticket_readiness import EXECUTION_POLICY, ticket_findings
 from product_ops_handoff.documentation import DocumentationCapability
 
 
@@ -198,6 +199,8 @@ def proposal_ready(
     # Revalidate at each authority boundary, including objects made via model_construct/copy.
     WorkSpecification.model_validate_json(spec.model_dump_json())
     validate_scope(spec, policy)
+    if policy.version == EXECUTION_POLICY and (issues := ticket_findings(spec)):
+        raise PolicyError("; ".join(issues))
     if any(r.actor_id not in policy.approvers for r in clarifications):
         raise PolicyError("clarification actor not authorized")
     if findings := blocking_findings(spec, clarifications=clarifications):

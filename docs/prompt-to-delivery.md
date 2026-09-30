@@ -17,7 +17,8 @@ The equivalent local command, against the configured running pilot API, is:
 
 Use `--input request.txt` for longer input. Acceptance with inference disabled records a held
 intake; it does not spend money or create work tickets. `run-issue` remains an optional intake
-method for people who prefer to begin in Linear. No UI or Jira integration is implemented.
+method for people who prefer to begin in Linear. An opt-in [local prompt console](local-prompt-console.md)
+now supports browser intake, clarification and exact-plan review. Jira is not integrated.
 
 The currently running separate prompt API listens on `127.0.0.1:18013`. From this integration
 worktree, select it with `--directory '..\pilot\prompt'` before the `prompt` subcommand.

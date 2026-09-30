@@ -30,6 +30,7 @@ from agentic_product_ops.adapters.persistence.store import (
 )
 from agentic_product_ops.adapters.repository.local import Snapshot, inspect_repository
 from agentic_product_ops.adapters.repository.selection import RepositorySelection
+from agentic_product_ops.api.local_console import BrowserSessions, mount_console
 from agentic_product_ops.domain.clarifications import ClarificationReceipt
 from agentic_product_ops.domain.contracts import (
     ID,
@@ -58,6 +59,7 @@ from agentic_product_ops.services.durable_analysis import (
     recorded_review,
 )
 from agentic_product_ops.services.risk_reassessment import RiskCommand
+from agentic_product_ops.services.ticket_readiness import delivery_findings, ticket_findings
 
 
 class Authenticator(Protocol):
@@ -138,11 +140,16 @@ def create_app(
     source_guard: Callable[[str], None] | None = None,
     intake_queue_enabled: bool = True,
     decision_queue_enabled: bool = True,
+    console_port: int | None = None,
+    console_publication_enabled: bool = False,
 ) -> FastAPI:
     app = FastAPI(title="Agentic Product Ops", version="0.5.2", docs_url=None, redoc_url=None)
     active_policy = policy or ServerPolicy()
     auth = authenticator or DenyAll()
     roots = dict(repository_roots or {})
+    browser = BrowserSessions(console_port) if console_port is not None else None
+    if browser:
+        mount_console(app, browser)
     if not active_policy.allow_any_repository and not roots.keys() <= set(
         active_policy.repositories
     ):
@@ -179,10 +186,16 @@ def create_app(
             request._body = b"".join(chunks)
         return await call_next(request)
 
-    def identity(authorization: Annotated[str | None, Header()] = None) -> Principal:
-        if authorization is None or not authorization.startswith("Bearer "):
+    def identity(
+        request: Request, authorization: Annotated[str | None, Header()] = None
+    ) -> Principal:
+        if authorization is None and browser:
+            credential = browser.credential(request)
+        elif authorization is not None and authorization.startswith("Bearer "):
+            credential = authorization[7:]
+        else:
             raise HTTPException(401, "authentication required")
-        actor = auth.authenticate(authorization[7:])
+        actor = auth.authenticate(credential)
         if actor is None:
             raise HTTPException(401, "authentication required")
         Principal.model_validate_json(actor.model_dump_json())
@@ -191,6 +204,26 @@ def create_app(
         if authority:
             authority.check(actor)
         return actor
+
+    if browser:
+
+        @app.post("/v1/local/launch", include_in_schema=False)
+        def launch_browser(
+            actor: Annotated[Principal, Depends(identity)],
+            authorization: Annotated[str, Header()],
+        ) -> dict[str, Any]:
+            if browser is None:
+                raise HTTPException(404, "local console disabled")
+            return {"url": browser.launch(authorization[7:]), "expires_in_seconds": 60}
+
+        @app.get("/v1/local/status", include_in_schema=False)
+        def browser_status(actor: Annotated[Principal, Depends(identity)]) -> dict[str, Any]:
+            return {
+                "operator": actor.actor_id,
+                "analysis_enabled": intake_queue_enabled,
+                "publication_enabled": console_publication_enabled,
+                "policy_version": active_policy.version,
+            }
 
     def database() -> Store:
         if store is None:
@@ -527,6 +560,40 @@ def create_app(
             "mode": "deterministic_checks_only",
             "content_digest": spec.content_digest,
             "blocking_findings": blocking_findings(spec),
+        }
+
+    @app.get("/v1/specifications/{identifier}/tickets")
+    def get_tickets(
+        identifier: UUID,
+        actor: Annotated[Principal, Depends(identity)],
+        db: Annotated[Store, Depends(database)],
+    ) -> dict[str, Any]:
+        from agentic_product_ops.adapters.linear.offline import description
+        from agentic_product_ops.services.ticket_readiness import EXECUTION_POLICY
+
+        spec = spec_for(db, actor, identifier)
+        if authority:
+            authority._scope(authority.check(actor), spec)
+        return {
+            "specification_digest": spec.content_digest,
+            "revision": spec.revision,
+            "ticket_findings": ticket_findings(spec),
+            "delivery_findings": delivery_findings(spec),
+            "approval_required": True,
+            "semantic_review_required": True,
+            "tickets": [
+                {
+                    "id": work.local_id,
+                    "title": work.title,
+                    "description": description(
+                        spec,
+                        work,
+                        "PREVIEW-NOT-PUBLISHED",
+                        execution_details=active_policy.version == EXECUTION_POLICY,
+                    ),
+                }
+                for work in spec.work_items
+            ],
         }
 
     @app.get("/v1/specifications/{identifier}/plan")

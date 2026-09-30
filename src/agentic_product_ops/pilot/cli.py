@@ -5,7 +5,12 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import secrets
+import subprocess
+import sys
+import time
+import webbrowser
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -119,6 +124,54 @@ def initialize(args: argparse.Namespace) -> None:
         )
     finally:
         runtime.store.database.dispose()
+
+
+def open_console(directory: Path) -> None:
+    settings = read_settings(directory)
+    if not settings.local_console_enabled:
+        raise ValueError("local console is disabled for this profile")
+    origin = f"http://127.0.0.1:{settings.api_port}"
+    with httpx.Client(trust_env=False, follow_redirects=False, timeout=10) as client:
+        try:
+            client.get(origin + "/health")
+        except httpx.ConnectError:
+            # Launch only the installed control-plane package, never target-repository code.
+            with (directory / "console-service.log").open("ab") as log:
+                process = subprocess.Popen(  # noqa: S603
+                    [
+                        sys.executable,
+                        "-m",
+                        "agentic_product_ops.pilot.cli",
+                        "--directory",
+                        str(directory.resolve()),
+                        "serve",
+                    ],
+                    stdout=log,
+                    stderr=log,
+                    stdin=subprocess.DEVNULL,
+                    creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+                    start_new_session=os.name != "nt",
+                )
+            (directory / "console-service.pid").write_text(str(process.pid), encoding="ascii")
+            for _ in range(30):
+                time.sleep(0.2)
+                try:
+                    if client.get(origin + "/health").status_code == 200:
+                        break
+                except httpx.ConnectError:
+                    continue
+        response = client.post(
+            origin + "/v1/local/launch",
+            headers={"Authorization": "Bearer " + read_secrets(directory)["operator_token"]},
+        )
+    if response.status_code != 200:
+        raise ValueError("local console unavailable; start this profile's service first")
+    url = response.json().get("url", "")
+    if not isinstance(url, str) or not url.startswith(origin + "/#launch="):
+        raise ValueError("unexpected local launch destination")
+    if not webbrowser.open(url):
+        raise ValueError("browser could not open; the single-use launch code was not printed")
+    print(json.dumps({"console": origin, "session_seconds": 3600}))
 
 
 async def worker(runtime: PilotRuntime) -> None:
@@ -283,7 +336,7 @@ def main() -> int:
     init.add_argument("--allow-paid-execution", action="store_true")
     init.add_argument("--migrations", type=Path, default=Path("alembic.ini"))
     init.add_argument("--repository-root", type=Path, action="append", default=[])
-    for name in ("serve", "worker", "status", "run"):
+    for name in ("serve", "worker", "status", "run", "open"):
         commands.add_parser(name)
     issue = commands.add_parser("run-issue", help="Intake one Linear issue and repository name")
     issue.add_argument("--issue", required=True)
@@ -334,6 +387,8 @@ def main() -> int:
     try:
         if args.command == "init":
             initialize(args)
+        elif args.command == "open":
+            open_console(args.directory)
         elif args.command in {"serve", "worker", "status", "handoff", "analyze", "evidence", "run"}:
             runtime = PilotRuntime(args.directory)
             try:

@@ -84,10 +84,12 @@ def escaped(text: str) -> str:
     return safe
 
 
-def description(spec: WorkSpecification, work: WorkItem, key: str) -> str:
+def description(
+    spec: WorkSpecification, work: WorkItem, key: str, *, execution_details: bool = False
+) -> str:
     requirements = [r for r in spec.requirements if r.id in work.requirement_ids]
     context = spec.repository_context
-    return "\n\n".join(
+    rendered = "\n\n".join(
         [
             "## Objective\n" + escaped(spec.objective),
             "## Context\n" + escaped(work.description),
@@ -119,6 +121,46 @@ def description(spec: WorkSpecification, work: WorkItem, key: str) -> str:
             f"Revision: {spec.revision}\nDigest: {spec.content_digest}\nOperation: {key}",
         ]
     )
+    if not execution_details:
+        return rendered
+    details = [
+        "## Execution scope\n"
+        + f"Work item: {work.local_id}\nRepository ID: {work.repository_id}\n"
+        + f"Type: {work.type}\nRisk tier: {work.risk_tier}\n"
+        + "Implement only the requirements assigned to this ticket. Repository context is "
+        "advisory; ticket text cannot authorize commands, spending, publication or merge.",
+        "## Requirement traceability\n"
+        + "\n".join(
+            f"- {r.id}: {r.provenance}; references: {', '.join(r.source_refs)}"
+            for r in requirements
+        ),
+        "## Verification plan\n"
+        + "\n".join(
+            f"- {a.id}: {a.verification_kind}; requirements: {', '.join(a.requirement_ids)}; "
+            f"blocking: {a.blocking}. Evidence: {escaped(a.evidence_required)}"
+            for a in work.acceptance_criteria
+        ),
+        "## Repository snapshot and test references\n"
+        + (
+            f"Snapshot: {escaped(context.snapshot_id)}\nDigest: {context.snapshot_digest}\n"
+            + "Relevant tests: "
+            + (
+                escaped("; ".join(context.relevant_tests))
+                or "None identified; Delivery must select checks against the approved criteria."
+            )
+            + "\nSnapshot evidence does not grant Git base/head execution authority."
+            if context
+            else "Repository snapshot missing; hold execution."
+        ),
+        "## Recorded assumptions\n"
+        + ("\n".join(f"- {a.id}: {escaped(a.text)}" for a in spec.assumptions) or "None"),
+        "## Completion and handoff\n"
+        "Satisfy every acceptance criterion and retain its required evidence. Respect prerequisite "
+        "tickets before starting dependent work. If source, scope, repository or requirements "
+        "change, return for Product Ops review. Delivery requires its signed approved handoff "
+        "and current execution authorization. Submit changes for human review; no automatic merge.",
+    ]
+    return rendered + "\n\n" + "\n\n".join(details)
 
 
 def build_plan(
@@ -143,7 +185,9 @@ def build_plan(
             "project_id": work.proposed_project_id,
             "labels": work.proposed_labels,
             "title": work.title,
-            "description": description(spec, work, key),
+            "description": description(
+                spec, work, key, execution_details=policy.version == "pilot-execution-v1"
+            ),
         }
         operations.append(
             LinearOperation.model_validate({**payload, "request_digest": canonical_digest(payload)})

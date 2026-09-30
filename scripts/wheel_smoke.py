@@ -79,6 +79,9 @@ def main() -> None:
                 "import agentic_product_ops as p; "
                 "import agentic_product_ops.pilot.monitor; "
                 "import agentic_product_ops.api.linear_webhook; "
+                "from importlib.resources import files; "
+                "assert all(files('agentic_product_ops.api').joinpath('console', name).is_file() "
+                "for name in ('index.html', 'console.js', 'console.css')); "
                 f"assert Path(p.__file__).is_relative_to({str(target)!r}); "
                 f"assert version('agentic-product-ops') == {project_version!r}",
             ],

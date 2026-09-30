@@ -1,5 +1,10 @@
 # Agentic Product Ops
 
+**Local prompt entry:** open the [prompt console](docs/local-prompt-console.md) at
+`http://127.0.0.1:18013` using the local launch shortcut. Enter a prompt and repository name,
+review detailed ticket proposals, answer questions and approve the exact plan. New paid analysis
+is currently held pending a fresh budget; the page reports this explicitly.
+
 The unreleased [prompt-to-delivery integration](docs/prompt-to-delivery.md) adds prompt plus
 repository-name intake and an approval-bound local documentation handoff. The approved PER-7
 workflow created PER-8 and Delivery OS produced the exact, unmerged local change. See the

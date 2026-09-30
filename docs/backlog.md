@@ -5,6 +5,16 @@ claims below about missing human approval, genuine Linear events, live publicati
 Delivery acceptance. The [current continuation](prompt-to-delivery.md#dependency-ordered-continuation)
 tracks the remaining multi-ticket, revision, budget and independent acceptance work.
 
+Local prompt-entry continuation (dependency order):
+
+| ID | Work | Depends on | Status | Acceptance criteria |
+| --- | --- | --- | --- | --- |
+| C01 | Local prompt/repository console and versioned execution briefs | Prompt intake and native plans | Implemented; browser visual acceptance open | Scoped sessions, held-state feedback, exact-plan approval, per-item coverage and unchanged legacy payloads pass HTTP/contract tests; packaged assets are present. |
+| C02 | Budget allocation and policy-isolated worker routing | C01 | Open | A newly authorized per-request allowance is reserved before inference; two profiles cannot consume each other's work; restart/retry preserves the same reservation. |
+| C03 | Independent detailed-ticket acceptance | C02 | Open | Fresh authorized prompts produce repository-grounded, implementable scope and evidence; independent cases detect unsupported requirements and unresolved ambiguity; first failures are preserved. |
+| C04 | Approved multi-item delivery and supersession | C03, existing signed handoff | Open | Atomic admission, durable dependency scheduling and cancellation/revision invalidation pass real producer/consumer checks without duplicate starts. |
+| C05 | Hosted review and operational acceptance | C04 | Open | Explicitly authorized GitHub App publication, human merge, hosted CI and independent product acceptance are evidenced. |
+
 No live Linear tickets were created. IDs are local planning identifiers. Version 0.4 completed credential-free engineering; version 0.5 adds the local pilot rows below; `Offline done` does not mean live, independent semantic, human or production acceptance. Dependencies refer to earlier work and cannot be skipped because a schema exists. Rows marked partial/open retain explicit external acceptance work; see [remaining sequence](remaining-work.md) and [validation](v04-validation-record.md).
 
 | ID | Work / milestone | Depends on | Status | Acceptance criteria |

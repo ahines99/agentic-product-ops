@@ -1,5 +1,12 @@
 # Implementation status
 
+Final local-entry pass, 2026-09-30: the opt-in [prompt console](local-prompt-console.md) provides
+prompt/repository intake, held-state feedback, clarification and exact-plan approval. The new
+`pilot-execution-v1` policy adds detailed ticket execution briefs and structural readiness gates
+without modifying prior approved payloads. New inference/publication remain off. Visual browser
+validation and a fresh paid semantic-quality check are not claimed. General dependency scheduling,
+budget/enrollment automation and policy-isolated worker routing remain incomplete.
+
 Current integration branch, 2026-09-30 UTC: the exact PER-7 revision 3 was approved by the
 human operator, Product Ops created PER-8, and actual Delivery OS admitted and executed the
 signed handoff. The result is one exact 98-byte Markdown addition in a local review branch,

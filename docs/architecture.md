@@ -42,7 +42,7 @@ PostgreSQL owns immutable artifacts and command/operation evidence. Temporal own
 
 Implemented: intake, intake/specification/review/plan reads, repository snapshot reads, clarification, approve, reject and cancel. Commands are bounded, tenant scoped and idempotent. Native approval requires the exact rendered plan digest. Snapshot intake can require the exact inspected digest; arbitrary repository selection additionally requires both policy and durable operator opt-in. The short-name route resolves only configured local roots. Approval additionally requires persisted passing review. Clarification creates new immutable provenance and requires fresh analysis/review.
 
-The factory defaults to deny-all identity and disabled publication/readiness. The pilot supplies private operator identity, guarded publication and heartbeat-based readiness. Publication/handoff GET routes read records if present. No UI or arbitrary state PATCH exists. Production identity and deployed readiness remain external deployment work.
+The factory defaults to deny-all identity and disabled publication/readiness. The pilot supplies private operator identity, guarded publication and heartbeat-based readiness. Publication/handoff GET routes read records if present. The opt-in [local prompt console](local-prompt-console.md) serves static assets from the same API and uses scoped, expiring operator sessions. No arbitrary state PATCH exists. Production identity and deployed readiness remain external deployment work.
 
 ## Untrusted inputs and execution
 

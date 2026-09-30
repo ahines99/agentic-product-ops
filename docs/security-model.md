@@ -34,6 +34,12 @@ UNKNOWN is durable before a mutation. Reconciliation requires exact approved tar
 
 ## Storage and environment
 
+The opt-in loopback prompt console uses one-use bootstrap links and scoped, expiring HttpOnly
+browser sessions. Every authenticated request rechecks operator authority; exact Host/Origin,
+custom headers, fetch-site checks, CSP and text-only rendering protect its browser boundary.
+Browser sessions cannot publish, change risk or authorize spending. This trusts the local OS
+account and is not a remote-hosting configuration. See [ADR-020](adr/020-local-prompt-console-and-execution-briefs.md).
+
 Optional Store encryption binds workspace, kind, ID and revision as AES-GCM authenticated data. Wrong keys or swapped ciphertext fail. Configured encryption refuses legacy plaintext; production migration/key lifecycle remains external. Only raw role requests/responses can expire from reads, preserving approved contracts and audit lineage. Expiry is not physical erasure. OAuth vault rotation retains old immutable ciphertext. Public handoffs contain approved source content and require appropriate distribution controls.
 
 Locked dependencies, pinned CI action/uv versions and container digests, byte-identical rebuilds, hash-locked clean-wheel installation, dependency audit and secret scanning are required gates. Scanning covers tracked and nonignored untracked files; only precisely defined 64-character digest fields have a nonsecret exception. Public keys/signatures are not credentials. No live key was copied from the adjacent repository.

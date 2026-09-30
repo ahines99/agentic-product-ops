@@ -87,7 +87,7 @@ class PilotRuntime:
             ),
         )
         self.base_policy = ServerPolicy(
-            version="pilot-v1",
+            version="pilot-execution-v1" if self.settings.detailed_tickets else "pilot-v1",
             workspace_id=self.settings.workspace,
             teams=tuple(b.local_id for b in self.settings.linear_scope.teams),
             repositories=(),
@@ -452,6 +452,8 @@ class PilotRuntime:
             self.authority,
             self.settings.linear_scope,
             decision_queue_enabled=self.settings.documentation_capability is None,
+            console_port=self.settings.api_port if self.settings.local_console_enabled else None,
+            console_publication_enabled=self.settings.allow_publication,
             repository_resolver=resolver,
             force_model_intake=True,
             publication_handler=self.publish,
