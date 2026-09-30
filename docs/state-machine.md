@@ -27,7 +27,9 @@ stateDiagram-v2
     PUBLISHED --> HANDOFF_READY
 ```
 
-This is the full target graph. The pure offline transition API intentionally denies production-only transitions. The exercised Temporal subset persists role preparation, clarification/revision outcomes, approval waits, stored-receipt validation, rejection, expiry, pause and cancellation. Native publication and signed handoff are separately exercised service components; automatic live workflow transitions remain disabled.
+States after the human decision are derived, not stored. `publication_state` computes them from the decision, approval, publication plan, operation rows, dispatch-authority records and handoff export for the current revision, so the reported state cannot disagree with the records that authorize each write and no caller can set it. `GET /v1/specifications/{id}/state` returns it; before a decision it reports `PRE_DECISION_WORKFLOW`. An intent that never acquired dispatch authority reads as `LINEAR_PUBLISHING`; a dispatched write with no observed result reads as `RECONCILIATION_REQUIRED`. See [ADR-021](adr/021-publication-recovery-and-write-gate.md).
+
+This is the full target graph. The pure offline transition API intentionally denies post-decision transitions. The exercised Temporal subset persists role preparation, clarification/revision outcomes, approval waits, stored-receipt validation, rejection, expiry, pause and cancellation. Native publication and signed handoff are separately exercised service components; automatic live workflow transitions remain disabled.
 
 Each lifecycle object is bound to an exact content digest. Ready gates require schema, source/provenance, scope, risk, requirements, decomposition and passing distinct review. Human-decision flags and material questions cannot be cleared by untrusted JSON. Verified clarification receipts support additive new requirements; answers and original source/requirements cannot be erased or rewritten. New content creates a new immutable revision and invalidates prior approval.
 
@@ -43,6 +45,9 @@ REJECTED, EXPIRED, HANDOFF_READY and CANCELLED are terminal in the target graph.
 | Stale, expired, rejected, future-dated, unauthorized approval | Zero new dispatches in fake/mock tests |
 | Timeout after mock creation | UNKNOWN, stop remaining operations |
 | Unavailable/mismatched reconciliation | Keep UNKNOWN, no create retry |
+| Approval expired with an uncertain write | Read-only reconciliation still allowed; a new write needs a renewed approval |
+| New revision after an earlier revision wrote tickets | Hold before any provider call unless the operator enabled republication |
+| Incomplete publication, or writes under more than one approval | Deny handoff export |
 | Handoff risk outside consumer tiers | Deny export |
 
 The API rejects arbitrary lifecycle patches. Signals request action and are not state authority; persisted receipts and deterministic activity checks authorize decisions. See [architecture](architecture.md) for the outbox bridge and [current limitations](implementation-status.md) for unwired states.

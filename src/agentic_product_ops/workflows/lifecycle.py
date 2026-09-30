@@ -61,7 +61,11 @@ class Lifecycle(Contract):
 def transition(
     current: Lifecycle, target: State, spec: WorkSpecification, policy: ServerPolicy
 ) -> Lifecycle:
-    """Foundation transitions only. Publication states require a future durable service."""
+    """Pre-decision transitions only.
+
+    States after the human decision are never set by a caller. They are derived from durable
+    records by ``services.publication_state.publication_state``.
+    """
     WorkSpecification.model_validate_json(spec.model_dump_json())
     if current.content_digest != spec.content_digest:
         raise PolicyError("lifecycle bound to different content")
@@ -73,7 +77,7 @@ def transition(
     if target not in EDGES.get(current.state, frozenset()):
         raise PolicyError("illegal transition")
     if target in {State.APPROVED, State.LINEAR_PUBLISHING, State.PUBLISHED, State.HANDOFF_READY}:
-        raise PolicyError("durable authenticated transition service is not implemented")
+        raise PolicyError("post-decision states are derived from durable records, never set")
     if current.state == State.AWAITING_CLARIFICATION:
         raise PolicyError("authenticated clarification service is not implemented")
     if target in {

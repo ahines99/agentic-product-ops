@@ -26,6 +26,10 @@ class PilotSettings(Contract):
     subject: str
     database_url: str
     temporal_address: str = "127.0.0.1:18233"
+    # Existing profiles keep the shared legacy queue; new profiles get their own at init.
+    worker_queue: Annotated[str, Field(pattern=r"^product-ops-[a-z0-9-]{1,64}$")] = (
+        "product-ops-pilot"
+    )
     api_port: Annotated[int, Field(ge=1024, le=65535)] = 18001
     linear_scope: LinearScope
     linear_key_file: str

@@ -4,6 +4,21 @@ The local pilot uses an explicit Linear API key, as selected by the operator; OA
 
 Version 0.4 introduced native GraphQL planning, OAuth PKCE/encrypted token storage and durable publication orchestration, exercised with mock HTTP transport. Version 0.5 wired a guarded pilot publication handler and exercised read-only identity discovery; no live ticket creation occurred. Version 0.5.1 adds [issue-driven intake](issue-driven-operation.md), currently exercised with mock source transport. The original in-memory demo and `FAKE-` records remain explicitly simulated.
 
+## Recovery after expiry or uncertainty (version 0.6.0)
+
+These paths are covered by mock-transport tests only. See [ADR-021](adr/021-publication-recovery-and-write-gate.md).
+
+| Situation | What the operator does | What the system guarantees |
+| --- | --- | --- |
+| A write timed out and the approval has since expired | `product-ops-pilot reconcile --id ID` | Exact-ID reads only. An observed object is recorded as succeeded. Nothing is created. |
+| Preflight failed before the write was sent | Publish again under a valid approval | The intent is dispatched once. A concurrent attempt conflicts on the dispatch-authority record. |
+| The approval expired before publication finished | Approve the same revision, digest and plan again, then publish | Accepted only after expiry. The earlier approval authorizes nothing further. |
+| A revised specification is approved after an earlier revision wrote tickets | Decide by hand; optionally enable `allow_revision_republication` in the profile | Default is a hold before any provider call. |
+| The source issue was edited | `product-ops-pilot run-issue --issue ID --supersedes OLD-SPECIFICATION-ID` | The stale specification is cancelled and the edit enrolled in one transaction. Refused if the stale one has publication writes. |
+| A dispatched write can never be observed | None available | It stays `UNKNOWN`. There is no command that permits a resend. |
+
+`product-ops-pilot state --id ID` reports the derived lifecycle state.
+
 ## Identity and scope
 
 Trusted configuration maps local workspace/team/project/label aliases to provider UUIDs and binds the Linear organization and app actor. The adapter reads current organization, viewer, team, project team membership and label scope before mutation. Source text cannot change these bindings. OAuth uses app actor, PKCE S256, one-use state, fixed redirect/origin and encrypted secrets. Durable exchange/refresh intent prevents uncertain automatic repeats. Default OAuth scope is read plus issue creation; native relation writes require `write` and an explicit operator decision.

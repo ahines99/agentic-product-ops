@@ -1,5 +1,24 @@
 # Remaining work after the local pilot
 
+**Update for 0.6.0 (2026-09-30, unmerged branch):** the owner-independent engineering is done:
+publication recovery after expiry, approval renewal, the republication hold, one Linear write
+gate, derived lifecycle state, explicit source supersession (the supersession half of P10),
+grant renewal/revocation commands and per-profile worker routing. See
+[ADR-021](adr/021-publication-recovery-and-write-gate.md) and the
+[v0.6 validation record](v06-validation-record.md). Everything below that is still open needs an
+owner decision, live credentials, spending, a push, or a change in the Delivery OS repository:
+
+1. Merge `feature/documentation-handoff` and `feature/finalize-offline-engineering`, then restart
+   the pilot services so they run the new code.
+2. Authorize a controlled live publication and reconciliation test (item 2 below).
+3. Decide the risk policy for general handoff; today only the constrained documentation lane can
+   reach tier 1 (item 3).
+4. Authorize Delivery OS changes for multi-item admission and cancellation propagation (item 4).
+5. Fund and commission the independent semantic study (item 5).
+6. Authorize a push and inspect hosted CI (item 6).
+7. Set a per-prompt inference budget policy before enabling continuing inference (P10) or the
+   budget controller (C02).
+
 The later [PER-7 live integration record](per7-validation-record.md) supersedes historical
 claims below about missing human approval, genuine Linear events, live publication and actual
 Delivery acceptance. The [current continuation](prompt-to-delivery.md#dependency-ordered-continuation)

@@ -59,6 +59,7 @@ from agentic_product_ops.services.durable_analysis import (
     load_analysis,
     recorded_review,
 )
+from agentic_product_ops.services.native_publication import publication_writes
 from agentic_product_ops.services.publication_state import publication_state
 from agentic_product_ops.services.risk_reassessment import RiskCommand
 from agentic_product_ops.services.ticket_readiness import delivery_findings, ticket_findings
@@ -108,6 +109,10 @@ class RevisionCommand(Contract):
 class LinearIntakeCommand(Contract):
     issue: Annotated[str, Field(min_length=1, max_length=2048)]
     repository: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    # The enrolled specification that this edited issue explicitly replaces.
+    supersedes: (
+        Annotated[str, Field(pattern=r"^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")] | None
+    ) = None
 
 
 class PromptIntakeCommand(Contract):
@@ -147,7 +152,7 @@ def create_app(
     console_port: int | None = None,
     console_publication_enabled: bool = False,
 ) -> FastAPI:
-    app = FastAPI(title="Agentic Product Ops", version="0.5.2", docs_url=None, redoc_url=None)
+    app = FastAPI(title="Agentic Product Ops", version="0.6.0", docs_url=None, redoc_url=None)
     active_policy = policy or ServerPolicy()
     auth = authenticator or DenyAll()
     roots = dict(repository_roots or {})
@@ -313,6 +318,8 @@ def create_app(
         db: Annotated[Store, Depends(database)],
         command_key: Annotated[str, Depends(key)],
     ) -> dict[str, Any]:
+        if not {"product_approver", "intake_reader"} & set(actor.roles):
+            raise PolicyError("intake requires an approver or intake reader role")
         return submit_intake(body, actor, db, command_key)
 
     def submit_intake(
@@ -321,9 +328,12 @@ def create_app(
         db: Store,
         command_key: str,
         linear_source: LinearSource | None = None,
+        supersedes: str | None = None,
     ) -> dict[str, Any]:
         def execute(conn: Connection) -> dict[str, Any]:
             current_authority(conn, actor)
+            if supersedes is not None:
+                supersede_source(conn, actor, db, supersedes, linear_source)
             if linear_source is not None:
                 if "intake_reader" not in actor.roles or linear_scope is None:
                     raise PolicyError("intake reader role and Linear scope required")
@@ -398,6 +408,15 @@ def create_app(
             db.put(conn, actor.workspace_id, "specification", str(identifier), 1, spec)
             if linear_source is not None:
                 db.put(conn, actor.workspace_id, "linear_source", str(identifier), 1, linear_source)
+            if supersedes is not None:
+                db.put(
+                    conn,
+                    actor.workspace_id,
+                    "source_supersession",
+                    str(identifier),
+                    1,
+                    {"supersedes": supersedes, "actor_id": actor.actor_id},
+                )
             if intake_queue_enabled:
                 conn.execute(
                     insert(outbox).values(
@@ -435,9 +454,77 @@ def create_app(
                     if linear_source
                     else {}
                 ),
+                **({"supersedes": supersedes} if supersedes else {}),
             },
             execute,
         )
+
+    def record_cancellation(
+        conn: Connection, actor: Principal, db: Store, spec: WorkSpecification, reason: str | None
+    ) -> None:
+        identifier = str(spec.specification_id)
+        conn.execute(
+            update(controls)
+            .where(
+                controls.c.workspace == actor.workspace_id,
+                controls.c.specification_id == identifier,
+            )
+            .values(cancelled=1)
+        )
+        receipt = {
+            "specification_id": identifier,
+            "revision": spec.revision,
+            "content_digest": spec.content_digest,
+            "actor_id": actor.actor_id,
+            **({"reason": reason} if reason else {}),
+        }
+        db.put(conn, actor.workspace_id, "cancellation", identifier, 1, receipt)
+        if decision_queue_enabled:
+            conn.execute(
+                insert(outbox).values(
+                    workspace=actor.workspace_id,
+                    workflow_id=f"cancel-{identifier}",
+                    dispatched=0,
+                    payload=json.dumps(
+                        {
+                            "action": "cancel",
+                            "specification_id": identifier,
+                            "target_workflow": f"product-ops-{identifier}"
+                            + (f"-r{spec.revision}" if spec.revision > 1 else ""),
+                        }
+                    ),
+                )
+            )
+        audit(conn, actor, "cancellation_recorded", identifier, spec.content_digest)
+
+    def supersede_source(
+        conn: Connection,
+        actor: Principal,
+        db: Store,
+        supersedes: str,
+        source: LinearSource | None,
+    ) -> None:
+        """Cancel the stale specification in the same transaction that enrolls the edit.
+
+        Only an approver may do this, only for the same issue after a real edit, and never
+        once the stale specification has publication writes: those tickets need a human.
+        """
+        require_approver(actor)
+        if source is None:
+            raise PolicyError("only an enrolled Linear source can be superseded")
+        if db.lock_specification(conn, actor.workspace_id, supersedes):
+            raise PolicyError("superseded specification is already cancelled")
+        enrolled = LinearSource.model_validate_json(
+            json.dumps(db.get(actor.workspace_id, "linear_source", supersedes, connection=conn))
+        )
+        if enrolled.issue_id != source.issue_id or enrolled.digest() == source.digest():
+            raise PolicyError("supersession requires an edit of the same enrolled issue")
+        stale = spec_for(db, actor, UUID(supersedes), connection=conn)
+        if publication_writes(
+            db, conn, actor.workspace_id, supersedes, range(1, stale.revision + 1)
+        ):
+            raise PolicyError("published work cannot be superseded by a source edit")
+        record_cancellation(conn, actor, db, stale, "superseded_by_source_edit")
 
     @app.post("/v1/intakes/prompts", status_code=201)
     def prompt_intake(
@@ -497,12 +584,16 @@ def create_app(
             raise HTTPException(503, "Linear source temporarily unavailable") from None
         # One durable command per issue/operator, independent of HTTP retry keys.
         # Editing an enrolled issue conflicts; it never silently replaces approved work.
+        # An explicit supersession is one command per issue content.
         return submit_intake(
             IntakeCommand(source=source.text(), repository=selected),
             actor,
             db,
-            "linear-source-" + str(source.issue_id),
+            "linear-source-"
+            + str(source.issue_id)
+            + ("-" + source.digest()[:32] if body.supersedes else ""),
             source,
+            body.supersedes,
         )
 
     def read_snapshot(
@@ -864,38 +955,7 @@ def create_app(
             db.lock_specification(conn, actor.workspace_id, str(identifier))
             current_authority(conn, actor)
             spec = spec_for(db, actor, identifier, body, conn)
-            conn.execute(
-                update(controls)
-                .where(
-                    controls.c.workspace == actor.workspace_id,
-                    controls.c.specification_id == str(identifier),
-                )
-                .values(cancelled=1)
-            )
-            receipt = {
-                "specification_id": str(identifier),
-                "revision": spec.revision,
-                "content_digest": spec.content_digest,
-                "actor_id": actor.actor_id,
-            }
-            db.put(conn, actor.workspace_id, "cancellation", str(identifier), 1, receipt)
-            if decision_queue_enabled:
-                conn.execute(
-                    insert(outbox).values(
-                        workspace=actor.workspace_id,
-                        workflow_id=f"cancel-{identifier}",
-                        dispatched=0,
-                        payload=json.dumps(
-                            {
-                                "action": "cancel",
-                                "specification_id": str(identifier),
-                                "target_workflow": f"product-ops-{identifier}"
-                                + (f"-r{spec.revision}" if spec.revision > 1 else ""),
-                            }
-                        ),
-                    )
-                )
-            audit(conn, actor, "cancellation_recorded", str(identifier), spec.content_digest)
+            record_cancellation(conn, actor, db, spec, None)
             return {"cancelled": True, "publication": "disabled"}
 
         return db.command(

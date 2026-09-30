@@ -2,6 +2,8 @@
 
 The [v0.5 pilot controls](adr/014-local-anthropic-pilot.md) add owner-private explicit credentials, loopback-only configuration, revocable single-operator bearer identity, a separate encrypted pilot database, token-preflight Anthropic transport without tools, a durable aggregate spending ledger and dual policy/grant opt-in for ticket-selected repositories. Risk reassessment requires an explicit security operator, lexical floor, new revision and fresh review/approval. The paid smoke exercised holds for invalid provenance and reviewer digest; its passing proposal is not a security/semantic acceptance study. See [current limits](implementation-status.md).
 
+Version 0.6.0 ([ADR-021](adr/021-publication-recovery-and-write-gate.md)) puts every Linear mutation behind one adapter gate that needs declared caller intent, enabled writes and a write-capable scope, so an adapter built for reading cannot send a mutation even though the pilot's API key could. It also separates read-only reconciliation from dispatch, adds renewal and revocation commands for the local operator grant, and widens the lexical risk floor. These were exercised with mock transport, not against live Linear. The pilot still uses one identity for approval, security approval and administration, and one full-privilege API key; the unused OAuth flow remains the least-privilege option.
+
 Requests, repository content, provider responses and model output are untrusted. They cannot grant authority, change policy, resolve material ambiguity without authenticated provenance, widen scope or trigger tools. The application is not a sandbox against an operator who can replace its code or database.
 
 | Threat | Exercised control | Remaining limit |

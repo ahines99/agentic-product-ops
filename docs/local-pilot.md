@@ -63,6 +63,18 @@ python -m uv run product-ops-pilot approve --id SPECIFICATION-UUID --revision 2 
 python -m uv run product-ops-pilot reject --id SPECIFICATION-UUID --revision 2 --digest EXACT-DIGEST --plan-digest EXACT-PLAN-DIGEST --command-id rejection-001
 ```
 
+Recovery and identity commands added in version 0.6.0:
+
+```sh
+python -m uv run product-ops-pilot state --id SPECIFICATION-UUID
+python -m uv run product-ops-pilot reconcile --id SPECIFICATION-UUID
+python -m uv run product-ops-pilot run-issue --issue PER-123 --supersedes OLD-SPECIFICATION-UUID
+python -m uv run product-ops-pilot grant-renew --days 30
+python -m uv run product-ops-pilot revoke --kind approval --identity APPROVAL-UUID
+```
+
+`reconcile` reads Linear and never writes; it works with publication disabled and after an approval has expired. `grant-renew` makes approvals bound to the previous grant stale. `revoke` cannot be undone. `state`, `reconcile` and `run-issue` need the running API; `grant-renew` and `revoke` act on the profile database directly. The running services keep the code they were started with until restarted.
+
 Approvals expire after 30 minutes by default. Live publication additionally requires the operator's deliberate `allow_publication` profile setting and API restart, followed by `publish --id ... --command-id ...`. This switch is not an approval: missing, stale, revoked, expired, ambiguous or changed plans still fail. Native publication rechecks current authority before each write and reconciles unknown outcomes without blind recreation.
 
 After complete approved publication, `handoff --id ... --output NEW-PATH.json` exports the signed public envelope only if the exact stored specification is eligible (tiers 0/1). Delivery OS must separately verify its pinned issuer/public key, audience and expected digest in its own store. This command neither installs a downstream adapter nor executes work.

@@ -5,6 +5,19 @@ claims below about missing human approval, genuine Linear events, live publicati
 Delivery acceptance. The [current continuation](prompt-to-delivery.md#dependency-ordered-continuation)
 tracks the remaining multi-ticket, revision, budget and independent acceptance work.
 
+Version 0.6.0 recovery and hardening ([ADR-021](adr/021-publication-recovery-and-write-gate.md)):
+
+| ID | Work | Depends on | Status | Acceptance criteria |
+| --- | --- | --- | --- | --- |
+| R01 | Read-only reconciliation after approval expiry | B32 | Done offline; live open | Dispatched UNKNOWN intents are observed by exact ID without an unexpired approval; nothing is created; absence stays UNKNOWN. |
+| R02 | Stranded-intent dispatch and same-revision approval renewal | R01, B09 | Done offline | An intent without dispatch authority is sent once under validated authority; renewal only after expiry, same digest and plan; rejections stay final. |
+| R03 | Cross-revision republication hold | B28 | Done offline | A revision holds before any provider call when an earlier revision has write intents, unless the operator enabled republication. |
+| R04 | Single Linear mutation gate | B30 | Done offline | No document containing a mutation is sent without declared intent, enabled writes and a write-capable scope. |
+| R05 | Derived post-decision lifecycle state | R01, B35 | Done offline | States after the decision are computed from durable records, follow the declared graph, and gate handoff. |
+| R06 | Explicit source supersession | P09 | Done offline; live open | Approver-only, same issue, real edit, no publication writes; old specification cancelled atomically with the new intake. |
+| R07 | Operator grant renewal and revocation commands | P01 | Done offline | Renewal keeps subject, roles and scope for at most 30 days and stales old approvals; revocation is monotonic. |
+| R08 | Per-profile worker routing | C01 | Done offline; two-profile live check open | New profiles get their own queue; workers dispatch only their own workspace's outbox rows. |
+
 Local prompt-entry continuation (dependency order):
 
 | ID | Work | Depends on | Status | Acceptance criteria |

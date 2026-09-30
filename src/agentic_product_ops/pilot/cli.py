@@ -69,6 +69,7 @@ def initialize(args: argparse.Namespace) -> None:
         maximum_spend=args.maximum_spend,
         allow_paid_execution=args.allow_paid_execution,
         repository_search_roots=tuple(str(p.resolve()) for p in args.repository_root),
+        worker_queue="product-ops-" + secrets.token_hex(8),
     )
     # Fail connection/migration checks before creating an identity that cannot be overwritten.
     database = engine(settings.database_url)
@@ -177,7 +178,7 @@ def open_console(directory: Path) -> None:
 async def worker(runtime: PilotRuntime) -> None:
     client = await Client.connect(runtime.settings.temporal_address)
     activities = runtime.activities()
-    queue = "product-ops-pilot"
+    queue = runtime.settings.worker_queue
     async with Worker(
         client,
         task_queue=queue,
@@ -195,7 +196,7 @@ async def worker(runtime: PilotRuntime) -> None:
             flush=True,
         )
         while True:
-            await dispatch_outbox(runtime.store, client, queue)
+            await dispatch_outbox(runtime.store, client, queue, runtime.settings.workspace)
             heartbeat = runtime.directory / "worker-heartbeat.json"
             temporary = runtime.directory / "worker-heartbeat.tmp"
             temporary.write_text(
@@ -262,6 +263,8 @@ def remote(args: argparse.Namespace) -> dict[str, Any]:
     if args.command == "run-issue":
         path = "/v1/intakes/linear"
         body = {"issue": args.issue, "repository": args.repo}
+        if args.supersedes:
+            body["supersedes"] = str(args.supersedes)
     elif args.command == "prompt":
         path = "/v1/intakes/prompts"
         body = {
@@ -348,6 +351,11 @@ def main() -> int:
     issue = commands.add_parser("run-issue", help="Intake one Linear issue and repository name")
     issue.add_argument("--issue", required=True)
     issue.add_argument("--repo", help="Optional when the issue has a Repository: name line")
+    issue.add_argument(
+        "--supersedes",
+        type=UUID,
+        help="Cancel this unpublished specification and enroll the edited issue in its place",
+    )
     prompt = commands.add_parser(
         "prompt", help="Submit a prompt and repository name; no source ticket required"
     )
@@ -456,6 +464,7 @@ def main() -> int:
                                 "publication_enabled": runtime.settings.allow_publication,
                                 "spend_authorization": runtime.settings.spend_authorization,
                                 "maximum_spend": runtime.settings.maximum_spend,
+                                "worker_queue": runtime.settings.worker_queue,
                                 "spending": spending_summary(
                                     runtime.store,
                                     runtime.settings.workspace,

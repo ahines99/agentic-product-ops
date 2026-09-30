@@ -317,3 +317,49 @@ def test_grant_renewal_stales_old_approvals_and_revocation_is_permanent(reviewed
     assert runtime.authority.resolve_subject("person") is None
     with pytest.raises(PolicyError, match="revoked"):
         runtime.renew_grant(7)
+
+
+def test_intake_role_and_unconfigured_reconciliation(tmp_path):
+    from uuid import uuid4
+
+    from agentic_product_ops.adapters.persistence.store import Store, engine, metadata
+    from agentic_product_ops.api.app import Principal
+
+    db = engine(f"sqlite:///{tmp_path / 'roles.db'}", testing=True)
+    metadata.create_all(db)
+    tokens = {role: secrets.token_urlsafe(32) for role in ("reader", "product_approver")}
+    app = create_app(
+        Store(db),
+        authenticator=TestAuthenticator(
+            {
+                token: Principal(actor_id="offline-reviewer", workspace_id=WORKSPACE, roles=(role,))
+                for role, token in tokens.items()
+            },
+            testing=True,
+        ),
+    )
+    try:
+        with TestClient(app) as client:
+            reader = {"Authorization": "Bearer " + tokens["reader"], "Idempotency-Key": "a"}
+            response = client.post("/v1/intakes", headers=reader, json={"source": "untrusted"})
+            assert response.status_code == 403
+            approver = {"Authorization": "Bearer " + tokens["product_approver"]}
+            identifier = uuid4()
+            assert (
+                client.post(f"/v1/specifications/{identifier}/reconcile", headers=approver)
+            ).status_code == 503
+            assert (
+                client.get(f"/v1/specifications/{identifier}/state", headers=approver)
+            ).status_code == 404
+            created = client.post(
+                "/v1/intakes",
+                headers={**approver, "Idempotency-Key": "b"},
+                json={"source": "untrusted"},
+            )
+            assert created.status_code == 201
+            state = client.get(
+                f"/v1/specifications/{created.json()['specification_id']}/state", headers=approver
+            )
+            assert state.json()["state"] == "PRE_DECISION_WORKFLOW"
+    finally:
+        db.dispose()

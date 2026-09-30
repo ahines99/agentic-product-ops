@@ -41,8 +41,11 @@ it does not establish arbitrary software delivery readiness.
 
 The profile is a local process with launch-on-demand, not a production or login-supervised
 prompt service. Do not bind the console to a remote interface. Each profile's workers must use
-the corresponding server policy; the current shared pilot task queue needs isolation before
-simultaneous paid profiles are enabled. See [ADR-020](adr/020-local-prompt-console-and-execution-briefs.md).
+the corresponding server policy. Since version 0.6.0 a newly initialized profile gets its own
+`worker_queue`, and each worker only dispatches outbox rows for its own workspace. Profiles
+created earlier keep the shared `product-ops-pilot` queue until the operator sets `worker_queue`
+while no workflows are in flight; two profiles that also share a workspace name and database
+cannot be isolated this way. See [ADR-020](adr/020-local-prompt-console-and-execution-briefs.md).
 
 Validation covers HTTP authentication, session replay/revocation/logout, CSRF/rebinding denial,
 readiness holds, legacy rendering compatibility and packaged assets. Browser automation was

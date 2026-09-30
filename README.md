@@ -12,7 +12,9 @@ workflow created PER-8 and Delivery OS produced the exact, unmerged local change
 
 Agentic Product Ops is a governed AI-assisted requirements and work-decomposition system. It converts ambiguous product requests into evidence-linked requirements, unresolved questions, acceptance criteria, and proposed Linear work items. Humans approve the exact specification before any external write. Approved work can then be handed to Agentic Delivery OS for controlled implementation and independent verification.
 
-**Current version: 0.5.2, monitored local pilot; MVP acceptance is incomplete.** Linear webhooks and periodic API reconciliation now feed a durable intake inbox. The local monitor runs in acceptance mode with paid execution and publication disabled. It resolves a basic issue and repository name, excludes old backlog/generated output, deduplicates retries and holds changed sources. A login task supervises the local services and temporary HTTPS tunnel. See [monitor operation](docs/linear-monitor.md), [issue-driven intake](docs/issue-driven-operation.md) and [exact limitations](docs/implementation-status.md).
+**Current version: 0.6.0 (unreleased branch), publication recovery and hardening; MVP acceptance is incomplete.** Version 0.6.0 adds read-only reconciliation after approval expiry, renewal of an expired approval, a hold on republishing a revised specification, one gate for every Linear mutation, lifecycle state derived from durable records, explicit source supersession and operator grant renewal. It was exercised with mock transport and isolated local services only; see [ADR-021](docs/adr/021-publication-recovery-and-write-gate.md) and the [v0.6 validation record](docs/v06-validation-record.md).
+
+**Version 0.5.2, monitored local pilot.** Linear webhooks and periodic API reconciliation now feed a durable intake inbox. The local monitor runs in acceptance mode with paid execution and publication disabled. It resolves a basic issue and repository name, excludes old backlog/generated output, deduplicates retries and holds changed sources. A login task supervises the local services and temporary HTTPS tunnel. See [monitor operation](docs/linear-monitor.md), [issue-driven intake](docs/issue-driven-operation.md) and [exact limitations](docs/implementation-status.md).
 
 The existing local pilot uses explicit operator identity, encrypted PostgreSQL, Temporal, bounded Anthropic calls and a durable aggregate spending allowance. Its earlier six-call `claude-opus-5-5` smoke reached a reviewed proposal after two preserved failures, and read-only Linear API-key identity discovery succeeded. That earlier smoke had no human approval, live Linear write or actual Delivery OS intake; the later PER-7 evidence above exercises those boundaries. See [pilot setup](docs/local-pilot.md) and [v0.5 evidence](docs/v05-validation-record.md).
 
@@ -51,7 +53,7 @@ python -m uv run pip-audit -r out/requirements.txt --disable-pip --no-deps
 
 Or run every local gate with `python -m uv run python scripts/verify.py`. This also verifies unchanged fixture/schema regeneration and byte-identical sdist/wheel builds. Use a fresh demo output directory for each run; existing evidence files are never silently replaced.
 
-Default tests need no services or credentials; five service-dependent tests skip unless explicitly configured. See [current validation and runtime commands](docs/v05-validation-record.md) for real PostgreSQL/Temporal checks. Dependency installation and vulnerability auditing use public registries, not paid model APIs. The default API denies all identities and reports unready; the local pilot explicitly supplies its operator and guarded publication handler. There is no UI.
+Default tests need no services or credentials; five service-dependent tests skip unless explicitly configured. See [current validation and runtime commands](docs/v06-validation-record.md) for real PostgreSQL/Temporal checks. Dependency installation and vulnerability auditing use public registries, not paid model APIs. The default API denies all identities and reports unready; the local pilot explicitly supplies its operator and guarded publication handler. There is no UI.
 
 ## Read the design
 
@@ -62,7 +64,7 @@ Default tests need no services or credentials; five service-dependent tests skip
 - [Evaluation methodology](docs/evaluation-methodology.md)
 - [Implementation status and limits](docs/implementation-status.md), [ordered backlog](docs/backlog.md)
 - [Remaining implementation steps](docs/remaining-work.md), [local runtime commands and results](docs/offline-expansion.md)
-- [Current verification and exact commands](docs/v04-validation-record.md), [offline case study](docs/offline-case-study.md)
+- [Current verification and exact commands](docs/v06-validation-record.md), [v0.4 offline record](docs/v04-validation-record.md), [offline case study](docs/offline-case-study.md)
 - [Completed engineering checklist](docs/offline-completion-plan.md)
 - [Local pilot runbook](docs/local-pilot.md), [independent evaluation kit](docs/independent-evaluation-kit.md)
 - [Contributing](CONTRIBUTING.md)

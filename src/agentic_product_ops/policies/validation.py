@@ -79,13 +79,28 @@ def risk_floor(spec: WorkSpecification, policy: ServerPolicy | None = None) -> T
             "security policy",
             "security-policy",
             "production token",
+            "purge",
+            "wipe",
+            "erase",
+            "truncate",
+            "password",
+            "api key",
+            "private key",
+            "force push",
+            "force-push",
         )
     ):
         return 3
-    if any(
+    # "auth" covers authentication/authorization/OAuth but not the word "author".
+    if re.search(r"auth(?!or(?:s|ed|ing|ship)?\b)", text) or any(
         term in text
         for term in (
-            "auth",
+            "backup",
+            "billing",
+            "invoice",
+            "personal data",
+            "encrypt",
+            "privilege",
             "admin",
             "payment",
             "sensitive",

@@ -1,5 +1,42 @@
 # Implementation status
 
+## Version 0.6.0, 2026-09-30 (branch `feature/finalize-offline-engineering`, unmerged)
+
+This pass closes the engineering gaps an independent review found in 0.5.2 that needed no
+owner decision. Details and limits are in [ADR-021](adr/021-publication-recovery-and-write-gate.md);
+commands and results are in the [v0.6 validation record](v06-validation-record.md).
+
+| Change | Exercised with | Not exercised |
+| --- | --- | --- |
+| Read-only reconciliation that works after approval expiry | Mock Linear transport | Live Linear |
+| Dispatch of an intent that never acquired dispatch authority | Mock Linear transport | Live Linear |
+| Renewal of an expired approval for the same exact revision | API tests on SQLite | A human renewal in the pilot |
+| Hold when a new revision would publish beside an earlier revision's tickets | Mock transport and the reference consumer | Live Linear |
+| One wire gate for every Linear mutation; webhook manager declares `admin` | Mock transport | Live webhook update under the new gate |
+| Lifecycle state after the decision derived from durable records; `state` endpoint | SQLite and isolated PostgreSQL/Temporal | The running pilot |
+| Handoff refused for incomplete publication or writes under two approvals | Signed-handoff tests | Actual Delivery OS |
+| Explicit supersession of an edited Linear issue | API tests with recorded source | A real edited issue |
+| `grant-renew` and `revoke` pilot commands | Runtime tests on SQLite | The pilot profile's grant |
+| Per-profile worker queue and workspace-filtered outbox dispatch | Unit tests | Two live profiles |
+| Wider lexical risk floor; "author" no longer matches `auth` | Unit tests | Stored pilot specifications |
+| `POST /v1/intakes` requires an approver or intake-reader role | API tests | |
+
+The running pilot (scheduled task, tunnel and webhook) was not touched. It still runs 0.5.2 code
+until the branch is merged and the services are restarted. Stored pilot specifications whose text
+matches a newly added risk term will fail the floor check after that restart until reassessed.
+
+Still open after this pass, and why:
+
+- **Needs the owner:** live publication and reconciliation acceptance, hosted CI (needs a push),
+  the independent 40-case semantic study and its budget, any Delivery OS code change (multi-item
+  admission, cross-system cancellation), a per-prompt inference budget policy, a risk policy that
+  would let general model proposals reach handoff, and a second approver identity.
+- **Deliberately not built:** a command that declares a dispatched-but-unobserved write absent and
+  permits a resend; handoff of a publication whose writes span two approvals (needs a public
+  contract change the consumer would have to accept).
+
+## Earlier status (before 0.6.0)
+
 Final local-entry pass, 2026-09-30: the opt-in [prompt console](local-prompt-console.md) provides
 prompt/repository intake, held-state feedback, clarification and exact-plan approval. The new
 `pilot-execution-v1` policy adds detailed ticket execution briefs and structural readiness gates

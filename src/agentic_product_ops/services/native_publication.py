@@ -27,6 +27,25 @@ from agentic_product_ops.services.clarifications import load_clarifications
 from agentic_product_ops.services.durable_analysis import recorded_review
 
 
+def publication_writes(
+    store: Store, conn: Connection, workspace: str, identifier: str, revisions: range
+) -> bool:
+    """Whether any planned operation of these revisions has a recorded write intent."""
+    for revision in revisions:
+        try:
+            stored = store.get(workspace, "publication_plan", identifier, revision, connection=conn)
+        except Missing:
+            continue
+        keys = [operation["operation_key"] for operation in stored["operations"]]
+        if conn.execute(
+            select(operations.c.operation_key)
+            .where(operations.c.workspace == workspace, operations.c.operation_key.in_(keys))
+            .limit(1)
+        ).first():
+            return True
+    return False
+
+
 class NativePublisher:
     def __init__(
         self,
@@ -110,8 +129,8 @@ class NativePublisher:
                 )
 
         with self.store.database.begin() as conn:
-            if not self.allow_revision_republication and self._earlier_revision_written(
-                conn, workspace, identifier, spec.revision
+            if not self.allow_revision_republication and publication_writes(
+                self.store, conn, workspace, identifier, range(1, spec.revision)
             ):
                 # New revisions derive new provider identities. Without a supersession policy,
                 # writing them beside an earlier revision's tickets would duplicate work.
@@ -303,25 +322,6 @@ class NativePublisher:
             return True
         except Missing:
             return False
-
-    def _earlier_revision_written(
-        self, conn: Connection, workspace: str, identifier: str, revision: int
-    ) -> bool:
-        for earlier in range(1, revision):
-            try:
-                stored = self.store.get(
-                    workspace, "publication_plan", identifier, earlier, connection=conn
-                )
-            except Missing:
-                continue
-            keys = [operation["operation_key"] for operation in stored["operations"]]
-            if conn.execute(
-                select(operations.c.operation_key)
-                .where(operations.c.workspace == workspace, operations.c.operation_key.in_(keys))
-                .limit(1)
-            ).first():
-                return True
-        return False
 
     def _observation_revision(self, key: str, conn: Connection) -> int:
         return int(

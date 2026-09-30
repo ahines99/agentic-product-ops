@@ -24,7 +24,7 @@ def test_proposal_path(valid):
         State.AWAITING_APPROVAL,
     ):
         current = transition(current, target, valid, ServerPolicy())
-    with pytest.raises(PolicyError, match="authenticated"):
+    with pytest.raises(PolicyError, match="derived from durable records"):
         transition(current, State.APPROVED, valid, ServerPolicy())
 
 
@@ -70,7 +70,15 @@ def test_duplicate_and_unsupported_inference(valid):
 
 @pytest.mark.parametrize(
     "text,tier",
-    [("Delete production data", 3), ("Modify authorization", 2), ("Write about payments", 2)],
+    [
+        ("Delete production data", 3),
+        ("Modify authorization", 2),
+        ("Write about payments", 2),
+        ("Purge every customer record and wipe backups", 3),
+        ("Rotate the database password", 3),
+        ("Add OAuth sign-in", 2),
+        ("Change the invoice layout", 2),
+    ],
 )
 def test_deterministic_risk_floor(text, tier):
     spec, _ = draft(text)

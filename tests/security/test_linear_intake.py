@@ -174,6 +174,9 @@ def test_atomic_intake_duplicate_edit_injection_and_budget_hold(operator, source
         assert authority.store.get("pilot", "linear_source", identifier)["issue_id"] == str(
             source.issue_id
         )
+        # Supersession needs a real edit of the same issue.
+        replace = {**body, "supersedes": identifier}
+        assert client.post("/v1/intakes/linear", json=replace, headers=headers).status_code == 403
         current = current.model_copy(update={"title": "A changed request"})
         assert client.post("/v1/intakes/linear", json=body, headers=headers).status_code == 409
         response = client.post(
@@ -182,6 +185,27 @@ def test_atomic_intake_duplicate_edit_injection_and_budget_hold(operator, source
             json={"revision": 1, "content_digest": spec["content_digest"]},
         )
         assert response.status_code == 403
+        # An explicit supersession cancels the stale work and enrolls the edit atomically.
+        unrelated = {**body, "supersedes": str(uuid4())}
+        assert client.post("/v1/intakes/linear", json=unrelated, headers=headers).status_code == 404
+        assert not authority.store.cancelled("pilot", identifier)
+        second = client.post("/v1/intakes/linear", json=replace, headers=headers)
+        assert second.status_code == 201, second.text
+        successor = second.json()["specification_id"]
+        assert successor != identifier and authority.store.cancelled("pilot", identifier)
+        assert authority.store.get("pilot", "cancellation", identifier)["reason"] == (
+            "superseded_by_source_edit"
+        )
+        assert authority.store.get("pilot", "source_supersession", successor)["supersedes"] == (
+            identifier
+        )
+        assert authority.store.get("pilot", "specification", successor)["risk"]["tier"] == 3
+        # Replaying returns the same successor; a cancelled specification cannot be reused.
+        assert client.post("/v1/intakes/linear", json=replace, headers=headers).json() == (
+            second.json()
+        )
+        current = current.model_copy(update={"title": "Changed again"})
+        assert client.post("/v1/intakes/linear", json=replace, headers=headers).status_code == 403
         # A cached command cannot bypass a subsequent team-scope reduction.
         authority.register(
             grant.model_copy(update={"revision": 2, "team_ids": ("different",)}),

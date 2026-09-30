@@ -171,11 +171,57 @@ def test_profile_loopback_isolation_and_explicit_secrets(tmp_path):
         "maximum_spend": "10",
     }
     assert not PilotSettings.model_validate_json(json.dumps(body)).allow_publication
+    assert PilotSettings.model_validate_json(json.dumps(body)).worker_queue == "product-ops-pilot"
+    isolated = {**body, "worker_queue": "product-ops-0123456789abcdef"}
+    assert PilotSettings.model_validate_json(json.dumps(isolated)).worker_queue.endswith("cdef")
     for field, value in [
         ("database_url", "postgresql+psycopg://postgres@remote/product_ops_pilot"),
         ("database_url", "postgresql+psycopg://postgres@127.0.0.1/product_ops_test"),
         ("temporal_address", "remote:7233"),
+        ("worker_queue", "other-team-queue"),
+        ("worker_queue", "product-ops-UPPER"),
         ("maximum_spend", "0"),
     ]:
         with pytest.raises(ValueError):
             PilotSettings.model_validate_json(json.dumps({**body, field: value}))
+
+
+def test_worker_dispatches_only_its_own_workspace(tmp_path):
+    import asyncio
+
+    from agentic_product_ops.adapters.persistence.store import Store, engine, metadata, outbox
+    from agentic_product_ops.workflows.activities import dispatch_outbox
+
+    db = engine(f"sqlite:///{tmp_path / 'outbox.db'}", testing=True)
+    metadata.create_all(db)
+    store = Store(db)
+    with db.begin() as conn:
+        for workspace in ("profile-a", "profile-b"):
+            conn.execute(
+                outbox.insert().values(
+                    workspace=workspace,
+                    workflow_id=f"product-ops-{workspace}",
+                    payload=json.dumps(
+                        {
+                            "workspace": workspace,
+                            "specification_id": str(uuid4()),
+                            "content_digest": "0" * 64,
+                        }
+                    ),
+                    dispatched=0,
+                )
+            )
+
+    class Client:
+        started: list[tuple[str, str]] = []
+
+        async def start_workflow(self, *args, id, task_queue, **kwargs):
+            self.started.append((id, task_queue))
+
+    client = Client()
+    try:
+        assert asyncio.run(dispatch_outbox(store, client, "product-ops-a", "profile-a")) == 1
+        assert client.started == [("product-ops-profile-a", "product-ops-a")]
+        assert [row["workspace"] for row in store.pending_workflows()] == ["profile-b"]
+    finally:
+        db.dispose()

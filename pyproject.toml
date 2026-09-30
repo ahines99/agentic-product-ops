@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentic-product-ops"
-version = "0.5.2"
+version = "0.6.0"
 description = "Governed product requirements, local pilot and approved work publication"
 readme = "README.md"
 requires-python = ">=3.12,<3.14"

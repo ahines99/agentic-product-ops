@@ -152,10 +152,17 @@ class GovernanceActivities:
         return "APPROVED" if approval.decision == "approve" else "REJECTED"
 
 
-async def dispatch_outbox(store: Store, client: Client, task_queue: str) -> int:
+async def dispatch_outbox(
+    store: Store, client: Client, task_queue: str, workspace: str | None = None
+) -> int:
+    """Start or signal pending workflows; a profile worker passes its own workspace.
+
+    Without the filter a worker would start another profile's work on its own queue and run
+    it under the wrong server policy.
+    """
     count = 0
     pending = sorted(
-        store.pending_workflows(),
+        store.pending_workflows(workspace),
         key=lambda row: {"decision": 1, "cancel": 2}.get(
             json.loads(row["payload"]).get("action"), 0
         ),

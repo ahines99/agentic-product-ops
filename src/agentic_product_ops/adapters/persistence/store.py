@@ -278,14 +278,12 @@ class Store:
                     return recovered
             raise Conflict("concurrent command or revision conflict") from error
 
-    def pending_workflows(self) -> list[dict[str, Any]]:
+    def pending_workflows(self, workspace: str | None = None) -> list[dict[str, Any]]:
+        query = select(outbox).where(outbox.c.dispatched == 0)
+        if workspace is not None:
+            query = query.where(outbox.c.workspace == workspace)
         with self.database.connect() as connection:
-            return [
-                dict(row)
-                for row in connection.execute(
-                    select(outbox).where(outbox.c.dispatched == 0)
-                ).mappings()
-            ]
+            return [dict(row) for row in connection.execute(query).mappings()]
 
     def mark_dispatched(self, workspace: str, workflow_id: str) -> None:
         with self.database.begin() as connection:
