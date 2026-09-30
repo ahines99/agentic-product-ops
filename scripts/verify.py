@@ -34,7 +34,7 @@ def main() -> None:
     for command in commands:
         print("RUN " + " ".join(command), flush=True)
         subprocess.run(command, cwd=ROOT, check=True)
-    print("All local gates passed. Hosted CI runs on push; live integrations are verified separately.")
+    print("All local gates passed. Live integrations are verified separately.")
 
 
 if __name__ == "__main__":
