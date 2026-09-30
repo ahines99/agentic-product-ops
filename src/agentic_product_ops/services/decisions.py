@@ -4,9 +4,9 @@ import json
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Connection
+from sqlalchemy import Connection, select
 
-from agentic_product_ops.adapters.persistence.store import Conflict, Missing, Store
+from agentic_product_ops.adapters.persistence.store import Conflict, Missing, Store, operations
 from agentic_product_ops.domain.contracts import SpecificationApproval
 
 
@@ -54,6 +54,17 @@ def record_decision(
         or now < earlier.expires_at
     ):
         raise Conflict("decision already recorded for this revision")
+    keys = approval.scope.operation_keys
+    statuses: list[str] = list(
+        conn.execute(
+            select(operations.c.status).where(
+                operations.c.workspace == workspace, operations.c.operation_key.in_(keys)
+            )
+        ).scalars()
+    )
+    if len(statuses) == len(keys) and set(statuses) == {"SUCCEEDED"}:
+        # Renewing finished work authorizes nothing and would only detach its handoff.
+        raise Conflict("publication already complete under the earlier approval")
     sequence = int(previous.get("sequence", 0)) + 1
     store.put(
         conn,

@@ -6,6 +6,11 @@ This pass closes the engineering gaps an independent review found in 0.5.2 that 
 owner decision. Details and limits are in [ADR-021](adr/021-publication-recovery-and-write-gate.md);
 commands and results are in the [v0.6 validation record](v06-validation-record.md).
 
+An independent review of the first draft of this branch found that two concurrent publishers
+could both send the same write for an intent that had never been dispatched. That is fixed and
+covered by a deterministic interleaving test. The same review led to exporting handoffs under
+the dispatch approval, refusing pointless renewals, and reconciling every recorded revision.
+
 | Change | Exercised with | Not exercised |
 | --- | --- | --- |
 | Read-only reconciliation that works after approval expiry | Mock Linear transport | Live Linear |

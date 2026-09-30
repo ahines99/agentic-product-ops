@@ -112,6 +112,10 @@ class NativePublisher:
                 self.source_guard(identifier)
             with self.store.database.begin() as conn:
                 validate(conn)
+                # Under the specification lock, exactly one caller acquires dispatch authority.
+                # An identical payload would otherwise make the immutable put a silent no-op.
+                if self._dispatched(conn, workspace, operation.operation_key):
+                    raise PolicyError("dispatch authority already acquired")
                 self.store.put(
                     conn,
                     workspace,

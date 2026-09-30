@@ -43,7 +43,10 @@ from agentic_product_ops.services.native_publication import NativePublisher
 from agentic_product_ops.services.publication_state import publication_state
 from agentic_product_ops.services.revisions import revise_specification
 from agentic_product_ops.services.risk_reassessment import RiskCommand, reassess_risk
-from agentic_product_ops.services.signed_handoff import export_signed_handoff
+from agentic_product_ops.services.signed_handoff import (
+    dispatch_approval_id,
+    export_signed_handoff,
+)
 from agentic_product_ops.services.spending import SpendingProvider, spending_summary
 from agentic_product_ops.workflows.activities import GovernanceActivities
 
@@ -340,9 +343,26 @@ class PilotRuntime:
             adapter.close()
 
     def reconcile(self, identifier: str, actor: Principal) -> dict[str, Any]:
-        """Observe recorded intents read-only. Allowed with publication off or approval expired."""
+        """Observe recorded intents read-only. Allowed with publication off or approval expired.
+
+        Every revision with a recorded plan is visited, so a write left uncertain by an earlier
+        revision stays reachable after a later revision exists.
+        """
         self.authority.check(actor)
-        spec, plan, _ = self.records(identifier)
+        workspace = self.settings.workspace
+        current, _, _ = self.records(identifier)
+        revisions: list[tuple[WorkSpecification, NativePlan]] = []
+        for revision in range(1, current.revision + 1):
+            try:
+                plan = NativePlan.model_validate_json(
+                    json.dumps(self.store.get(workspace, "publication_plan", identifier, revision))
+                )
+            except Missing:
+                continue
+            spec = WorkSpecification.model_validate_json(
+                json.dumps(self.store.get(workspace, "specification", identifier, revision))
+            )
+            revisions.append((spec, plan))
         adapter = NativeGraphQLAdapter(
             self.settings.linear_scope,
             token=secret_from_env(Path(self.settings.linear_key_file), "LINEAR_API_KEY"),
@@ -353,12 +373,23 @@ class PilotRuntime:
             allow_mutations=False,
         )
         try:
-            receipts = NativePublisher(self.store, adapter, self.authority).reconcile(
-                spec, plan, self.policy
-            )
-            return self._publication_result(identifier, spec, plan, receipts)
+            publisher = NativePublisher(self.store, adapter, self.authority)
+            observed = {
+                spec.revision: publisher.reconcile(spec, plan, self.policy)
+                for spec, plan in revisions
+            }
         finally:
             adapter.close()
+        spec, plan = revisions[-1]
+        result = self._publication_result(identifier, spec, plan, observed[spec.revision])
+        return {
+            **result,
+            "earlier_revisions": {
+                str(revision): [r.model_dump(mode="json") for r in receipts]
+                for revision, receipts in observed.items()
+                if revision != spec.revision and receipts
+            },
+        }
 
     def _publication_result(
         self,
@@ -434,13 +465,15 @@ class PilotRuntime:
 
     def handoff(self, identifier: str) -> dict[str, Any]:
         self.source_guard(identifier)
-        spec, _, approval = self.records(identifier)
+        spec, plan, _ = self.records(identifier)
+        # The approval that authorized the writes, which a later renewal does not replace.
+        approval_id = dispatch_approval_id(self.store, self.settings.workspace, plan)
         artifact = export_signed_handoff(
             self.store,
             self.authority,
             self.policy,
             specification_id=str(spec.specification_id),
-            approval_id=str(approval.approval_id),
+            approval_id=approval_id,
             issuer="product-ops-local",
             key_id="pilot-v1",
             signing_key=Ed25519PrivateKey.from_private_bytes(

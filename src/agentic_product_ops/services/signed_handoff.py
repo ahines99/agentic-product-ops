@@ -24,6 +24,20 @@ from agentic_product_ops.services.durable_analysis import recorded_review
 SIGNING_DOMAIN = b"AgenticProductOps/Handoff/v2\x00"
 
 
+def dispatch_approval_id(store: Store, workspace: str, plan: NativePlan) -> str:
+    """The single approval every operation of a plan was dispatched under."""
+    identities = set()
+    for operation in plan.operations:
+        try:
+            record = store.get(workspace, "native_dispatch_authority", operation.operation_key)
+        except Missing:
+            raise PolicyError("handoff requires complete publication under one approval") from None
+        identities.add(record["approval_id"])
+    if len(identities) != 1:
+        raise PolicyError("handoff requires complete publication under one approval")
+    return str(identities.pop())
+
+
 def export_signed_handoff(
     store: Store,
     authority: Authority,

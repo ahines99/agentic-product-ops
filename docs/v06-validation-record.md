@@ -12,14 +12,18 @@ no Delivery OS change and no change to the running pilot services was made.
 | Check | Python 3.12.10 | Python 3.13.15 |
 | --- | --- | --- |
 | `uv lock --check`, ruff lint and format, strict mypy (95 files) | Pass | Pass |
-| pytest (default, no services) | 348 passed, 5 skipped | 348 passed, 5 skipped |
+| pytest (default, no services) | 351 passed, 5 skipped | 351 passed, 5 skipped |
 | Docs links (54 documents), schema export, secret scan (233 files) | Pass | Pass |
 | Fixture regeneration and two byte-identical builds | Pass | Pass, same hashes |
 | Clean-wheel smoke outside the checkout | Pass | Pass |
 | `pip-audit` of the locked export | No known vulnerabilities | No known vulnerabilities |
 
-Build hashes: wheel `d51e2ed0be7c9a5809fe1d72cfe7963e8f26ed0b4ea02d4dd151ffc68eb2249f`,
-sdist `aeb2cd99d3ce563338d4a2396316dba830359a531cc97361e349e08373ed9a63`.
+Build hashes: wheel `e8965846dc68bcdbdff8434f81e92c2ce44c3812df645ccc0276416d0e140f62`,
+sdist `1763eba59b50f9679ecf1a8247c86445d99995365bcb77f7d1661f7cc059d848`.
+
+These are the final numbers, after fixes from an independent review of the first draft (see
+[implementation status](implementation-status.md)). All service checks below were rerun on the
+final code against a fresh database.
 
 The five default skips are the service tests. They were run separately on Python 3.12 against a
 disposable PostgreSQL 17.11 instance (fresh database, port 18977) and a temporary Temporal dev

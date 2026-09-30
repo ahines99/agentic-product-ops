@@ -26,17 +26,24 @@ but that several paths ended in a hold with no governed way forward:
 **Reconciliation is separate from dispatch.** `NativePublisher.reconcile` observes recorded
 intents with exact-ID reads and records what it finds. It needs an active operator but no
 unexpired approval, because it cannot send a write. It only looks at intents that acquired
-dispatch authority. Absence, mismatch or a failed lookup leaves the operation `UNKNOWN`.
+dispatch authority. Absence, mismatch or a failed lookup leaves the operation `UNKNOWN`. The
+pilot command visits every revision with a recorded plan, so a write left uncertain by an
+earlier revision stays reachable after a later revision exists.
 
 **An intent without dispatch authority may be dispatched.** Dispatch authority is committed in
 the transaction immediately before the mutation is sent. If it is missing, no write left the
 process, so the intent is dispatched under the authority validated for the current attempt.
-The authority record remains the mutex: a second writer conflicts on it and sends nothing.
+Acquiring authority is exclusive: under the specification lock, a caller that finds the record
+already present stops with `UNKNOWN` and sends nothing. An independent review found that the
+first version of this change relied on the immutable put conflicting, which it does not when
+two publishers produce byte-identical records in the same clock tick; a regression test now
+interleaves two publishers deterministically.
 
 **An expired approval can be renewed for the same exact revision.** A renewal is a new
 authenticated human approval of the same content digest and plan digest. It is accepted only
 after the earlier approval's expiry. A rejection, or an approval still inside its window, stays
-final for that revision. Renewals are stored as a sequence beside the first decision and are
+final for that revision, and renewal is refused once every operation already succeeded, since
+it would authorize nothing. Renewals are stored as a sequence beside the first decision and are
 audited as `approval_renewed`. They are not signalled to the revision's workflow, which has
 already completed; durable records carry the authority.
 
@@ -58,7 +65,8 @@ wire regardless of what the API key could do.
 `HANDOFF_READY` and `CANCELLED` from the same immutable records that authorize each dispatch.
 It cannot drift from them and no caller can set it. The Temporal workflow still owns the
 states up to the human decision. Handoff export now refuses a publication that is incomplete
-or whose writes were dispatched under more than one approval.
+or whose writes were dispatched under more than one approval. The pilot exports under the
+approval named in the dispatch records, so a later renewal cannot detach a finished handoff.
 
 **Source supersession is an explicit approver command.** `POST /v1/intakes/linear` accepts
 `supersedes`. In one transaction it cancels the named specification and enrolls the edited
@@ -75,8 +83,8 @@ the previous grant become stale. `revoke` is monotonic and has no inverse.
 second profile's worker could start the first profile's workflows under the wrong server
 policy. Existing profiles keep the shared legacy queue so in-flight workflows are not orphaned.
 
-**The lexical risk floor gained terms.** Purge, wipe, erase, truncate, password, key and
-force-push wording now floors at tier 3; backup, billing, invoice, personal data, encryption
+**The lexical risk floor gained terms.** Purge, wipe, erase and truncate (at a word start, so
+"swipe" does not match), password, key and force-push wording now floors at tier 3; backup, billing, invoice, personal data, encryption
 and privilege wording at tier 2. The word "author" no longer matches the `auth` rule. It is
 still a conservative floor and not a classifier (ADR-003).
 
@@ -92,6 +100,13 @@ still a conservative floor and not a classifier (ADR-003).
   until a human reassesses them. This fails closed.
 - A superseded specification with publication writes must be handled by a person. Nothing
   here closes or edits existing Linear tickets.
+- Renewing the operator grant makes every approval bound to the earlier grant stale, including
+  for handoff of work already published under it. Hand off before renewing.
+- The derived state reports `CANCELLED` for a cancelled specification even if one of its writes
+  is still unobserved; `reconcile` still reaches that write.
+- A crash after dispatch authority is committed but before the request leaves the process is
+  indistinguishable from a lost response. It reads as `RECONCILIATION_REQUIRED` indefinitely.
+- Existing pilot profiles share one worker queue until the operator gives each its own.
 - Nothing in this ADR was exercised against live Linear. The running pilot was not restarted
   and keeps the earlier code until the operator merges and restarts it.
 - The general intake floor of tier 2 for model proposals is unchanged, so only the constrained

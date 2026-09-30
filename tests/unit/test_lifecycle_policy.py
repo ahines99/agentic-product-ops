@@ -78,6 +78,7 @@ def test_duplicate_and_unsupported_inference(valid):
         ("Rotate the database password", 3),
         ("Add OAuth sign-in", 2),
         ("Change the invoice layout", 2),
+        ("Swipe between report pages", 2),  # not tier 3: "swipe" is not "wipe"
     ],
 )
 def test_deterministic_risk_floor(text, tier):

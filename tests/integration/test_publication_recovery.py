@@ -19,7 +19,10 @@ from agentic_product_ops.policies.validation import PolicyError, ServerPolicy
 from agentic_product_ops.services.authority import Authority
 from agentic_product_ops.services.native_publication import NativePublisher
 from agentic_product_ops.services.publication_state import publication_state
-from agentic_product_ops.services.signed_handoff import export_signed_handoff
+from agentic_product_ops.services.signed_handoff import (
+    dispatch_approval_id,
+    export_signed_handoff,
+)
 from agentic_product_ops.workflows.lifecycle import EDGES, State
 from tests.integration.test_native_publication import LinearRecording, adapter
 from tests.integration.test_native_publication import reviewed as reviewed
@@ -126,7 +129,7 @@ def test_stranded_intent_is_dispatched_only_under_a_renewed_approval(reviewed, m
         provider.close()
 
 
-@pytest.mark.parametrize("reviewed", ["handoff"], indirect=True)
+@pytest.mark.parametrize("reviewed", ["handoff", None], indirect=True)
 def test_lost_response_is_reconciled_read_only_after_expiry(reviewed, monkeypatch):
     store, authority, spec, plan, approval, tick = reviewed
     recording = LinearRecording(plan, authority, tick, "timeout")
@@ -160,17 +163,25 @@ def test_lost_response_is_reconciled_read_only_after_expiry(reviewed, monkeypatc
         assert [r.status for r in receipts] == ["SUCCEEDED"] and len(recording.mutations) == 1
         observed.append(state(store, spec, tick))
 
-        renewed = decide(store, authority, plan, spec, tick, monkeypatch)
-        fresh = SpecificationApproval.model_validate_json(json.dumps(renewed["approval"]))
-        result = publisher.publish(spec, plan, fresh, ServerPolicy())
-        assert all(r.status == "SUCCEEDED" for r in result)
-        assert len(recording.mutations) == len(plan.operations)  # nothing was sent twice
-        observed.append(state(store, spec, tick))
-        assert observed[-1] == State.PUBLISHED
-        if len(plan.operations) > 1:
+        if len(plan.operations) == 1:
+            # Reconciliation completed the publication under the original, now expired approval.
+            assert observed[-1] == State.PUBLISHED
+            decide(store, authority, plan, spec, tick, monkeypatch, expect=409)
+            assert dispatch_approval_id(store, WORKSPACE, plan) == str(approval.approval_id)
+            export(store, authority, spec, approval, tick)
+            observed.append(state(store, spec, tick))
+            assert observed[-1] == State.HANDOFF_READY
+        else:
+            renewed = decide(store, authority, plan, spec, tick, monkeypatch)
+            fresh = SpecificationApproval.model_validate_json(json.dumps(renewed["approval"]))
+            result = publisher.publish(spec, plan, fresh, ServerPolicy())
+            assert all(r.status == "SUCCEEDED" for r in result)
+            assert len(recording.mutations) == len(plan.operations)  # nothing sent twice
+            observed.append(state(store, spec, tick))
+            assert observed[-1] == State.PUBLISHED
             # Writes span two approvals; the single-approval handoff contract holds it.
             with pytest.raises(PolicyError, match="one approval"):
-                export(store, authority, spec, fresh, tick)
+                dispatch_approval_id(store, WORKSPACE, plan)
         # Every sampled state is reachable from the previous one in the declared graph.
         for before, after in zip(observed, observed[1:], strict=False):
             assert after in reachable(before)
@@ -363,3 +374,54 @@ def test_intake_role_and_unconfigured_reconciliation(tmp_path):
             assert state.json()["state"] == "PRE_DECISION_WORKFLOW"
     finally:
         db.dispose()
+
+
+class InterleavedProvider:
+    """Deterministic interleaving: another publisher runs between this one's check and guard."""
+
+    mode = "mock_transport"
+    last_request_id = None
+
+    def __init__(self, scope, sends, name, before=None, fail_before_guard=False):
+        self.scope, self.sends, self.name = scope, sends, name
+        self.before, self.fail_before_guard = before, fail_before_guard
+
+    def create(self, operation, guard):
+        if self.fail_before_guard:
+            raise RuntimeError("preflight failed")
+        if self.before:
+            hook, self.before = self.before, None
+            hook()
+        guard()
+        self.sends.append((self.name, operation.operation_key))
+        return str(operation.target_id)
+
+    def reconcile(self, operation):
+        return None
+
+
+@pytest.mark.parametrize("reviewed", ["handoff"], indirect=True)
+def test_concurrent_publishers_never_both_dispatch_a_stranded_intent(reviewed):
+    store, authority, spec, plan, approval, tick = reviewed
+    sends = []
+
+    def publisher(provider):
+        return NativePublisher(store, provider, authority, lambda: tick[0])
+
+    # A frozen clock gives both publishers byte-identical dispatch-authority payloads.
+    publisher(InterleavedProvider(plan.scope, sends, "seed", fail_before_guard=True)).publish(
+        spec, plan, approval, ServerPolicy()
+    )
+    assert not sends
+
+    def second():
+        publisher(InterleavedProvider(plan.scope, sends, "B")).publish(
+            spec, plan, approval, ServerPolicy()
+        )
+
+    result = publisher(InterleavedProvider(plan.scope, sends, "A", before=second)).publish(
+        spec, plan, approval, ServerPolicy()
+    )
+    first = plan.operations[0].operation_key
+    assert [name for name, key in sends if key == first] == ["B"]
+    assert result[0].status == "UNKNOWN"  # the loser holds; it never sends
