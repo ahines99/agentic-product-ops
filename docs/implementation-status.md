@@ -1,5 +1,23 @@
 # Implementation status
 
+Current integration branch, 2026-09-30 UTC: the exact PER-7 revision 3 was approved by the
+human operator, Product Ops created PER-8, and actual Delivery OS admitted and executed the
+signed handoff. The result is one exact 98-byte Markdown addition in a local review branch,
+with an OPEN/UNMERGED change request and HUMAN_REVIEW state. Target main remains unchanged.
+See [live evidence and commands](per7-validation-record.md),
+[prompt intake and remaining milestones](prompt-to-delivery.md), and
+[ADR-017](adr/017-constrained-documentation-delivery.md).
+
+The four PER-7 model calls reserved $1.489624 under the $2 Product Ops allocation;
+Delivery used no model calls under its separate $3 allocation. Billing remains unverified.
+Paid execution is disabled. General multi-ticket execution, source supersession/cancellation
+propagation, independent semantic acceptance, hosted verification and production operation
+remain open. This controlled pilot is not MVP completion.
+
+## Historical v0.5.2 baseline
+
+The statements below describe the earlier release, before the integration evidence above.
+
 Version 0.5.2, 2026-09-29. **Offline initialization is complete; the authorized local Anthropic smoke is complete. MVP, independent semantic acceptance, live work publication and actual Delivery OS acceptance remain incomplete.** The [Linear monitor](linear-monitor.md) now has live webhook registration, reconciliation and synthetic HTTPS delivery evidence. A genuine Linear-origin issue notification remains unobserved. It runs with paid execution and publication disabled. See [prior smoke evidence](v05-validation-record.md), [pilot commands](local-pilot.md), [backlog](backlog.md) and [remaining work](remaining-work.md). Earlier validation records describe their own releases only.
 
 The [v0.5.1 validation record](v051-validation-record.md) records current local checks and the exact automation boundary.

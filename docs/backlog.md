@@ -1,5 +1,10 @@
 # Dependency-ordered implementation backlog
 
+The later [PER-7 live integration record](per7-validation-record.md) supersedes historical
+claims below about missing human approval, genuine Linear events, live publication and actual
+Delivery acceptance. The [current continuation](prompt-to-delivery.md#dependency-ordered-continuation)
+tracks the remaining multi-ticket, revision, budget and independent acceptance work.
+
 No live Linear tickets were created. IDs are local planning identifiers. Version 0.4 completed credential-free engineering; version 0.5 adds the local pilot rows below; `Offline done` does not mean live, independent semantic, human or production acceptance. Dependencies refer to earlier work and cannot be skipped because a schema exists. Rows marked partial/open retain explicit external acceptance work; see [remaining sequence](remaining-work.md) and [validation](v04-validation-record.md).
 
 | ID | Work / milestone | Depends on | Status | Acceptance criteria |

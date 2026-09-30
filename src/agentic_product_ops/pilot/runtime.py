@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+import httpx
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi import FastAPI
 from pydantic import SecretStr
@@ -34,6 +35,7 @@ from agentic_product_ops.pilot.config import (
 )
 from agentic_product_ops.policies.validation import PolicyError, ServerPolicy
 from agentic_product_ops.services.authority import Authority
+from agentic_product_ops.services.documentation import constrained_policy
 from agentic_product_ops.services.linear_source import validate_linear_source
 from agentic_product_ops.services.native_publication import NativePublisher
 from agentic_product_ops.services.revisions import revise_specification
@@ -84,7 +86,7 @@ class PilotRuntime:
                 {"pilot-v1": bytes.fromhex(self.secrets["storage_key"])}, "pilot-v1"
             ),
         )
-        self.policy = ServerPolicy(
+        self.base_policy = ServerPolicy(
             version="pilot-v1",
             workspace_id=self.settings.workspace,
             teams=tuple(b.local_id for b in self.settings.linear_scope.teams),
@@ -92,6 +94,11 @@ class PilotRuntime:
             allow_any_repository=True,
             approvers=(self.settings.operator,),
             security_approvers=(self.settings.operator,),
+        )
+        self.policy = (
+            constrained_policy(self.base_policy, self.settings.documentation_capability)
+            if self.settings.documentation_capability
+            else self.base_policy
         )
         self.authority = Authority(
             self.store,
@@ -360,6 +367,58 @@ class PilotRuntime:
         )
         return artifact.model_dump(mode="json")
 
+    def advance_delivery(self, identifier: str) -> dict[str, Any]:
+        """Publish and deliver only enrolled, already human-approved, handoff-eligible work."""
+        if identifier not in self.settings.delivery_specification_ids:
+            raise PolicyError("work is not enrolled for automatic delivery")
+        actor = self.auth.authenticate(self.secrets["operator_token"])
+        if actor is None:
+            raise PolicyError("active operator required")
+        spec, _, approval = self.records(identifier)
+        if spec.risk.tier not in self.policy.handoff_tiers or approval.decision != "approve":
+            raise PolicyError("work is not eligible for delivery")
+        try:
+            return self.store.get(
+                self.settings.workspace, "delivery_receipt", identifier, spec.revision
+            )
+        except Missing:
+            pass
+        published = self.publish(identifier, actor, "auto-publish-" + spec.content_digest)
+        if not published["complete"]:
+            raise PolicyError("publication is incomplete or uncertain")
+        envelope = self.handoff(identifier)
+        if self.settings.delivery_key_file is None or self.settings.delivery_port is None:
+            raise PolicyError("delivery endpoint is not configured")
+        token = secret_from_env(Path(self.settings.delivery_key_file), "DELIVERY_OPERATOR_TOKEN")
+        with httpx.Client(trust_env=False, follow_redirects=False, timeout=30) as client:
+            response = client.post(
+                f"http://127.0.0.1:{self.settings.delivery_port}/handoffs/product-ops",
+                json=envelope,
+                headers={
+                    "Authorization": "Bearer " + token.get_secret_value(),
+                    "X-Approved-Specification-Digest": spec.content_digest,
+                },
+            )
+        if response.status_code != 202 or len(response.content) > 16000:
+            raise PolicyError("Delivery OS did not acknowledge admission")
+        receipt = response.json()
+        if (
+            not isinstance(receipt, dict)
+            or receipt.get("approved_specification_digest") != spec.content_digest
+        ):
+            raise PolicyError("Delivery OS acknowledged different work")
+        UUID(receipt["workflow_id"])
+        with self.store.database.begin() as conn:
+            self.store.put(
+                conn,
+                self.settings.workspace,
+                "delivery_receipt",
+                identifier,
+                spec.revision,
+                receipt,
+            )
+        return receipt
+
     def risk(
         self, identifier: str, actor: Principal, command: RiskCommand, key: str
     ) -> dict[str, Any]:
@@ -392,6 +451,7 @@ class PilotRuntime:
             self.auth,
             self.authority,
             self.settings.linear_scope,
+            decision_queue_enabled=self.settings.documentation_capability is None,
             repository_resolver=resolver,
             force_model_intake=True,
             publication_handler=self.publish,

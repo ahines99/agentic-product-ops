@@ -21,6 +21,7 @@ dependencies = [
     "PyJWT[crypto]>=2.12,<3",
     "jsonschema>=4.26,<5",
     "cryptography>=50,<51",
+    "markdown-it-py==4.2.0",
 ]
 
 [project.scripts]
@@ -44,6 +45,16 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agentic_product_ops", "src/product_ops_handoff"]
+
+[tool.hatch.build.targets.sdist]
+# Worktrees have a .git file; do not rely on automatic VCS-ignore discovery.
+include = [
+    "/src", "/tests", "/scripts", "/docs", "/examples", "/evals", "/alembic",
+    "/.github", "/.gitignore", "/.gitattributes", "/.env.example", "/.dockerignore",
+    "/README.md", "/CONTRIBUTING.md", "/LICENSE", "/pyproject.toml", "/uv.lock",
+    "/alembic.ini", "/docker-compose.yml", "/Dockerfile",
+]
+exclude = ["**/__pycache__", "**/*.pyc", "**/.pytest_cache", "**/.local", "**/.env"]
 
 [tool.ruff]
 target-version = "py312"

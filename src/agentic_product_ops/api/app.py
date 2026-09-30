@@ -106,6 +106,11 @@ class LinearIntakeCommand(Contract):
     repository: Annotated[str, Field(min_length=1, max_length=128)] | None = None
 
 
+class PromptIntakeCommand(Contract):
+    source: Text
+    repository: Annotated[str, Field(min_length=1, max_length=128)]
+
+
 class DecisionCommand(RevisionCommand):
     expires_in_seconds: Annotated[int, Field(gt=0, le=3600)] = 1800
     plan_digest: Digest | None = None
@@ -132,6 +137,7 @@ def create_app(
     repository_names: Callable[[str], RepositorySelection] | None = None,
     source_guard: Callable[[str], None] | None = None,
     intake_queue_enabled: bool = True,
+    decision_queue_enabled: bool = True,
 ) -> FastAPI:
     app = FastAPI(title="Agentic Product Ops", version="0.5.2", docs_url=None, redoc_url=None)
     active_policy = policy or ServerPolicy()
@@ -396,6 +402,31 @@ def create_app(
             execute,
         )
 
+    @app.post("/v1/intakes/prompts", status_code=201)
+    def prompt_intake(
+        body: PromptIntakeCommand,
+        actor: Annotated[Principal, Depends(identity)],
+        db: Annotated[Store, Depends(database)],
+        command_key: Annotated[str, Depends(key)],
+    ) -> dict[str, Any]:
+        if repository_names is None:
+            raise HTTPException(503, "Named repository intake is not configured")
+        if "intake_reader" not in actor.roles:
+            raise PolicyError("intake reader role required")
+        declared = [
+            line[len("Repository:") :].strip()
+            for line in body.source.splitlines()
+            if line.startswith("Repository:")
+        ]
+        if len(declared) > 1 or (declared and declared[0] != body.repository):
+            raise PolicyError("conflicting repository declarations")
+        return submit_intake(
+            IntakeCommand(source=body.source, repository=repository_names(body.repository)),
+            actor,
+            db,
+            command_key,
+        )
+
     @app.post("/v1/intakes/linear", status_code=201)
     def linear_intake(
         body: LinearIntakeCommand,
@@ -589,22 +620,23 @@ def create_app(
                 spec.revision,
                 {"approval_id": str(approval.approval_id), "decision": approval.decision},
             )
-            conn.execute(
-                insert(outbox).values(
-                    workspace=actor.workspace_id,
-                    workflow_id=f"decision-{approval.approval_id}",
-                    dispatched=0,
-                    payload=json.dumps(
-                        {
-                            "action": "decision",
-                            "specification_id": str(identifier),
-                            "approval_id": str(approval.approval_id),
-                            "target_workflow": f"product-ops-{identifier}"
-                            + (f"-r{spec.revision}" if spec.revision > 1 else ""),
-                        }
-                    ),
+            if decision_queue_enabled:
+                conn.execute(
+                    insert(outbox).values(
+                        workspace=actor.workspace_id,
+                        workflow_id=f"decision-{approval.approval_id}",
+                        dispatched=0,
+                        payload=json.dumps(
+                            {
+                                "action": "decision",
+                                "specification_id": str(identifier),
+                                "approval_id": str(approval.approval_id),
+                                "target_workflow": f"product-ops-{identifier}"
+                                + (f"-r{spec.revision}" if spec.revision > 1 else ""),
+                            }
+                        ),
+                    )
                 )
-            )
             audit(
                 conn,
                 actor,
@@ -776,21 +808,22 @@ def create_app(
                 "actor_id": actor.actor_id,
             }
             db.put(conn, actor.workspace_id, "cancellation", str(identifier), 1, receipt)
-            conn.execute(
-                insert(outbox).values(
-                    workspace=actor.workspace_id,
-                    workflow_id=f"cancel-{identifier}",
-                    dispatched=0,
-                    payload=json.dumps(
-                        {
-                            "action": "cancel",
-                            "specification_id": str(identifier),
-                            "target_workflow": f"product-ops-{identifier}"
-                            + (f"-r{spec.revision}" if spec.revision > 1 else ""),
-                        }
-                    ),
+            if decision_queue_enabled:
+                conn.execute(
+                    insert(outbox).values(
+                        workspace=actor.workspace_id,
+                        workflow_id=f"cancel-{identifier}",
+                        dispatched=0,
+                        payload=json.dumps(
+                            {
+                                "action": "cancel",
+                                "specification_id": str(identifier),
+                                "target_workflow": f"product-ops-{identifier}"
+                                + (f"-r{spec.revision}" if spec.revision > 1 else ""),
+                            }
+                        ),
+                    )
                 )
-            )
             audit(conn, actor, "cancellation_recorded", str(identifier), spec.content_digest)
             return {"cancelled": True, "publication": "disabled"}
 

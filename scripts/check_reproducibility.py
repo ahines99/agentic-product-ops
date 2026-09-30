@@ -4,6 +4,7 @@ import hashlib
 import os
 import subprocess
 import sys
+import tarfile
 import tempfile
 from pathlib import Path
 
@@ -50,6 +51,17 @@ def main() -> None:
                     if path.is_file() and path.name != ".gitignore"
                 }
             )
+            # Build configuration must exclude operator state even in a Git worktree.
+            for archive in destination.glob("*.tar.gz"):
+                with tarfile.open(archive) as package:
+                    for member in package.getnames():
+                        components = Path(member).parts[1:]
+                        if any(
+                            part in {"out", ".local", ".venv", ".env", "__pycache__"}
+                            or (part.startswith(".env.") and part != ".env.example")
+                            for part in components
+                        ):
+                            raise SystemExit("Source archive contains excluded local state.")
         if outputs[0] != outputs[1] or len(outputs[0]) != 2:
             raise SystemExit("Build outputs differ or expected wheel/sdist missing.")
     print(f"Regeneration unchanged; sdist and wheel byte-identical across two builds: {outputs[0]}")

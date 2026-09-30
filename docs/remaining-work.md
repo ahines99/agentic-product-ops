@@ -1,5 +1,10 @@
 # Remaining work after the local pilot
 
+The later [PER-7 live integration record](per7-validation-record.md) supersedes historical
+claims below about missing human approval, genuine Linear events, live publication and actual
+Delivery acceptance. The [current continuation](prompt-to-delivery.md#dependency-ordered-continuation)
+tracks the remaining multi-ticket, revision, budget and independent acceptance work.
+
 The [issue-driven workflow](issue-driven-operation.md) replaces manual intake preparation: the user supplies a basic Linear issue and repository name, and the agent owns service setup, commands, evidence and implementation. Version 0.5.2 completes the monitoring infrastructure in [acceptance mode](linear-monitor.md): live webhook registration, synthetic delivery, reconciliation and local restart recovery. A genuine Linear-origin issue event remains unobserved. The next engineering work is governed source supersession and continuing-inference operation (P10), followed by actual Delivery OS integration (P11). User input is reserved for the issue/repository, substantive ambiguity, exact work approval and genuinely new spending or publication authority.
 
 Version 0.5 completes the authorized first Anthropic smoke and local integration engineering described in [evidence](v05-validation-record.md). Existing choices are settled: Alex is operator/approver, execution is local, any ticket-selected repository is allowed under the explicit grant, Linear uses the established team and API key, and the model is `claude-opus-5-5`. The Git remote is configured. These choices do not need to be requested again.

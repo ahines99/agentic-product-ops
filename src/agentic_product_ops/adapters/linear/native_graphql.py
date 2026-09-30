@@ -12,6 +12,7 @@ from pydantic import SecretStr
 
 from agentic_product_ops.adapters.linear.graphql import UnknownOutcome
 from agentic_product_ops.adapters.linear.native_plan import LinearScope, NativeOperation
+from product_ops_handoff.linear_markdown import descriptions_match
 
 ISSUE_FIELDS = """id title description team { id } project { id }
 labels(first: 100) { nodes { id } pageInfo { hasNextPage } }"""
@@ -155,7 +156,7 @@ class NativeGraphQLAdapter:
             )
         return bool(
             observed["title"] == payload["title"]
-            and observed["description"] == payload["description"]
+            and descriptions_match(payload["description"], observed["description"])
             and observed["team"]["id"] == payload["teamId"]
             and (observed["project"]["id"] if observed["project"] else None)
             == payload.get("projectId")

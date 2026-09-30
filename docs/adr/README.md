@@ -16,3 +16,6 @@
 - [014: Explicit local operator and bounded Anthropic pilot](014-local-anthropic-pilot.md)
 - [015: Issue-driven intake with separate approval authority](015-issue-driven-intake.md)
 - [016: Durable local Linear monitoring in an acceptance-only lane](016-local-linear-monitor.md)
+- [017: Constrained documentation delivery and prompt intake](017-constrained-documentation-delivery.md)
+- [018: Linear Markdown read-back equivalence](018-linear-markdown-readback.md)
+- [019: Explicit source-package boundary](019-explicit-source-package-boundary.md)

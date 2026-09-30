@@ -163,7 +163,11 @@ async def run(runtime: PilotRuntime) -> None:
             proxy_headers=False,
         )
     )
-    tasks = [asyncio.create_task(server.serve()), asyncio.create_task(worker(runtime))]
+    tasks = [asyncio.create_task(server.serve())]
+    if runtime.settings.documentation_capability is None:
+        tasks.append(asyncio.create_task(worker(runtime)))
+    if runtime.settings.delivery_specification_ids:
+        tasks.append(asyncio.create_task(delivery_loop(runtime)))
     if getattr(runtime.settings, "linear_monitor_enabled", False):
         from agentic_product_ops.pilot.monitor import LinearMonitor
 
@@ -179,6 +183,24 @@ async def run(runtime: PilotRuntime) -> None:
         await asyncio.gather(*tasks, return_exceptions=True)
 
 
+async def delivery_loop(runtime: PilotRuntime) -> None:
+    """A durable producer receipt plus consumer idempotency tolerates lost responses."""
+    while True:
+        states = {}
+        for identifier in runtime.settings.delivery_specification_ids:
+            try:
+                receipt = await asyncio.to_thread(runtime.advance_delivery, identifier)
+                states[identifier] = {"state": "ADMITTED", "workflow_id": receipt["workflow_id"]}
+            except (ValueError, KeyError, httpx.HTTPError) as exc:
+                # Keep credentials and provider bodies out of operational diagnostics.
+                states[identifier] = {"state": "HELD", "reason": type(exc).__name__}
+        health = runtime.directory / "delivery-health.json"
+        temporary = health.with_suffix(".tmp")
+        temporary.write_text(json.dumps({"at": datetime.now(UTC).isoformat(), "work": states}))
+        temporary.replace(health)
+        await asyncio.sleep(10)
+
+
 def remote(args: argparse.Namespace) -> dict[str, Any]:
     settings = read_settings(args.directory)
     token = read_secrets(args.directory)["operator_token"]
@@ -187,6 +209,14 @@ def remote(args: argparse.Namespace) -> dict[str, Any]:
     if args.command == "run-issue":
         path = "/v1/intakes/linear"
         body = {"issue": args.issue, "repository": args.repo}
+    elif args.command == "prompt":
+        path = "/v1/intakes/prompts"
+        body = {
+            "source": args.text
+            if args.text is not None
+            else bounded_read(args.input, 16000).decode("utf-8"),
+            "repository": args.repo,
+        }
     elif args.command == "intake":
         source = bounded_read(args.input, 16000).decode("utf-8")
         declared = [
@@ -258,6 +288,14 @@ def main() -> int:
     issue = commands.add_parser("run-issue", help="Intake one Linear issue and repository name")
     issue.add_argument("--issue", required=True)
     issue.add_argument("--repo", help="Optional when the issue has a Repository: name line")
+    prompt = commands.add_parser(
+        "prompt", help="Submit a prompt and repository name; no source ticket required"
+    )
+    prompt.add_argument("--repo", required=True)
+    prompt.add_argument("--command-id")
+    source = prompt.add_mutually_exclusive_group(required=True)
+    source.add_argument("--text")
+    source.add_argument("--input", type=Path)
     intake = commands.add_parser("intake")
     intake.add_argument("--input", type=Path, required=True)
     intake.add_argument("--repository")

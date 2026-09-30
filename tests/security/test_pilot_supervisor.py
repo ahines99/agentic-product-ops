@@ -39,7 +39,14 @@ async def test_combined_launcher_cleans_up_sibling_on_exit(monkeypatch, failure)
 
     monkeypatch.setattr(cli.uvicorn, "Server", Server)
     monkeypatch.setattr(cli, "worker", worker)
-    runtime = SimpleNamespace(settings=SimpleNamespace(api_port=18009), app=lambda: object())
+    runtime = SimpleNamespace(
+        settings=SimpleNamespace(
+            api_port=18009,
+            documentation_capability=None,
+            delivery_specification_ids=(),
+        ),
+        app=lambda: object(),
+    )
     if failure == "worker":
         with pytest.raises(ValueError, match="worker failed"):
             await cli.run(runtime)

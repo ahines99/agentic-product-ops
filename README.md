@@ -1,10 +1,15 @@
 # Agentic Product Ops
 
+The unreleased [prompt-to-delivery integration](docs/prompt-to-delivery.md) adds prompt plus
+repository-name intake and an approval-bound local documentation handoff. The approved PER-7
+workflow created PER-8 and Delivery OS produced the exact, unmerged local change. See the
+[live validation record](docs/per7-validation-record.md). This does not establish MVP completion.
+
 Agentic Product Ops is a governed AI-assisted requirements and work-decomposition system. It converts ambiguous product requests into evidence-linked requirements, unresolved questions, acceptance criteria, and proposed Linear work items. Humans approve the exact specification before any external write. Approved work can then be handed to Agentic Delivery OS for controlled implementation and independent verification.
 
 **Current version: 0.5.2, monitored local pilot; MVP acceptance is incomplete.** Linear webhooks and periodic API reconciliation now feed a durable intake inbox. The local monitor runs in acceptance mode with paid execution and publication disabled. It resolves a basic issue and repository name, excludes old backlog/generated output, deduplicates retries and holds changed sources. A login task supervises the local services and temporary HTTPS tunnel. See [monitor operation](docs/linear-monitor.md), [issue-driven intake](docs/issue-driven-operation.md) and [exact limitations](docs/implementation-status.md).
 
-The existing local pilot uses explicit operator identity, encrypted PostgreSQL, Temporal, bounded Anthropic calls and a durable aggregate spending allowance. Its earlier six-call `claude-opus-5-5` smoke reached a reviewed proposal after two preserved failures, and read-only Linear API-key identity discovery succeeded. No human approval, live Linear write or actual Delivery OS intake occurred. See [pilot setup](docs/local-pilot.md) and [v0.5 evidence](docs/v05-validation-record.md).
+The existing local pilot uses explicit operator identity, encrypted PostgreSQL, Temporal, bounded Anthropic calls and a durable aggregate spending allowance. Its earlier six-call `claude-opus-5-5` smoke reached a reviewed proposal after two preserved failures, and read-only Linear API-key identity discovery succeeded. That earlier smoke had no human approval, live Linear write or actual Delivery OS intake; the later PER-7 evidence above exercises those boundaries. See [pilot setup](docs/local-pilot.md) and [v0.5 evidence](docs/v05-validation-record.md).
 
 Product Ops defines and governs approved work. Delivery OS executes approved work. They share a versioned public artifact contract, never a database or internal persistence models.
 

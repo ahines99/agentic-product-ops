@@ -13,6 +13,7 @@ from agentic_product_ops.domain.contracts import (
     Tier,
     WorkSpecification,
 )
+from product_ops_handoff.documentation import DocumentationCapability
 
 
 class PolicyError(ValueError):
@@ -34,8 +35,19 @@ class ServerPolicy(Contract):
     max_approval_seconds: int = 3600
 
 
-def risk_floor(spec: WorkSpecification) -> Tier:
+class DocumentationPolicy(ServerPolicy):
+    """Only a bound inert addition may use the constrained tier-1 execution lane."""
+
+    documentation_capability: DocumentationCapability
+
+
+def risk_floor(spec: WorkSpecification, policy: ServerPolicy | None = None) -> Tier:
     """Conservative lexical floor, NOT a semantic risk classifier (ADR-003)."""
+    if isinstance(policy, DocumentationPolicy):
+        if policy.version != policy.documentation_capability.policy_version:
+            raise PolicyError("documentation policy digest mismatch")
+        policy.documentation_capability.validate_specification(spec.model_dump(mode="json"))
+        return 1
     text = " ".join(
         [
             spec.title,
@@ -100,7 +112,7 @@ def validate_scope(spec: WorkSpecification, policy: ServerPolicy) -> None:
         raise PolicyError("workspace not allowed")
     if spec.approval_policy.required_role != "product_approver":
         raise PolicyError("unsupported approval role")
-    if spec.risk.tier < risk_floor(spec):
+    if spec.risk.tier < risk_floor(spec, policy):
         raise PolicyError("risk understated")
     if (
         spec.repository_context

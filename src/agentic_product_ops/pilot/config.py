@@ -16,6 +16,7 @@ from sqlalchemy.engine import make_url
 from agentic_product_ops.adapters.linear.native_plan import LinearScope
 from agentic_product_ops.cli import bounded_read
 from agentic_product_ops.domain.contracts import ID, Contract, Timestamp
+from product_ops_handoff.documentation import DocumentationCapability
 
 
 class PilotSettings(Contract):
@@ -41,6 +42,10 @@ class PilotSettings(Contract):
     linear_webhook_port: Annotated[int, Field(ge=1024, le=65535)] = 18010
     cloudflared_path: str | None = None
     cloudflared_sha256: Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")] | None = None
+    documentation_capability: DocumentationCapability | None = None
+    delivery_port: Annotated[int, Field(ge=1024, le=65535)] | None = None
+    delivery_key_file: str | None = None
+    delivery_specification_ids: Annotated[tuple[ID, ...], Field(max_length=16)] = ()
 
     @model_validator(mode="after")
     def local_profile(self) -> Self:
@@ -60,6 +65,15 @@ class PilotSettings(Contract):
         for path in (self.linear_key_file, self.anthropic_key_file, self.github_key_file):
             if path is not None and not Path(path).is_absolute():
                 raise ValueError("credential references must be absolute paths")
+        if self.delivery_specification_ids and (
+            self.delivery_port is None
+            or self.delivery_key_file is None
+            or not Path(self.delivery_key_file).is_absolute()
+            or not self.allow_publication
+        ):
+            raise ValueError(
+                "automatic delivery needs explicit enrolled work, publication and local endpoint"
+            )
         if len(self.repository_search_roots) > 16 or any(
             not Path(root).is_absolute() for root in self.repository_search_roots
         ):
