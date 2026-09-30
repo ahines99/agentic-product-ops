@@ -93,8 +93,10 @@ detected worktree logs leaking into source archives; an explicit source-file all
 archive exclusion assertion fixed the cause before the passing rerun.
 
 Delivery's 40 focused contract/security/storage/Git tests, lint, format, mypy (125 sources),
-package build and clean-wheel public-contract smoke passed. Its complete suite and final
-commit evidence are recorded separately after completion. The pinned Gitleaks image found
+package build and clean-wheel public-contract smoke passed. The complete Delivery Linux collection also passed: **3,013 passed, 91 explicitly skipped**
+across all 3,104 cases in eight disjoint processes. The slow Windows full run was stopped after
+that complete result; it is not reported as passing. Delivery
+`docs/per7-validation-record.md` retains the detailed platform boundary. The pinned Gitleaks image found
 no secrets in the exported repository inventory after allowing only two exact deterministic
 operation digests in named synthetic fixtures; default detectors remain enabled.
 
