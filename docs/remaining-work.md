@@ -1,5 +1,7 @@
 # Remaining work after the local pilot
 
+The v0.5.1 [issue-driven workflow](issue-driven-operation.md) replaces manual intake preparation: the user supplies a basic Linear issue and repository name, and the agent owns service setup, commands, evidence and implementation. The steps below are project acceptance work, not a terminal checklist for the user. The immediate engineering continuation is durable automatic enrollment and source supersession (P10), followed by actual Delivery OS integration (P11). User input is reserved for the issue/repository, substantive ambiguity, exact work approval and genuinely new spending or publication authority.
+
 Version 0.5 completes the authorized first Anthropic smoke and local integration engineering described in [evidence](v05-validation-record.md). Existing choices are settled: Alex is operator/approver, execution is local, any ticket-selected repository is allowed under the explicit grant, Linear uses the established team and API key, and the model is `claude-opus-5-5`. The Git remote is configured. These choices do not need to be requested again.
 
 1. **Review the concrete proposal.** Read `.local/pilot/smoke-specification.json`, `smoke-review.json` and `smoke-plan.json`. Six requirements, one work item and one planned native issue are present. Alex decides whether the advisory findings need changes. No assistant command has impersonated his human approval. The source README change was a smoke request, not an instruction to execute that proposed work in Product Ops.

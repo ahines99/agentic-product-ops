@@ -35,6 +35,7 @@ class PilotSettings(Contract):
     maximum_spend: Annotated[str, Field(pattern=r"^\d+(\.\d{1,2})?$")]
     allow_paid_execution: bool = False
     allow_publication: bool = False
+    repository_search_roots: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def local_profile(self) -> Self:
@@ -54,6 +55,10 @@ class PilotSettings(Contract):
         for path in (self.linear_key_file, self.anthropic_key_file, self.github_key_file):
             if path is not None and not Path(path).is_absolute():
                 raise ValueError("credential references must be absolute paths")
+        if len(self.repository_search_roots) > 16 or any(
+            not Path(root).is_absolute() for root in self.repository_search_roots
+        ):
+            raise ValueError("repository search roots must be bounded absolute paths")
         return self
 
 

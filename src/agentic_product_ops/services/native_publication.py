@@ -24,10 +24,12 @@ class NativePublisher:
         provider: NativeGraphQLAdapter,
         authority: Authority,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        source_guard: Callable[[str], None] | None = None,
     ) -> None:
         if authority.store is not store:
             raise ValueError("publication authority must share Product Ops transaction store")
         self.store, self.provider, self.authority, self.clock = store, provider, authority, clock
+        self.source_guard = source_guard
 
     def publish(
         self,
@@ -73,6 +75,8 @@ class NativePublisher:
             )
 
         def guard() -> None:
+            if self.source_guard is not None:
+                self.source_guard(identifier)
             with self.store.database.begin() as conn:
                 validate(conn)
                 self.store.put(

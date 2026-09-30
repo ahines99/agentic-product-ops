@@ -17,7 +17,9 @@ flowchart LR
     Artifact --> Consumer[Independent reference intake store]
 ```
 
-These are exercised component connections, not a claim of deployed end-to-end service. CLI runs authored recordings. Configured activities can use the Responses adapter; only mock transport has been exercised. Native publication is a separately invoked service tested against mock GraphQL, not wired to the disabled HTTP publish route or automatic Temporal writes. The reference consumer is not installed in Delivery OS.
+These are exercised component connections, not a claim of deployed end-to-end service. The offline CLI runs authored recordings; the configured pilot has exercised Anthropic roles with a bounded live smoke. The Responses adapter remains mock-tested. Native publication is wired to the configured pilot's guarded HTTP handler but has only mock mutation evidence and never runs automatically from Temporal. The reference consumer is not installed in Delivery OS.
+
+The [issue-driven entry point](issue-driven-operation.md) adds read-only Linear lookup and local repository-name resolution. A source snapshot is stored atomically with its initial specification. Paid-disabled intake creates no dispatch; issue edits conflict and block later approval/publication/export. The combined launcher owns API and worker lifetimes. There is no continuous Linear watcher yet; [ADR 015](adr/015-issue-driven-intake.md) defines this boundary.
 
 ## Ownership and modules
 
@@ -38,9 +40,9 @@ PostgreSQL owns immutable artifacts and command/operation evidence. Temporal own
 
 ## Command surface
 
-Implemented: intake, intake/specification/review/plan reads, allowlisted repository snapshot reads, clarification, approve, reject and cancel. Every command is bounded, tenant scoped and idempotent. Native approval requires the exact rendered plan digest. Snapshot intake can require the exact inspected digest; arbitrary filesystem paths cannot enter through HTTP. Approval additionally requires persisted passing review. Clarification creates new immutable provenance and requires fresh analysis/review.
+Implemented: intake, intake/specification/review/plan reads, repository snapshot reads, clarification, approve, reject and cancel. Commands are bounded, tenant scoped and idempotent. Native approval requires the exact rendered plan digest. Snapshot intake can require the exact inspected digest; arbitrary repository selection additionally requires both policy and durable operator opt-in. The short-name route resolves only configured local roots. Approval additionally requires persisted passing review. Clarification creates new immutable provenance and requires fresh analysis/review.
 
-The factory defaults to deny-all identity. `/health` returns 200; `/ready` and `/v1/specifications/{id}/publish` return 503. Publication/handoff GET routes read records if present. No UI or arbitrary state PATCH exists. Live factory wiring, production identity and deployed readiness are external deployment work.
+The factory defaults to deny-all identity and disabled publication/readiness. The pilot supplies private operator identity, guarded publication and heartbeat-based readiness. Publication/handoff GET routes read records if present. No UI or arbitrary state PATCH exists. Production identity and deployed readiness remain external deployment work.
 
 ## Untrusted inputs and execution
 

@@ -4,17 +4,18 @@ import os
 import subprocess
 import sys
 import tempfile
+import tomllib
 import venv
-from importlib.metadata import version
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> None:
-    wheels = sorted(
-        (ROOT / "dist").glob(f"agentic_product_ops-{version('agentic-product-ops')}-*.whl")
-    )
+    project_version = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))[
+        "project"
+    ]["version"]
+    wheels = sorted((ROOT / "dist").glob(f"agentic_product_ops-{project_version}-*.whl"))
     if len(wheels) != 1:
         raise SystemExit("Build exactly one wheel in dist before smoke testing.")
     with tempfile.TemporaryDirectory(prefix="apo-wheel-") as directory:
@@ -74,8 +75,10 @@ def main() -> None:
                 str(executable),
                 "-I",
                 "-c",
-                "from pathlib import Path; import agentic_product_ops as p; "
-                f"assert Path(p.__file__).is_relative_to({str(target)!r})",
+                "from pathlib import Path; from importlib.metadata import version; "
+                "import agentic_product_ops as p; "
+                f"assert Path(p.__file__).is_relative_to({str(target)!r}); "
+                f"assert version('agentic-product-ops') == {project_version!r}",
             ],
             cwd=scratch,
             env=env,
@@ -127,6 +130,13 @@ def main() -> None:
         )
         subprocess.run(
             [str(pilot_entrypoint), "--help"], cwd=scratch, env=env, check=True, capture_output=True
+        )
+        subprocess.run(
+            [str(pilot_entrypoint), "run-issue", "--help"],
+            cwd=scratch,
+            env=env,
+            check=True,
+            capture_output=True,
         )
         for name, expected in (("feature-request.md", 0), ("ambiguous-request.md", 2)):
             source = scratch / name

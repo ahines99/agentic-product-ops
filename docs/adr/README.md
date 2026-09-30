@@ -14,3 +14,4 @@
 - [012: Signed public handoff and independent reference intake](012-signed-public-handoff.md)
 - [013: Protected operational artifacts and honest evaluation](013-operational-artifacts-and-evaluation.md)
 - [014: Explicit local operator and bounded Anthropic pilot](014-local-anthropic-pilot.md)
+- [015: Issue-driven intake with separate approval authority](015-issue-driven-intake.md)

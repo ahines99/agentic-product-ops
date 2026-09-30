@@ -14,12 +14,14 @@ from sqlalchemy import select
 
 from agentic_product_ops.adapters.identity.contracts import Principal
 from agentic_product_ops.adapters.identity.local import LocalOperatorAuthenticator
+from agentic_product_ops.adapters.linear.intake import LinearIssueReader, LinearSource
 from agentic_product_ops.adapters.linear.native_graphql import NativeGraphQLAdapter
 from agentic_product_ops.adapters.linear.native_plan import LinearScope, NativePlan, ProviderBinding
 from agentic_product_ops.adapters.model.anthropic import AnthropicProvider
 from agentic_product_ops.adapters.model.contracts import ModelBudget, RuntimeConfiguration
 from agentic_product_ops.adapters.persistence.encryption import StorageEncryption
 from agentic_product_ops.adapters.persistence.store import Missing, Store, artifacts, engine
+from agentic_product_ops.adapters.repository.names import RepositoryNames
 from agentic_product_ops.adapters.repository.selection import RepositoryResolver
 from agentic_product_ops.api.app import create_app
 from agentic_product_ops.cli import bounded_read
@@ -32,6 +34,7 @@ from agentic_product_ops.pilot.config import (
 )
 from agentic_product_ops.policies.validation import PolicyError, ServerPolicy
 from agentic_product_ops.services.authority import Authority
+from agentic_product_ops.services.linear_source import validate_linear_source
 from agentic_product_ops.services.native_publication import NativePublisher
 from agentic_product_ops.services.revisions import revise_specification
 from agentic_product_ops.services.risk_reassessment import RiskCommand, reassess_risk
@@ -132,6 +135,25 @@ class PilotRuntime:
             output_rate=self.configuration.budget.output_cost_per_million,
         )
 
+    def read_linear_source(self, reference: str) -> LinearSource:
+        adapter = NativeGraphQLAdapter(
+            self.settings.linear_scope,
+            token=secret_from_env(Path(self.settings.linear_key_file), "LINEAR_API_KEY"),
+            token_kind="api_key",  # noqa: S106
+            scopes=("read",),
+            allow_network=True,
+            allow_mutations=False,
+        )
+        try:
+            return LinearIssueReader(adapter).read(reference)
+        finally:
+            adapter.close()
+
+    def source_guard(self, identifier: str) -> None:
+        validate_linear_source(
+            self.store, self.settings.workspace, identifier, self.read_linear_source
+        )
+
     def readiness(self) -> dict[str, Any]:
         try:
             heartbeat = json.loads(bounded_read(self.directory / "worker-heartbeat.json", 1024))
@@ -164,6 +186,7 @@ class PilotRuntime:
         actor = self.auth.authenticate(self.secrets["operator_token"])
         if actor is None or "intake_reader" not in actor.roles:
             raise PolicyError("current operator intake grant required")
+        self.source_guard(identifier)
         spec = WorkSpecification.model_validate_json(
             json.dumps(self.store.get(self.settings.workspace, "specification", identifier))
         )
@@ -271,6 +294,7 @@ class PilotRuntime:
         if not self.settings.allow_publication:
             raise PolicyError("live publication is not enabled for this pilot")
         self.authority.check(actor)
+        self.source_guard(identifier)
         spec, plan, approval = self.records(identifier)
         if actor.actor_id != approval.actor_id:
             raise PolicyError("publication operator differs from approver")
@@ -294,9 +318,9 @@ class PilotRuntime:
             allow_mutations=True,
         )
         try:
-            receipts = NativePublisher(self.store, adapter, self.authority).publish(
-                spec, plan, approval, self.policy
-            )
+            receipts = NativePublisher(
+                self.store, adapter, self.authority, source_guard=self.source_guard
+            ).publish(spec, plan, approval, self.policy)
             result = {
                 "mode": "live_provider",
                 "specification_digest": spec.content_digest,
@@ -319,6 +343,7 @@ class PilotRuntime:
             adapter.close()
 
     def handoff(self, identifier: str) -> dict[str, Any]:
+        self.source_guard(identifier)
         spec, _, approval = self.records(identifier)
         artifact = export_signed_handoff(
             self.store,
@@ -372,4 +397,10 @@ class PilotRuntime:
             publication_handler=self.publish,
             readiness=self.readiness,
             risk_handler=self.risk,
+            linear_source_reader=self.read_linear_source,
+            repository_names=RepositoryNames(
+                tuple(Path(p) for p in self.settings.repository_search_roots)
+            ),
+            source_guard=self.source_guard,
+            intake_queue_enabled=self.settings.allow_paid_execution,
         )

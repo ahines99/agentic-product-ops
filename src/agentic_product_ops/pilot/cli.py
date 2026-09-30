@@ -63,6 +63,7 @@ def initialize(args: argparse.Namespace) -> None:
         spend_authorization=args.spend_authorization,
         maximum_spend=args.maximum_spend,
         allow_paid_execution=args.allow_paid_execution,
+        repository_search_roots=tuple(str(p.resolve()) for p in args.repository_root),
     )
     # Fail connection/migration checks before creating an identity that cannot be overwritten.
     database = engine(settings.database_url)
@@ -130,6 +131,16 @@ async def worker(runtime: PilotRuntime) -> None:
         workflows=[GovernanceWorkflow],
         activities=[activities.prepare_governance, activities.validate_governance_receipt],
     ):
+        print(
+            json.dumps(
+                {
+                    "worker": "ready",
+                    "queue": queue,
+                    "paid_execution_authorized": runtime.settings.allow_paid_execution,
+                }
+            ),
+            flush=True,
+        )
         while True:
             await dispatch_outbox(runtime.store, client, queue)
             heartbeat = runtime.directory / "worker-heartbeat.json"
@@ -141,12 +152,38 @@ async def worker(runtime: PilotRuntime) -> None:
             await asyncio.sleep(1)
 
 
+async def run(runtime: PilotRuntime) -> None:
+    """Own API and worker lifetimes together; propagate failures and clean up siblings."""
+    server = uvicorn.Server(
+        uvicorn.Config(
+            runtime.app(),
+            host="127.0.0.1",
+            port=runtime.settings.api_port,
+            access_log=False,
+            proxy_headers=False,
+        )
+    )
+    tasks = [asyncio.create_task(server.serve()), asyncio.create_task(worker(runtime))]
+    try:
+        done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+        for task in done:
+            task.result()
+    finally:
+        server.should_exit = True
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+
 def remote(args: argparse.Namespace) -> dict[str, Any]:
     settings = read_settings(args.directory)
     token = read_secrets(args.directory)["operator_token"]
     body: dict[str, Any] = {}
     method = "POST"
-    if args.command == "intake":
+    if args.command == "run-issue":
+        path = "/v1/intakes/linear"
+        body = {"issue": args.issue, "repository": args.repo}
+    elif args.command == "intake":
         source = bounded_read(args.input, 16000).decode("utf-8")
         declared = [
             line[len("Repository:") :].strip()
@@ -211,8 +248,12 @@ def main() -> int:
     init.add_argument("--maximum-spend", required=True)
     init.add_argument("--allow-paid-execution", action="store_true")
     init.add_argument("--migrations", type=Path, default=Path("alembic.ini"))
-    for name in ("serve", "worker", "status"):
+    init.add_argument("--repository-root", type=Path, action="append", default=[])
+    for name in ("serve", "worker", "status", "run"):
         commands.add_parser(name)
+    issue = commands.add_parser("run-issue", help="Intake one Linear issue and repository name")
+    issue.add_argument("--issue", required=True)
+    issue.add_argument("--repo", help="Optional when the issue has a Repository: name line")
     intake = commands.add_parser("intake")
     intake.add_argument("--input", type=Path, required=True)
     intake.add_argument("--repository")
@@ -251,10 +292,12 @@ def main() -> int:
     try:
         if args.command == "init":
             initialize(args)
-        elif args.command in {"serve", "worker", "status", "handoff", "analyze", "evidence"}:
+        elif args.command in {"serve", "worker", "status", "handoff", "analyze", "evidence", "run"}:
             runtime = PilotRuntime(args.directory)
             try:
-                if args.command == "serve":
+                if args.command == "run":
+                    asyncio.run(run(runtime))
+                elif args.command == "serve":
                     uvicorn.run(
                         runtime.app(),
                         host="127.0.0.1",

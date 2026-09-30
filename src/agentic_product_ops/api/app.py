@@ -16,6 +16,8 @@ from pydantic import Field
 from sqlalchemy import Connection, insert, text, update
 
 from agentic_product_ops.adapters.identity.contracts import Principal as Principal
+from agentic_product_ops.adapters.linear.graphql import UnknownOutcome
+from agentic_product_ops.adapters.linear.intake import LinearSource, repository_name
 from agentic_product_ops.adapters.linear.native_plan import LinearScope, build_native_plan
 from agentic_product_ops.adapters.linear.offline import build_plan
 from agentic_product_ops.adapters.persistence.store import (
@@ -99,6 +101,11 @@ class RevisionCommand(Contract):
     content_digest: Digest
 
 
+class LinearIntakeCommand(Contract):
+    issue: Annotated[str, Field(min_length=1, max_length=2048)]
+    repository: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+
+
 class DecisionCommand(RevisionCommand):
     expires_in_seconds: Annotated[int, Field(gt=0, le=3600)] = 1800
     plan_digest: Digest | None = None
@@ -121,8 +128,12 @@ def create_app(
     publication_handler: Callable[[str, Principal, str], dict[str, Any]] | None = None,
     readiness: Callable[[], dict[str, Any]] | None = None,
     risk_handler: Callable[[str, Principal, RiskCommand, str], dict[str, Any]] | None = None,
+    linear_source_reader: Callable[[str], LinearSource] | None = None,
+    repository_names: Callable[[str], RepositorySelection] | None = None,
+    source_guard: Callable[[str], None] | None = None,
+    intake_queue_enabled: bool = True,
 ) -> FastAPI:
-    app = FastAPI(title="Agentic Product Ops", version="0.5.0", docs_url=None, redoc_url=None)
+    app = FastAPI(title="Agentic Product Ops", version="0.5.1", docs_url=None, redoc_url=None)
     active_policy = policy or ServerPolicy()
     auth = authenticator or DenyAll()
     roots = dict(repository_roots or {})
@@ -259,8 +270,28 @@ def create_app(
         db: Annotated[Store, Depends(database)],
         command_key: Annotated[str, Depends(key)],
     ) -> dict[str, Any]:
+        return submit_intake(body, actor, db, command_key)
+
+    def submit_intake(
+        body: IntakeCommand,
+        actor: Principal,
+        db: Store,
+        command_key: str,
+        linear_source: LinearSource | None = None,
+    ) -> dict[str, Any]:
         def execute(conn: Connection) -> dict[str, Any]:
             current_authority(conn, actor)
+            if linear_source is not None:
+                if "intake_reader" not in actor.roles or linear_scope is None:
+                    raise PolicyError("intake reader role and Linear scope required")
+                grant = authority.check(actor, conn) if authority else None
+                if grant is None:
+                    raise PolicyError("Linear intake requires durable authority")
+                allowed = {
+                    str(t.provider_id) for t in linear_scope.teams if t.local_id in grant.team_ids
+                }
+                if str(linear_source.team_id) not in allowed:
+                    raise PolicyError("source team exceeds actor scope")
             if body.repository is not None and body.repository_id is not None:
                 raise PolicyError("one repository selection required")
             if (
@@ -322,26 +353,29 @@ def create_app(
             spec = seal_specification(payload)
             db.put(conn, actor.workspace_id, "intake", str(identifier), 1, source)
             db.put(conn, actor.workspace_id, "specification", str(identifier), 1, spec)
-            conn.execute(
-                insert(outbox).values(
-                    workspace=actor.workspace_id,
-                    workflow_id=f"product-ops-{identifier}",
-                    payload=json.dumps(
-                        {
-                            "workspace": actor.workspace_id,
-                            "specification_id": str(identifier),
-                            "content_digest": spec.content_digest,
-                            "proposed_state": state.value,
-                        }
-                    ),
-                    dispatched=0,
+            if linear_source is not None:
+                db.put(conn, actor.workspace_id, "linear_source", str(identifier), 1, linear_source)
+            if intake_queue_enabled:
+                conn.execute(
+                    insert(outbox).values(
+                        workspace=actor.workspace_id,
+                        workflow_id=f"product-ops-{identifier}",
+                        payload=json.dumps(
+                            {
+                                "workspace": actor.workspace_id,
+                                "specification_id": str(identifier),
+                                "content_digest": spec.content_digest,
+                                "proposed_state": state.value,
+                            }
+                        ),
+                        dispatched=0,
+                    )
                 )
-            )
             audit(conn, actor, "intake_received", str(identifier), spec.content_digest)
             return {
                 "intake_id": str(identifier),
                 "specification_id": str(identifier),
-                "workflow": "queued",
+                "workflow": "queued" if intake_queue_enabled else "held_paid_execution_disabled",
                 "mode": spec.provenance.mode,
                 "proposal_state": state.value,
             }
@@ -350,8 +384,57 @@ def create_app(
             actor.workspace_id,
             actor.actor_id,
             command_key,
-            {"action": "intake", "body": body.model_dump(mode="json")},
+            {
+                "action": "intake",
+                "body": body.model_dump(mode="json"),
+                **(
+                    {"linear_source": linear_source.model_dump(mode="json")}
+                    if linear_source
+                    else {}
+                ),
+            },
             execute,
+        )
+
+    @app.post("/v1/intakes/linear", status_code=201)
+    def linear_intake(
+        body: LinearIntakeCommand,
+        actor: Annotated[Principal, Depends(identity)],
+        db: Annotated[Store, Depends(database)],
+    ) -> dict[str, Any]:
+        if linear_source_reader is None or repository_names is None:
+            raise HTTPException(503, "Linear intake is not configured")
+        if "intake_reader" not in actor.roles:
+            raise PolicyError("intake reader role required")
+        grant = authority.check(actor) if authority else None
+        if (
+            grant is None
+            or linear_scope is None
+            or not grant.allow_any_repository
+            or not active_policy.allow_any_repository
+        ):
+            raise PolicyError("durable repository selection authority required")
+        try:
+            source = linear_source_reader(body.issue)
+            allowed = {t.provider_id for t in linear_scope.teams if t.local_id in grant.team_ids}
+            if (
+                source.team_id not in allowed
+                or source.organization_id != linear_scope.organization_id
+            ):
+                raise PolicyError("source exceeds current operator scope")
+            selected = repository_names(repository_name(source, body.repository))
+        except ValueError:
+            raise PolicyError("invalid Linear reference or repository selection") from None
+        except UnknownOutcome:
+            raise HTTPException(503, "Linear source temporarily unavailable") from None
+        # One durable command per issue/operator, independent of HTTP retry keys.
+        # Editing an enrolled issue conflicts; it never silently replaces approved work.
+        return submit_intake(
+            IntakeCommand(source=source.text(), repository=selected),
+            actor,
+            db,
+            "linear-source-" + str(source.issue_id),
+            source,
         )
 
     def read_snapshot(
@@ -551,6 +634,8 @@ def create_app(
         db: Annotated[Store, Depends(database)],
         command_key: Annotated[str, Depends(key)],
     ) -> dict[str, Any]:
+        if source_guard is not None:
+            source_guard(str(identifier))
         return decision(identifier, body, actor, db, command_key, True)
 
     @app.post("/v1/specifications/{identifier}/reject")

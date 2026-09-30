@@ -256,6 +256,28 @@ def test_native_relation_budget_and_scope_digest(reviewed):
     assert build_native_plan(spec, ServerPolicy(), changed).content_digest != plan.content_digest
 
 
+def test_source_edit_stops_next_mutation(reviewed):
+    store, authority, spec, plan, approval, tick = reviewed
+    recording = LinearRecording(plan, authority, tick, None)
+    provider = adapter(plan, recording)
+    checked = []
+
+    def source_guard(identifier):
+        checked.append(identifier)
+        if recording.mutations:
+            raise PolicyError("source changed")
+
+    try:
+        result = NativePublisher(
+            store, provider, authority, lambda: tick[0], source_guard=source_guard
+        ).publish(spec, plan, approval, ServerPolicy())
+        assert len(recording.mutations) == 1
+        assert checked == [str(spec.specification_id)] * 2
+        assert result[-1].status == "UNKNOWN"
+    finally:
+        provider.close()
+
+
 def test_pilot_assembly_disabled_then_unknown_reconciliation(reviewed, monkeypatch, tmp_path):
     store, authority, spec, plan, _, tick = reviewed
     credential = tmp_path / "linear.env"

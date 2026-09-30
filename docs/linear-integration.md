@@ -2,7 +2,7 @@
 
 The local pilot uses an explicit Linear API key, as selected by the operator; OAuth is optional and unused. Read-only organization/viewer/team discovery succeeded on 2026-09-29. The assembled publisher is disabled in the private profile and still requires exact current human approval before each native operation. No live tickets or mutations have been exercised. See [pilot commands](local-pilot.md) and [ADR-014](adr/014-local-anthropic-pilot.md).
 
-Version 0.4 implements native GraphQL planning, OAuth PKCE/encrypted token storage and durable publication orchestration, exercised with mock HTTP transport. No live request or ticket creation has occurred. The HTTP publish route remains disabled. The original in-memory demo and `FAKE-` records remain explicitly simulated.
+Version 0.4 introduced native GraphQL planning, OAuth PKCE/encrypted token storage and durable publication orchestration, exercised with mock HTTP transport. Version 0.5 wired a guarded pilot publication handler and exercised read-only identity discovery; no live ticket creation occurred. Version 0.5.1 adds [issue-driven intake](issue-driven-operation.md), currently exercised with mock source transport. The original in-memory demo and `FAKE-` records remain explicitly simulated.
 
 ## Identity and scope
 
@@ -22,6 +22,6 @@ NativePublisher requires stored current specification, passing review, exact app
 
 Reconciliation reads exact deterministic target IDs and compares complete content/destination/labels or relation direction. It requires saved dispatch authority. Missing objects are not proof of nonexistence; absence, conflicts, timeouts and uncertain authorization remain UNKNOWN. No blind recreation, automatic paid retry, or provider-wide exactly-once guarantee is claimed. Tests cover restart/lost response, partial batches, metadata-time revocation, late completion, expiry, native dependencies and held conflicts.
 
-The separate API/Temporal default runtime never calls NativePublisher automatically. Enabling a live assembly requires a deployment identity/scope decision, explicit write authorization and controlled acceptance evidence. The user-identified adjacent repository contains credentials; that does not authorize reusing them here or issuing tickets.
+The API/Temporal default runtime never calls NativePublisher automatically. The configured pilot requires its publication switch, exact human approval and current authority. Credential loading from the user-specified private file is configured; possession of that key does not authorize creating tickets. Issue-origin work additionally revalidates the source before each mutation dispatch. Controlled live write acceptance remains open.
 
 Webhooks and hosted MCP publication are not implemented. Native handoff consumes successful publication receipts without executing delivery work. See [ADR-011](adr/011-native-linear-publication.md), [status](implementation-status.md) and [remaining steps](remaining-work.md).
