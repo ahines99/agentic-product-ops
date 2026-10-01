@@ -23,18 +23,20 @@ Delivery OS:
 2. `config.local.json`, for the `agentic-delivery-engineer` repository entry:
    `automatic_execution: true`, `linear_repository_names: ["agentic-delivery-engineer"]`, and
    `linear_progress_start` set to the current time.
-3. Delivery OS accepts Product Ops' repository identity for that entry. Product Ops identifies a
-   local repository by a hash of its path; for `D:\Code\Personal\Portfolio Projects\agentic-delivery-engineer`
-   it is `repo-a8a12ccb002929f9de78b80e29a3e1bb`. Admission looks the signed work item's
-   `repository_id` up among configured repository IDs, so Delivery OS needs a mapping from this
-   ID to its own entry. This is open Delivery OS work.
-4. `HANDOFF_READER_TOKEN` is set in the Delivery service's environment from
+3. The same entry maps Product Ops' repository identity:
+   `product_ops_repository_ids: ["repo-a8a12ccb002929f9de78b80e29a3e1bb"]`. Product Ops
+   identifies a local repository by a hash of its path, here
+   `D:\Code\Personal\Portfolio Projects\agentic-delivery-engineer`.
+4. `alex-hines` is a configured Delivery operator with the `reviewer` role on that repository.
+   The lane accepts an approval only from someone who is both a Delivery reviewer and in
+   `documentation_approvers` (step 4 below).
+5. `HANDOFF_READER_TOKEN` is set in the Delivery service's environment from
    `.local\pilot\prompt\handoff-reader.env` **(you)**.
 
 Product Ops:
 
-5. The pilot is running (`& $pilot start`) and `http://127.0.0.1:18013/health` answers.
-6. The spending cap has room: `& $pilot status`. A request needs about $1.50 (analysis plus the
+6. The pilot is running (`& $pilot start`) and `http://127.0.0.1:18013/health` answers.
+7. The spending cap has room: `& $pilot status`. A request needs about $1.50 (analysis plus the
    documentation preview), within the $2 per-request allowance.
 
 ## Steps
