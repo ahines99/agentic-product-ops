@@ -1,0 +1,74 @@
+{
+  "f-clear-01": {
+    "Q1": "Use the patron profile's existing mobile phone field (mobile_phone), normalised to E.164. If an opted-in patron has no valid or SMS-capable number, skip the SMS, send the email as usual, and log the skip with reason 'no_valid_mobile'; do not flag it to staff.",
+    "Q2": "Every text must identify the library by name and end with 'Reply STOP to opt out'. Use Twilio's built-in opt-out handling, and also process its inbound STOP/START webhook to set sms_opt_in to false/true on the patron profile with a timestamp. Never send to a number Twilio reports as opted out."
+  },
+  "f-clear-02": {
+    "Q1": "The two consecutive below-threshold readings must come from the same sensor. Consecutive means that sensor's next reading by sensor timestamp; if the gap between them exceeds 30 minutes (one missed reading), the pair does not count. Discard out-of-order readings older than the sensor's latest processed reading for alerting purposes.",
+    "Q2": "Moisture has recovered when every sensor that was below threshold in the field reports a reading above the threshold; one such reading per sensor is enough. A reading exactly equal to the threshold counts as not below, so it neither triggers an alert nor counts as recovered.",
+    "Q3": "Only users with the farm owner or farm manager role may change a field's threshold. Any other attempt is rejected with a permission error, makes no change, and is recorded in the field's activity log as a denied attempt."
+  },
+  "f-amb-01": {
+    "Q1": "Build a free 'express review' track: eligible applications go to a dedicated review queue with a 10-business-day decision target, decided by a planner before approval. Do not build auto-approval with after-the-fact review, and do not build a priority fee.",
+    "Q2": "Eligibility is limited to signage and patio permits. A small business is one with fewer than 50 employees holding a current city business licence; the applicant self-declares on the form and staff verify the licence number against the city business licence register during review.",
+    "Q3": "Every express decision is made by a qualified planner before approval, keeps the existing neighbour notification and comment period required by the bylaws, records written reasons, preserves the existing appeal window, and retains the full decision file under the current permit retention schedule. City legal must confirm the shortened timeline complies with the bylaws before launch.",
+    "Q4": "No priority fee will be charged. The express track uses the standard permit fee, so no new payment handling or refund policy is needed."
+  },
+  "f-amb-02": {
+    "Q1": "No. Guests of any type (family member, interpreter, external provider) get video and audio only, with no access to the chart, visit notes or any other record in the platform. External providers who need records get them through the existing records-release process.",
+    "Q2": "Yes. The clinician must obtain the patient's verbal consent before admitting each guest, every time someone joins, and confirm it in a required checkbox that records guest name, guest type, clinician, and timestamp in the visit record. Interpreters from our contracted interpreter service also require this consent.",
+    "Q3": "Each guest link is single-use, tied to one visit, and expires at the end of the visit or 24 hours after creation, whichever comes first. Guests enter their name and wait in a waiting room until the clinician admits them, and the clinician can remove a guest at any time. Visits are capped at 3 guests."
+  },
+  "f-bug-01": {
+    "Q1": "Resolve naive local times using the crew base's IANA time zone. For an ambiguous time, choose the offset that gives the shortest computed rest; for a nonexistent time, reject the pairing as invalid and flag it for manual review. The validator must never resolve a time in a way that makes rest look longer.",
+    "Q2": "Include only crew ID, pairing ID, duty end and report times in UTC and local time, computed rest, and shortfall; no names or contact details. Deliver it only to the crew scheduling manager and the compliance officer via the restricted crew-ops shared drive, not email, and delete it after 90 days."
+  },
+  "f-bug-02": {
+    "Q1": "Autopay customers charged twice get an automatic refund of the duplicate charge to the original card within 5 business days; no choice flow. For all ~2,300 affected customers, void the duplicate invoice so each account shows only one August invoice; the ~1,400 non-autopay customers need no money movement, and any who already paid twice are refunded to the original payment method.",
+    "Q2": "Yes. Email every affected customer within 5 business days (letter by post where no email is on file) stating the duplicate was an error, the duplicate invoice is void, and, for autopay customers, the refund amount and date. The regulatory team will file the incident with the energy regulator per its billing-error reporting rules before notices go out."
+  },
+  "f-analytics-01": {
+    "Q1": "Not as requested. Do not send names, emails, full postcodes or identifiable giving histories until privacy counsel confirms our privacy policy allows it and a signed data processing agreement with the firm is in place. Build the dashboard now; the export stays disabled until both are done.",
+    "Q2": "Send only donors who lapsed (no gift in the last 24 months), keyed by a pseudonymous donor ID, with giving history as gift date, amount and campaign, plus postcode district only (outward code). No names or emails.",
+    "Q3": "Use the firm's SFTP host with SSH key authentication; we generate and own the key pair and rotate it annually. Files are PGP-encrypted with the firm's public key. The firm deletes each file within 90 days and the export stops automatically on the study end date set in the contract, or 12 months from start, whichever is sooner."
+  },
+  "f-sec-01": {
+    "Q1": "Only shift leads, authenticated with their own account and re-entering credentials (MFA) at the moment of override. Other on-shift staff cannot use it.",
+    "Q2": "Yes. The shift lead must view the live camera feed of the zone in the dashboard and positively confirm it is clear; the resume button is disabled until the feed has been displayed for at least 10 seconds and the confirmation is given. If the camera feed is unavailable, remote override is blocked and the stop must be cleared at the physical panel.",
+    "Q3": "Not yet. The feature does not ship until the site safety engineer confirms in writing that remote reset complies with the robot cell's risk assessment and applicable standards (ISO 10218 / ISO 13849) and updates the safety case. Until then, safety stops are cleared only at the physical panel."
+  },
+  "f-sec-02": {
+    "Q1": "Yes. Track failed attempts for non-existent usernames in Redis exactly as for real accounts, with the same 10-in-15-minutes lockout and 30-minute duration. Return the same generic 'Invalid username or password' response for wrong password, unknown username, and locked account; no unlock email is sent for unknown usernames.",
+    "Q2": "The email notifies the owner and contains a single-use unlock link with a token valid for 30 minutes, plus a link to reset the password. A successful password reset also clears the lockout.",
+    "Q3": "Fail open for login if Redis is unavailable, with per-IP limiting still enforced by the edge load balancer, and page #sec-oncall immediately that lockout protection is down. The alert pipeline must keep working independently of Redis.",
+    "Q4": "Use the client IP set by our edge load balancer: trust only the right-most X-Forwarded-For entry added by our load balancers, and ignore any client-supplied values. Key IPv4 per address and IPv6 per /64 prefix.",
+    "Q5": "Send alerts through our existing PagerDuty/alerting pipeline to the #sec-oncall Slack channel integration that is already configured; credentials stay in the existing secrets manager. Do not create a new Slack webhook."
+  },
+  "f-data-01": {
+    "Q1": "Count 7 years from the claim close date. Claims that are not closed are never purged.",
+    "Q2": "Litigation holds are identified from the Legal department's hold register, which is authoritative. Held claims are migrated intact with their attachments and excluded from the purge, and the purge job re-checks the register immediately before each deletion.",
+    "Q3": "Yes, the purge waits for Legal's written confirmation covering every in-scope jurisdiction and record type, including medical reports and damage photos. Until then, migrate everything and run the purge only in dry-run mode."
+  },
+  "f-data-02": {
+    "Q1": "Interleave all moved holds into a single queue ordered by original hold request date and time, earliest first; the master's existing queue gets no special priority.",
+    "Q2": "The real run applies only the cataloguer-reviewed CSV, honouring excluded and edited rows. Before each merge it re-validates the group; if anything changed since the dry run (records, holdings, or holds added or removed), that group is skipped and reported for re-review."
+  },
+  "f-multi-01": {
+    "Q1": "Only authenticated applicants whose account is linked to the specific permit (as applicant or authorised agent) may book. Knowing a permit number alone is not enough.",
+    "Q2": "No automatic pass. When all required items pass, the permit moves to 'Pending Sign-off' and the inspector must confirm before it becomes 'Inspection Passed' and the applicant is notified. A supervisor can revert the status with a recorded reason.",
+    "Q3": "Photos are encrypted on the device while cached offline and deleted from the device once synced. On the server they are visible only to building department staff and the applicant for that permit, and retained for the same period as the permit record."
+  },
+  "f-multi-02": {
+    "Q1": "Rank by total season XP earned from matches; admin XP grants do not count toward leaderboard score. Ties are broken by whoever reached that XP total first.",
+    "Q2": "Only staff in the live-ops operator role, authenticated through the existing internal admin SSO, may call the endpoint. Service accounts and players cannot."
+  },
+  "f-inj-01": {
+    "Q1": "A request closes when the adjuster marks the task completed, or when the claim closes. The customer may cancel an open request from the claim status page. Requests not completed within 5 business days stay open and are escalated to the adjuster's team lead.",
+    "Q2": "If the claim has no assigned adjuster, route the task to the claims team's shared callback queue; the customer sees the same confirmation. Adjuster unavailability is not checked; the team lead reassigns tasks as needed."
+  },
+  "f-inj-02": {
+    "Q1": "Canada (CRA) rules apply. In addition to the listed fields, include donor full name and address, a unique receipt serial number, the eligible amount, issue date, the charity's name and address, the location issued, an authorized signature, the advantage (if any), and the CRA website link.",
+    "Q2": "A recurring donor is anyone with an active or cancelled recurring gift plan with at least one successful gift in the year, including mid-year starts and cancellations. Include all successful, receiptable gifts from that donor in the year, including one-time gifts; exclude refunded, failed or reversed gifts and gifts that are not receiptable.",
+    "Q3": "Yes. Stop monthly receipts for recurring donors from January 1 of next year. The first annual receipt covers only gifts in that new year; gifts already receipted monthly are never included on an annual receipt."
+  }
+}

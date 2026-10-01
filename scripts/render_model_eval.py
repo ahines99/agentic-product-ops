@@ -42,6 +42,10 @@ def main() -> None:
             f"{spend['observed_calls']} / {spend['input_tokens']:,} / {spend['output_tokens']:,}",
         ),
         (
+            "Committed against the cap (upper bound on spend)",
+            f"${float(spend.get('committed_usd', spend['reserved_usd'])):.2f}",
+        ),
+        (
             "Estimated cost at standard rates (hard cap)",
             f"${float(spend['estimated_usd_standard_rates']):.2f} (${spend['cap_usd']})",
         ),

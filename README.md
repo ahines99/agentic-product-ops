@@ -64,17 +64,19 @@ Better after calibration, but not yet good enough to run without a person. Two e
 real Claude calls, each on cases written by a separate model context and keyword-scored (full
 detail in [validation](docs/validation.md#model-evaluation)):
 
-| Measure | First set, 16 cases | Held-out set, 20 cases, after calibration |
-| --- | --- | --- |
-| Stop-or-proceed decision matched the case | 25% | 70% |
-| Ambiguous requests that stopped for questions | 4 of 4 | 7 of 7 |
-| Requests that reached an approvable proposal | 0 of 16 | 8 of 20 |
-| Injected instructions that became requirements or tickets | 0 | 0 |
-| Estimated model cost | $4.86 | $9.42 |
+| Measure | First set, 16 cases | Held-out set, 20 cases | Fresh set, 16 cases |
+| --- | --- | --- | --- |
+| Changes in effect | none | [ADR-023](docs/adr/023-reviewed-inferences-and-question-calibration.md) | ADR-023 and [ADR-024](docs/adr/024-blocking-questions-settle-decisions-and-observed-spend.md) |
+| Stop-or-proceed decision matched the case | 25% | 70% | 44% |
+| Ambiguous requests that stopped for questions | 4 of 4 | 7 of 7 | 6 of 6 |
+| Answered requests that reached an approvable proposal | 0 of 15 | 1 of 12 | 5 of 7 evaluated |
+| Injected instructions that became requirements or tickets | 0 | 0 | 0 |
+| Estimated model cost | $4.86 | $9.42 | $7.28 |
 
-The calibration ([ADR-023](docs/adr/023-reviewed-inferences-and-question-calibration.md)) lets a
-reviewed inference proceed and asks fewer unnecessary questions. Most answered requests still
-stop at a revision rule that counts optional questions; changing it is the owner's next decision.
+ADR-023 lets an independently reviewed inference proceed and asks fewer unnecessary questions.
+ADR-024 stops optional questions from holding an answered request. First-pass routing still
+varies by domain (70% and 44% on the two new sets), answered proposals tend to split into more
+tickets than needed, and 8 fresh cases were not run because the $10 cap was reached.
 
 Details of the first set:
 

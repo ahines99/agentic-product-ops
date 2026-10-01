@@ -20,7 +20,8 @@ Version 0.6.0 recovery and hardening ([ADR-021](adr/021-publication-recovery-and
 | R09 | Remove unwired adapters and consolidate records | R01-R08 | Done (ADR-022) | OpenAI, OAuth, JWT, mock GraphQL and simulation publishers removed; their useful tests ported to production paths; superseded docs moved to `docs/history/`. |
 | R10 | Paid model evaluation harness and first 16-case run | R09 | Done | Explicit flag, key file and durable spend cap; resumable; every attempt kept; results in [validation](validation.md#model-evaluation). |
 | R11 | Calibrate the blocking-question threshold | R10 | Done (ADR-023) | Held-out 20-case set: routing accuracy 70% (25% before), 7 of 7 ambiguous requests still stop, 8 of 20 reach an approvable proposal. |
-| R12 | Decide whether optional questions block clearing a human-decision flag | R11 | Open; owner decision | If approved, a flag clears once every blocking question affecting the requirement has an authenticated answer; re-measure on a fresh held-out set. |
+| R12 | Optional questions no longer hold a human-decision flag | R11 | Done (ADR-024) | Fresh set: no answered case stopped on the flag rule; 5 of 7 evaluated answered cases reached a proposal. |
+| R13 | Calibrate ticket splitting and cross-domain routing | R12 | Open; needs budget | Answered proposals stay within the expected ticket range and first-pass routing holds above 60% on a fresh set from new domains. |
 
 Local prompt-entry continuation (dependency order):
 

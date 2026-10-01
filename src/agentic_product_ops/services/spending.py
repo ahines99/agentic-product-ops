@@ -1,14 +1,42 @@
-"""Durable aggregate spending reservations; ambiguous attempts never release their reservation."""
+"""Durable aggregate spending reservations; ambiguous attempts never release their reservation.
+
+A call with recorded provider usage counts at that usage priced at the authorization's
+conservative rates, which are at or above real prices, so the cap still bounds actual spend from
+above. A call without recorded usage keeps its full reservation (ADR-024).
+"""
 
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import Connection, select
 
 from agentic_product_ops.adapters.model.contracts import ModelRequest, ModelResponse
 from agentic_product_ops.adapters.model.runner import ModelProvider, RunStopped
 from agentic_product_ops.adapters.persistence.store import Missing, Store, artifacts
 from agentic_product_ops.domain.contracts import canonical_digest
+
+
+def committed(
+    store: Store,
+    workspace: str,
+    key: str,
+    entry: dict[str, Any],
+    terms: dict[str, Any] | None,
+    connection: Connection | None = None,
+) -> Decimal:
+    """What one reservation counts against the cap: observed usage, or the whole reservation."""
+    reserved = Decimal(entry["reserved"])
+    if terms is None:
+        return reserved
+    try:
+        usage = store.get(workspace, "spend_observation", key, connection=connection)
+    except Missing:
+        return reserved
+    observed = (
+        Decimal(usage["input_tokens"]) * Decimal(terms["input_rate"])
+        + Decimal(usage["output_tokens"]) * Decimal(terms["output_rate"])
+    ) / Decimal(1_000_000)
+    return min(reserved, observed)
 
 
 def spending_summary(store: Store, workspace: str, authorization: str) -> dict[str, Any]:
@@ -22,13 +50,25 @@ def spending_summary(store: Store, workspace: str, authorization: str) -> dict[s
         )
     if len(keys) > 10000:
         raise RunStopped("spending ledger bound")
-    reserved, calls, observed, input_tokens, output_tokens = Decimal(0), 0, 0, 0, 0
+    try:
+        terms: dict[str, Any] | None = store.get(workspace, "spend_authorization", authorization)
+    except Missing:
+        terms = None
+    reserved, settled, calls, observed, input_tokens, output_tokens = (
+        Decimal(0),
+        Decimal(0),
+        0,
+        0,
+        0,
+        0,
+    )
     for key in keys:
         entry = store.get(workspace, "spend_reservation", key)
         if entry["authorization"] != authorization:
             continue
         calls += 1
         reserved += Decimal(entry["reserved"])
+        settled += committed(store, workspace, key, entry, terms)
         try:
             usage = store.get(workspace, "spend_observation", key)
         except Missing:
@@ -39,6 +79,7 @@ def spending_summary(store: Store, workspace: str, authorization: str) -> dict[s
     return {
         "authorization": authorization,
         "reserved_usd": str(reserved),
+        "committed_usd": str(settled),
         "reserved_calls": calls,
         "observed_calls": observed,
         "input_tokens": input_tokens,
@@ -92,6 +133,7 @@ class SpendingProvider:
                 self.store.put(
                     conn, self.workspace, "spend_authorization", self.authorization, 1, self.terms
                 )
+                terms = self.terms
             rows: list[str] = list(
                 conn.execute(
                     select(artifacts.c.identity)
@@ -114,7 +156,7 @@ class SpendingProvider:
                 if entry["authorization"] == self.authorization:
                     if identity == key:
                         raise RunStopped("previously reserved inference cannot be repeated")
-                    total += Decimal(entry["reserved"])
+                    total += committed(self.store, self.workspace, identity, entry, terms, conn)
             if total + reserve > self.maximum:
                 raise RunStopped("aggregate authorized spending limit reached")
             self.store.put(

@@ -40,8 +40,12 @@ def validate_revision(
         ):
             raise PolicyError("revision cannot silently rewrite existing requirements")
         if requirement.needs_human_decision and not new.needs_human_decision:
+            # The decision is the blocking questions' to settle. Optional questions stay visible
+            # on the proposal but do not keep the flag set (ADR-024).
             questions = [
-                q for q in base.unresolved_questions if identity in q.affected_requirement_ids
+                q
+                for q in base.unresolved_questions
+                if identity in q.affected_requirement_ids and q.blocking
             ]
             if not questions or any(q.resolution is None for q in questions):
                 raise PolicyError("human decision was not answered")

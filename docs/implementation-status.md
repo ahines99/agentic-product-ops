@@ -12,7 +12,7 @@ exists and what has actually been exercised. Earlier status text is kept in
 | Strict, content-hashed WorkSpecification contracts; traceability and dependency checks | Unit and property tests | Structure, not semantic correctness |
 | Requirements analysis, clarification questions, decomposition and a separate reviewer with Claude | 6-call smoke (2026-09-29), PER-7 live run, [16-case evaluation](validation.md#model-evaluation) | Cases written by another Claude context; keyword checks, not human grading |
 | Ambiguity gate: stop and ask instead of guessing | Both evaluations: 11 of 11 ambiguous requests stopped | After calibration, 58% of stops were warranted (27% before) |
-| End-to-end proposal quality on general requests | Held-out evaluation: 8 of 20 reached an approvable proposal (0 of 16 before calibration) | Most answered requests stop at the revision rule in R12; 3 held on incomplete model output |
+| End-to-end proposal quality on general requests | Held-out set: 8 of 20 reached an approvable proposal (0 of 16 before calibration). Fresh set after ADR-024: 5 of 7 answered cases did | Routing varies by domain (70% vs 44%); answered proposals over-split into 5–8 tickets; some decomposer calls do not complete |
 | Exact human approval bound to specification, plan, operations and expiry; renewal only after expiry | API and publisher tests | One local operator identity |
 | Governed Linear publication with per-write re-authorization, one mutation gate and read-only reconciliation | PER-8 created live; mock-transport fault tests; PostgreSQL concurrency test | One live ticket |
 | Signed, versioned handoff to Agentic Delivery OS | PER-7: Delivery OS verified the envelope and produced the exact approved change, which was reviewed and merged | Single-file documentation change only |
@@ -25,8 +25,8 @@ exists and what has actually been exercised. Earlier status text is kept in
 
 **Needs an owner decision, money or another repository:**
 
-1. A decision on whether a requirement's human-decision flag may clear once its blocking
-   questions are answered, even if optional questions remain (backlog R12).
+1. Budget for the next calibration pass: tighter ticket splitting after answers and steadier
+   first-pass routing across domains (backlog R13).
 2. An independent 40-case semantic study with human grading, and a usefulness or time-saving
    measurement with real users.
 3. A risk policy that lets general model proposals, not only the constrained documentation lane,

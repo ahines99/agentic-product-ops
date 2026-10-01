@@ -37,6 +37,7 @@ from agentic_product_ops.domain.contracts import (
     canonical_digest,
     seal_specification,
 )
+from agentic_product_ops.policies.revisions import validate_revision
 from agentic_product_ops.policies.validation import PolicyError, ServerPolicy, proposal_ready
 from agentic_product_ops.services.clarifications import load_clarifications
 from agentic_product_ops.services.revisions import revise_specification
@@ -547,3 +548,38 @@ async def test_temporal_revision_runs_roles_and_requires_new_approval(answered):
             GovernanceWorkflow.decision_recorded, accepted.json()["approval"]["approval_id"]
         )
         assert await handle.result() == "APPROVED"
+
+
+@pytest.mark.parametrize("blocking_answered", [True, False])
+def test_decision_flag_clears_once_blocking_questions_are_answered(answered, blocking_answered):
+    store, current, answer = answered
+    # An optional question on the same requirement stays open and visible.
+    body = current.model_dump(mode="json")
+    body["unresolved_questions"].append(
+        {
+            "id": "Q-format",
+            "question": "Should the filename include the export date?",
+            "why_it_matters": "Cosmetic; the implementer may choose",
+            "affected_requirement_ids": ["R1"],
+            "blocking": False,
+            "resolution": None,
+            "resolved_by": None,
+            "resolved_at": None,
+        }
+    )
+    receipts = (answer,)
+    if not blocking_answered:
+        body["unresolved_questions"][0].update(resolution=None, resolved_by=None, resolved_at=None)
+        body["provenance"]["clarification_refs"] = []
+        receipts = ()
+    base = seal_specification(body)
+    revised = base.model_dump(mode="json")
+    revised["revision"] += 1
+    revised["requirements"][0]["needs_human_decision"] = False
+    candidate = seal_specification(revised)
+    if blocking_answered:
+        validate_revision(base, candidate, receipts, ServerPolicy())
+        assert candidate.unresolved_questions[-1].resolution is None  # still visible
+    else:
+        with pytest.raises(PolicyError, match="human decision was not answered"):
+            validate_revision(base, candidate, receipts, ServerPolicy())

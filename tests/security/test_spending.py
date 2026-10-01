@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
+from threading import Event, Lock
 from uuid import uuid4
 
 import pytest
@@ -88,13 +89,25 @@ def test_restart_failure_and_duplicate_do_not_release_reservation(ledger):
 
 
 def test_concurrent_reservations_cannot_overspend(ledger):
-    provider = Provider()
+    # In-flight calls hold their whole reservation until usage is recorded.
+    release, refused, lock = Event(), [0], Lock()
+
+    class Blocking(Provider):
+        def complete(self, request):
+            assert release.wait(10)
+            return super().complete(request)
+
+    provider = Blocking()
 
     def invoke(_):
         try:
             wrapper(ledger, provider).complete(request())
             return True
         except RunStopped:
+            with lock:
+                refused[0] += 1
+                if refused[0] == 6:
+                    release.set()
             return False
 
     with ThreadPoolExecutor(max_workers=8) as pool:
@@ -111,3 +124,19 @@ def test_terms_and_model_are_immutable(ledger):
     with pytest.raises(RunStopped, match="model mismatch"):
         wrapper(ledger, provider).complete(request().model_copy(update={"model": "other"}))
     assert len(provider.calls) == 1
+
+
+def test_observed_calls_settle_at_usage_but_uncertain_calls_hold_everything(ledger):
+    # Each reservation is 0.002; observed usage settles at 0.00002, so later calls fit.
+    provider = Provider()
+    for _ in range(3):
+        wrapper(ledger, provider, maximum="0.0025").complete(request())
+    summary = spending_summary(ledger, "workspace", "authorization-1")
+    assert Decimal(summary["reserved_usd"]) == Decimal("0.006")
+    assert Decimal(summary["committed_usd"]) == Decimal("0.00006")
+    # An uncertain call keeps its whole reservation, so the next one no longer fits.
+    with pytest.raises(RunStopped):
+        wrapper(ledger, Provider(fail=True), maximum="0.0025").complete(request())
+    with pytest.raises(RunStopped, match="limit reached"):
+        wrapper(ledger, provider, maximum="0.0025").complete(request())
+    assert len(provider.calls) == 3
