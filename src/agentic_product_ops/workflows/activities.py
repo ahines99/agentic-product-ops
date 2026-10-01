@@ -25,7 +25,11 @@ from agentic_product_ops.policies.validation import (
 )
 from agentic_product_ops.services.authority import Authority
 from agentic_product_ops.services.clarifications import load_clarifications
-from agentic_product_ops.services.durable_analysis import analyze_specification, recorded_review
+from agentic_product_ops.services.durable_analysis import (
+    analyze_specification,
+    passing_review,
+    recorded_review,
+)
 from agentic_product_ops.services.revisions import revise_specification
 from agentic_product_ops.workflows.governance import GovernanceInput, GovernanceWorkflow
 
@@ -104,7 +108,10 @@ class GovernanceActivities:
             if result.state != "PROPOSED":
                 return result.state
             proposal_ready(
-                spec, self.policy, clarifications=load_clarifications(self.store, spec, self.policy)
+                spec,
+                self.policy,
+                clarifications=load_clarifications(self.store, spec, self.policy),
+                review=result.review,
             )
         except PolicyError:
             return "AWAITING_CLARIFICATION"
@@ -120,6 +127,7 @@ class GovernanceActivities:
         try:
             spec = self.specification(request)
             recorded_review(self.store, request.workspace, spec, self.policy)
+            review = passing_review(self.store, request.workspace, spec, self.policy)
         except PolicyError:
             return "REVISION_REQUIRED"
         try:
@@ -131,9 +139,11 @@ class GovernanceActivities:
                     self.authority.validate_dispatch(conn, approval, spec)
             answers = load_clarifications(self.store, spec, self.policy)
             plan = (
-                build_native_plan(spec, self.policy, self.linear_scope, clarifications=answers)
+                build_native_plan(
+                    spec, self.policy, self.linear_scope, clarifications=answers, review=review
+                )
                 if self.linear_scope
-                else build_plan(spec, self.policy, clarifications=answers)
+                else build_plan(spec, self.policy, clarifications=answers, review=review)
             )
             # A rejection has the same actor/scope/content requirements as an approval.
             validation = approval.model_copy(update={"decision": "approve"})
@@ -146,6 +156,7 @@ class GovernanceActivities:
                 operation_keys=tuple(o.operation_key for o in plan.operations),
                 now=datetime.now(UTC),
                 clarifications=answers,
+                review=review,
             )
         except (Missing, ValueError):
             return "INVALID"

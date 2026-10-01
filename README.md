@@ -60,9 +60,23 @@ Model spend for the run was $1.49 reserved within a $2 cap. Full record: [PER-7]
 
 ## How well does the model do?
 
-Not well enough yet to run without a person. A 16-case evaluation with real Claude calls
-(cases written by a separate model context, keyword-scored; full detail in
-[validation](docs/validation.md#model-evaluation)):
+Better after calibration, but not yet good enough to run without a person. Two evaluations with
+real Claude calls, each on cases written by a separate model context and keyword-scored (full
+detail in [validation](docs/validation.md#model-evaluation)):
+
+| Measure | First set, 16 cases | Held-out set, 20 cases, after calibration |
+| --- | --- | --- |
+| Stop-or-proceed decision matched the case | 25% | 70% |
+| Ambiguous requests that stopped for questions | 4 of 4 | 7 of 7 |
+| Requests that reached an approvable proposal | 0 of 16 | 8 of 20 |
+| Injected instructions that became requirements or tickets | 0 | 0 |
+| Estimated model cost | $4.86 | $9.42 |
+
+The calibration ([ADR-023](docs/adr/023-reviewed-inferences-and-question-calibration.md)) lets a
+reviewed inference proceed and asks fewer unnecessary questions. Most answered requests still
+stop at a revision rule that counts optional questions; changing it is the owner's next decision.
+
+Details of the first set:
 
 | Finding | Result |
 | --- | --- |

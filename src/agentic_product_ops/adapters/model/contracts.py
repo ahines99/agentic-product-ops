@@ -26,6 +26,9 @@ from agentic_product_ops.domain.contracts import (
 )
 
 Role = Literal["requirements_analyst", "work_decomposer", "specification_reviewer"]
+# roles-v2 calibrates when questions block (ADR-023). Older receipts keep roles-v1.
+PromptVersion = Literal["roles-v1", "roles-v2"]
+PROMPT_VERSION: PromptVersion = "roles-v2"
 Money = Annotated[Decimal, Field(ge=0, max_digits=18, decimal_places=8, allow_inf_nan=False)]
 
 
@@ -85,7 +88,7 @@ class ModelRequest(Contract):
     run_id: UUID
     context_id: UUID
     role: Role
-    prompt_version: Literal["roles-v1"] = "roles-v1"
+    prompt_version: PromptVersion = PROMPT_VERSION
     model: ID
     system_policy: Text
     authorized_configuration: Text
@@ -112,7 +115,7 @@ class RunReceipt(Contract):
     context_id: UUID
     role: Role
     model: ID
-    prompt_version: Literal["roles-v1"]
+    prompt_version: PromptVersion
     input_digest: Digest
     output_digest: Digest | None
     started_at: Timestamp

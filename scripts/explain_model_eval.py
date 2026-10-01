@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from agentic_product_ops.adapters.model.contracts import Analysis
+from agentic_product_ops.adapters.model.contracts import Analysis, Review
 from agentic_product_ops.adapters.persistence.store import Store, artifacts, engine
 from agentic_product_ops.domain.contracts import WorkSpecification
 from agentic_product_ops.evaluation.model_eval import intake
@@ -49,12 +49,17 @@ def diagnose(store: Store, base: WorkSpecification, attempt: dict[str, Any]) -> 
                 validate_revision(base, candidate, answers, POLICY)
             except PolicyError as error:
                 notes.append(f"revision gate: {error}")
+        review = (
+            Review.model_validate_json(json.dumps(attempt["review"]))
+            if attempt.get("review")
+            else None
+        )
         try:
-            proposal_ready(candidate, POLICY, clarifications=answers)
+            proposal_ready(candidate, POLICY, clarifications=answers, review=review)
         except PolicyError as error:
             notes.append(f"readiness gate: {error}")
-    review = attempt.get("review") or {}
-    blocking = [f["summary"] for f in review.get("findings", []) if f["blocking"]]
+    recorded = attempt.get("review") or {}
+    blocking = [f["summary"] for f in recorded.get("findings", []) if f["blocking"]]
     if blocking:
         notes.append(f"reviewer: {len(blocking)} blocking finding(s)")
     failed = [
@@ -135,7 +140,7 @@ def main() -> None:
     }
     args.output.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8", newline="\n")
     for entry in report:
-        print(entry["id"], "|", "; ".join(entry["stop_diagnosis"]) or "no stored attempt")
+        print(entry["id"], "|", "; ".join(entry["stop_diagnosis"]) or "no failing rule")
     database.dispose()
 
 

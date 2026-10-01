@@ -24,7 +24,7 @@ from agentic_product_ops.domain.contracts import SpecificationApproval, WorkSpec
 from agentic_product_ops.policies.validation import PolicyError, ServerPolicy, validate_approval
 from agentic_product_ops.services.authority import Authority
 from agentic_product_ops.services.clarifications import load_clarifications
-from agentic_product_ops.services.durable_analysis import recorded_review
+from agentic_product_ops.services.durable_analysis import passing_review, recorded_review
 
 
 def publication_writes(
@@ -74,7 +74,10 @@ class NativePublisher:
         if self.authority.workspace != policy.workspace_id or self.provider.scope != plan.scope:
             raise PolicyError("publication tenant configuration mismatch")
         answers = load_clarifications(self.store, spec, policy)
-        if plan != build_native_plan(spec, policy, self.provider.scope, clarifications=answers):
+        review = passing_review(self.store, policy.workspace_id, spec, policy)
+        if plan != build_native_plan(
+            spec, policy, self.provider.scope, clarifications=answers, review=review
+        ):
             raise PolicyError("native publication plan changed")
         workspace, identifier = policy.workspace_id, str(spec.specification_id)
 
@@ -105,6 +108,7 @@ class NativePublisher:
                 operation_keys=tuple(o.operation_key for o in plan.operations),
                 now=self.clock(),
                 clarifications=answers,
+                review=review,
             )
 
         def guard() -> None:

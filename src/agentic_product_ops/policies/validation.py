@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from agentic_product_ops.domain.clarifications import ClarificationReceipt
 from agentic_product_ops.domain.contracts import (
@@ -15,6 +16,9 @@ from agentic_product_ops.domain.contracts import (
 )
 from agentic_product_ops.services.ticket_readiness import EXECUTION_POLICY, ticket_findings
 from product_ops_handoff.documentation import DocumentationCapability
+
+if TYPE_CHECKING:
+    from agentic_product_ops.adapters.model.contracts import Review
 
 
 class PolicyError(ValueError):
@@ -147,10 +151,26 @@ def validate_scope(spec: WorkSpecification, policy: ServerPolicy) -> None:
             raise PolicyError("repository not allowed")
 
 
+def reviewed(spec: WorkSpecification, review: Review | None) -> bool:
+    """A recorded independent review passed this exact content with no blocking findings."""
+    return (
+        review is not None
+        and review.specification_digest == spec.content_digest
+        and not any(finding.blocking for finding in review.findings)
+    )
+
+
 def blocking_findings(
-    spec: WorkSpecification, *, clarifications: tuple[ClarificationReceipt, ...] = ()
+    spec: WorkSpecification,
+    *,
+    clarifications: tuple[ClarificationReceipt, ...] = (),
+    review: Review | None = None,
 ) -> tuple[str, ...]:
-    """Objective checks only; does not impersonate an independent semantic reviewer."""
+    """Objective checks only; does not impersonate an independent semantic reviewer.
+
+    An inferred requirement is acceptable only once a separate reviewer has passed this exact
+    content. The reviewer's pass is supplied by trusted persistence, never by model output.
+    """
     findings: list[str] = []
     if not spec.requirements or not spec.work_items:
         findings.append("missing requirements or work decomposition")
@@ -187,7 +207,9 @@ def blocking_findings(
         findings.append("clarification authentication failed: receipts missing or invalid")
     if any(r.needs_human_decision for r in spec.requirements):
         findings.append("requirement needs human decision")
-    if any(r.provenance == "safe_inference" for r in spec.requirements):
+    if any(r.provenance == "safe_inference" for r in spec.requirements) and not reviewed(
+        spec, review
+    ):
         findings.append("inferred behavior needs independent review")
     if any(
         a.provenance == "requires_human_decision"
@@ -206,6 +228,7 @@ def proposal_ready(
     policy: ServerPolicy,
     *,
     clarifications: tuple[ClarificationReceipt, ...] = (),
+    review: Review | None = None,
 ) -> None:
     # Revalidate at each authority boundary, including objects made via model_construct/copy.
     WorkSpecification.model_validate_json(spec.model_dump_json())
@@ -214,7 +237,7 @@ def proposal_ready(
         raise PolicyError("; ".join(issues))
     if any(r.actor_id not in policy.approvers for r in clarifications):
         raise PolicyError("clarification actor not authorized")
-    if findings := blocking_findings(spec, clarifications=clarifications):
+    if findings := blocking_findings(spec, clarifications=clarifications, review=review):
         raise PolicyError("; ".join(findings))
 
 
@@ -228,9 +251,10 @@ def validate_approval(
     operation_keys: tuple[str, ...],
     now: datetime,
     clarifications: tuple[ClarificationReceipt, ...] = (),
+    review: Review | None = None,
 ) -> None:
     """Caller-supplied identity is simulation-only until authenticated ingress exists."""
-    proposal_ready(spec, policy, clarifications=clarifications)
+    proposal_ready(spec, policy, clarifications=clarifications, review=review)
     SpecificationApproval.model_validate_json(approval.model_dump_json())
     if now.tzinfo is None:
         raise PolicyError("aware clock required")

@@ -189,7 +189,10 @@ def reassess_risk(
         store.put(conn, workspace, "risk_result", execution, 1, result)
         if result.state == "PROPOSED":
             proposal_ready(
-                candidate, policy, clarifications=load_clarifications(store, base, policy)
+                candidate,
+                policy,
+                clarifications=load_clarifications(store, base, policy),
+                review=result.review,
             )
             store.put(conn, workspace, "specification", identifier, candidate.revision, candidate)
             binding = canonical_digest(

@@ -19,7 +19,7 @@ from agentic_product_ops.domain.handoff import DispatchAuthority, HandoffPayload
 from agentic_product_ops.policies.validation import PolicyError, ServerPolicy, validate_approval
 from agentic_product_ops.services.authority import Authority
 from agentic_product_ops.services.clarifications import load_clarifications
-from agentic_product_ops.services.durable_analysis import recorded_review
+from agentic_product_ops.services.durable_analysis import passing_review, recorded_review
 
 SIGNING_DOMAIN = b"AgenticProductOps/Handoff/v2\x00"
 
@@ -68,8 +68,9 @@ def export_signed_handoff(
             )
         )
         answers = load_clarifications(store, spec, policy)
+        review = passing_review(store, workspace, spec, policy)
         if spec.risk.tier not in policy.handoff_tiers or plan != build_native_plan(
-            spec, policy, plan.scope, clarifications=answers
+            spec, policy, plan.scope, clarifications=answers, review=review
         ):
             raise PolicyError("handoff scope or tier denied")
         authority.validate_dispatch(conn, approval, spec)
@@ -108,6 +109,7 @@ def export_signed_handoff(
                 operation_keys=tuple(o.operation_key for o in plan.operations),
                 now=dispatch.dispatch_at,
                 clarifications=answers,
+                review=review,
             )
             receipts.append(receipt)
             dispatches.append(dispatch)

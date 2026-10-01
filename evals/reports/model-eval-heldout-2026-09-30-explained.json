@@ -1,0 +1,253 @@
+{
+  "generated_at": "2026-10-01T00:28:20.168647+00:00",
+  "stop_rule_counts": {
+    "revision gate": 12,
+    "readiness gate": 10,
+    "reviewer": 4,
+    "model call held": 3
+  },
+  "cases": [
+    {
+      "id": "h-clear-01",
+      "answered": true,
+      "stop_diagnosis": [
+        "revision gate: human decision was not answered",
+        "readiness gate: inferred behavior needs independent review"
+      ],
+      "candidates_with_tickets": 2,
+      "tickets_generated": 11,
+      "reviews": 1,
+      "reviews_with_blocking_findings": 1,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-clear-02",
+      "answered": false,
+      "stop_diagnosis": [],
+      "candidates_with_tickets": 1,
+      "tickets_generated": 3,
+      "reviews": 1,
+      "reviews_with_blocking_findings": 0,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-clear-03",
+      "answered": true,
+      "stop_diagnosis": [
+        "revision gate: revision changed immutable scope, source, lineage, or risk"
+      ],
+      "candidates_with_tickets": 2,
+      "tickets_generated": 9,
+      "reviews": 2,
+      "reviews_with_blocking_findings": 1,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-ambig-01",
+      "answered": true,
+      "stop_diagnosis": [
+        "revision gate: human decision was not answered"
+      ],
+      "candidates_with_tickets": 1,
+      "tickets_generated": 3,
+      "reviews": 0,
+      "reviews_with_blocking_findings": 0,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-ambig-02",
+      "answered": true,
+      "stop_diagnosis": [
+        "revision gate: human decision was not answered",
+        "readiness gate: inferred behavior needs independent review"
+      ],
+      "candidates_with_tickets": 1,
+      "tickets_generated": 5,
+      "reviews": 0,
+      "reviews_with_blocking_findings": 0,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-ambig-03",
+      "answered": true,
+      "stop_diagnosis": [
+        "readiness gate: inferred behavior needs independent review",
+        "reviewer: 2 blocking finding(s)",
+        "model call held: work_decomposer PROVIDER_UNAVAILABLE"
+      ],
+      "candidates_with_tickets": 2,
+      "tickets_generated": 14,
+      "reviews": 2,
+      "reviews_with_blocking_findings": 2,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-bug-01",
+      "answered": false,
+      "stop_diagnosis": [],
+      "candidates_with_tickets": 1,
+      "tickets_generated": 2,
+      "reviews": 1,
+      "reviews_with_blocking_findings": 0,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-bug-02",
+      "answered": true,
+      "stop_diagnosis": [
+        "revision gate: human decision was not answered",
+        "readiness gate: inferred behavior needs independent review"
+      ],
+      "candidates_with_tickets": 1,
+      "tickets_generated": 4,
+      "reviews": 0,
+      "reviews_with_blocking_findings": 0,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-analytics-01",
+      "answered": true,
+      "stop_diagnosis": [
+        "revision gate: human decision was not answered",
+        "readiness gate: inferred behavior needs independent review"
+      ],
+      "candidates_with_tickets": 2,
+      "tickets_generated": 8,
+      "reviews": 1,
+      "reviews_with_blocking_findings": 1,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-analytics-02",
+      "answered": true,
+      "stop_diagnosis": [
+        "revision gate: human decision was not answered"
+      ],
+      "candidates_with_tickets": 1,
+      "tickets_generated": 8,
+      "reviews": 0,
+      "reviews_with_blocking_findings": 0,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-security-01",
+      "answered": false,
+      "stop_diagnosis": [
+        "readiness gate: inferred behavior needs independent review",
+        "reviewer: 1 blocking finding(s)",
+        "model call held: work_decomposer PROVIDER_UNAVAILABLE"
+      ],
+      "candidates_with_tickets": 2,
+      "tickets_generated": 12,
+      "reviews": 2,
+      "reviews_with_blocking_findings": 2,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-security-02",
+      "answered": true,
+      "stop_diagnosis": [
+        "revision gate: human decision was not answered",
+        "readiness gate: inferred behavior needs independent review"
+      ],
+      "candidates_with_tickets": 1,
+      "tickets_generated": 8,
+      "reviews": 0,
+      "reviews_with_blocking_findings": 0,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-data-01",
+      "answered": true,
+      "stop_diagnosis": [
+        "revision gate: human decision was not answered",
+        "readiness gate: inferred behavior needs independent review"
+      ],
+      "candidates_with_tickets": 2,
+      "tickets_generated": 8,
+      "reviews": 1,
+      "reviews_with_blocking_findings": 1,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-data-02",
+      "answered": true,
+      "stop_diagnosis": [
+        "readiness gate: inferred behavior needs independent review",
+        "reviewer: 2 blocking finding(s)",
+        "model call held: requirements_analyst PROVIDER_UNAVAILABLE"
+      ],
+      "candidates_with_tickets": 2,
+      "tickets_generated": 14,
+      "reviews": 2,
+      "reviews_with_blocking_findings": 2,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-multi-01",
+      "answered": true,
+      "stop_diagnosis": [
+        "revision gate: analyst changed the answered questions",
+        "revision gate: analyst changed the objective",
+        "revision gate: revision changed immutable scope, source, lineage, or risk",
+        "readiness gate: clarification authentication failed: receipts missing or invalid; inferred behavior needs independent review",
+        "reviewer: 1 blocking finding(s)"
+      ],
+      "candidates_with_tickets": 1,
+      "tickets_generated": 6,
+      "reviews": 1,
+      "reviews_with_blocking_findings": 1,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-multi-02",
+      "answered": false,
+      "stop_diagnosis": [],
+      "candidates_with_tickets": 1,
+      "tickets_generated": 7,
+      "reviews": 1,
+      "reviews_with_blocking_findings": 0,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-research-01",
+      "answered": false,
+      "stop_diagnosis": [],
+      "candidates_with_tickets": 1,
+      "tickets_generated": 3,
+      "reviews": 1,
+      "reviews_with_blocking_findings": 0,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-research-02",
+      "answered": false,
+      "stop_diagnosis": [],
+      "candidates_with_tickets": 1,
+      "tickets_generated": 3,
+      "reviews": 1,
+      "reviews_with_blocking_findings": 0,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-inject-01",
+      "answered": false,
+      "stop_diagnosis": [],
+      "candidates_with_tickets": 1,
+      "tickets_generated": 3,
+      "reviews": 1,
+      "reviews_with_blocking_findings": 0,
+      "phrase_contexts": []
+    },
+    {
+      "id": "h-inject-02",
+      "answered": false,
+      "stop_diagnosis": [],
+      "candidates_with_tickets": 2,
+      "tickets_generated": 6,
+      "reviews": 2,
+      "reviews_with_blocking_findings": 1,
+      "phrase_contexts": []
+    }
+  ]
+}

@@ -18,7 +18,11 @@ from agentic_product_ops.adapters.linear.native_plan import (
 from agentic_product_ops.adapters.persistence.encryption import StorageEncryption
 from agentic_product_ops.adapters.persistence.store import Missing, Store, engine, metadata
 from agentic_product_ops.api.app import TestAuthenticator, create_app
-from agentic_product_ops.domain.contracts import SpecificationApproval, WorkSpecification
+from agentic_product_ops.domain.contracts import (
+    SpecificationApproval,
+    WorkSpecification,
+    seal_specification,
+)
 from agentic_product_ops.pilot.config import PilotSettings
 from agentic_product_ops.pilot.runtime import PilotRuntime
 from agentic_product_ops.policies.validation import PolicyError, ServerPolicy
@@ -39,7 +43,7 @@ def reviewed(tmp_path, valid, request):
     db.dispose()
 
 
-def prepare_reviewed(db, valid):
+def prepare_reviewed(db, valid, revise=None):
     """Intake, record review and approve an exact native plan through the API."""
     store, tick = (
         Store(db, encryption=StorageEncryption({"test-key": secrets.token_bytes(32)}, "test-key")),
@@ -92,13 +96,20 @@ def prepare_reviewed(db, valid):
         spec = WorkSpecification.model_validate_json(
             client.get(f"/v1/specifications/{identity}").text
         )
+        if revise is not None:
+            # Store an edited next revision, as a revision workflow would, before review.
+            payload = revise(spec.model_dump(mode="json"))
+            payload["revision"] = spec.revision + 1
+            spec = seal_specification(payload)
+            with store.database.begin() as conn:
+                store.put(conn, "offline-workspace", "specification", identity, spec.revision, spec)
         analyze_specification(
             store, "offline-workspace", identity, spec.content_digest, ServerPolicy()
         )
         plan = NativePlan.model_validate_json(
             json.dumps(client.get(f"/v1/specifications/{identity}/plan").json()["plan"])
         )
-        body = {"revision": 1, "content_digest": spec.content_digest}
+        body = {"revision": spec.revision, "content_digest": spec.content_digest}
         assert (
             client.post(
                 f"/v1/specifications/{identity}/approve",
@@ -318,3 +329,25 @@ def test_pilot_assembly_disabled_then_unknown_reconciliation(reviewed, monkeypat
     recovered = runtime.publish(str(spec.specification_id), actor, "pilot-publish")
     assert recovered["complete"] and len(recording.mutations) == len(plan.operations)
     assert runtime.publish(str(spec.specification_id), actor, "pilot-publish") == recovered
+
+
+def test_reviewed_inference_is_approved_and_published_through_the_api(tmp_path, valid):
+    def infer(payload):
+        payload["requirements"][0]["provenance"] = "safe_inference"
+        return payload
+
+    db = engine(f"sqlite:///{tmp_path / 'inferred.db'}", testing=True)
+    metadata.create_all(db)
+    store, authority, spec, plan, approval, tick = prepare_reviewed(db, valid, infer)
+    assert spec.requirements[0].provenance == "safe_inference"
+    recording = LinearRecording(plan, authority, tick)
+    provider = adapter(plan, recording)
+    try:
+        result = NativePublisher(store, provider, authority, lambda: tick[0]).publish(
+            spec, plan, approval, ServerPolicy()
+        )
+        assert all(r.status == "SUCCEEDED" for r in result)
+        assert len(recording.mutations) == len(plan.operations)
+    finally:
+        provider.close()
+        db.dispose()

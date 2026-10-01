@@ -1,0 +1,58 @@
+{
+  "h-clear-01": {
+    "Q1": "Use the dispatch system's stop-status events, not telematics. Each time a stop on the route is completed, failed or skipped, recompute the remaining sequence; when exactly 2 unresolved stops remain before this customer's stop, send the SMS. Completed, failed and skipped stops are resolved and drop out of the count; cancelled stops are removed from the sequence and never count.",
+    "Q2": "Suppress it entirely for that delivery. Do not defer or queue it for when the window opens.",
+    "Q3": "Use the time zone of the delivery address on the delivery record. If that time zone is unknown, do not send the SMS for that delivery and log it as suppressed."
+  },
+  "h-clear-03": {
+    "Q1": "A dry run must be fully read-only: no deploy locks, no deploy-history or audit records, no notifications, and no state or cache writes during environment resolution; any step that writes must be skipped in dry-run mode. It should not wait on or block a concurrent real deploy; it computes the plan from current state. Dry runs are not recorded anywhere; the printed plan is the only output."
+  },
+  "h-ambig-01": {
+    "Q1": "We do not know the main issue yet and will not guess. I will get the last 90 days of checkout-tagged tickets exported from the support tool to the team by Monday; the first task is to categorise them and confirm the top complaint against checkout funnel data. No change to payment handling is in scope until that evidence points to payments."
+  },
+  "h-ambig-02": {
+    "Q1": "HR has approved two fields: current base salary (with currency) and the most recent performance rating. Both are off by default and enabled per customer. Sick-leave history is not approved and is out of scope.",
+    "Q2": "Direct reports only by default. Each customer can enable skip-level visibility so managers also see the approved fields for indirect reports; it stays off unless the customer turns it on.",
+    "Q3": "Sick-leave history will not be shown in the team view for any customer, US or EU. No health-related data is in scope, so no legal basis is needed for this release.",
+    "Q4": "No region-specific field list: the same two fields are available in the US and EU, since health data is excluded. Access is controlled per customer: only the customer's HR admin role can enable compensation and performance rating visibility, each independently, and both default to off."
+  },
+  "h-ambig-03": {
+    "Q2": "Launch with our originals only. Licensed titles are excluded until our content licensing team confirms per title that the licence permits downloads; that is recorded as a per-title downloadable flag in content metadata, default false, editable only by content licensing.",
+    "Q3": "Downloads are a premium-tier perk only. If a subscriber downgrades or cancels, their downloaded titles stop playing at the next licence check."
+  },
+  "h-bug-02": {
+    "Q1": "The calendar-day calculation from 3.8 is authoritative, so this is not a bug and no proration code change is made. It is consistent with our published terms, which say upgrades are prorated for the days remaining in the billing period.",
+    "Q2": "No blanket refund and no re-billing of undercharged customers. Customers who paid more than the old 30-day method would have charged get an account credit (not a cash refund) for the difference, with no minimum amount. Finance must approve the credit list before any credits are applied."
+  },
+  "h-analytics-01": {
+    "Q1": "There is no error-code field in the telemetry today. Defer the top failure error codes panel to a follow-up; do not change device firmware or telemetry as part of this work.",
+    "Q2": "An attempt is an ota_started event. Failure rate = ota_failed / attempts with an outcome, for updates started in the rolling 24 hours; in-flight updates are excluded from both sides and the 200-attempt minimum counts only attempts with an outcome. An update with no completed or failed event 24 hours after starting counts as failed."
+  },
+  "h-analytics-02": {
+    "Q1": "UK and Germany: a consent management banner on web and a consent prompt in the apps, with reject as prominent as accept; no non-essential tracking or ad-platform sharing until opt-in. US: a Do Not Sell or Share link plus Global Privacy Control support, honoured before sharing. iOS: App Tracking Transparency prompt; no tracking if declined. Our legal/privacy counsel signs off before any tracking ships, and consent must ship first.",
+    "Q2": "No. Pre-submit keystroke capture is not approved. Only submitted search queries are tracked.",
+    "Q3": "Server-side only (Meta Conversions API and Google enhanced conversions), consented users only. Share event name, product IDs, cart value, currency and timestamp, plus SHA-256 hashed email for logged-in users; no device advertising IDs unless ATT or consent allows, and no search text, raw email, name or address. Track only page views, submitted searches and cart events. Retain raw event data for 13 months."
+  },
+  "h-security-02": {
+    "Q1": "HIPAA governs these records. No Business Associate Agreement is signed with the billing firm yet, so contractor access must not be enabled until our compliance officer confirms a signed BAA.",
+    "Q2": "Billing contractors see only billing data: patient name, date of birth, insurance, visit dates, procedure and diagnosis codes, and charges; no clinical notes. Front desk staff see scheduling, demographic and insurance data only; no clinical records.",
+    "Q3": "Personal laptops are allowed only through a browser-based virtual desktop with download, printing, clipboard and local caching blocked; personal phones are not allowed. Devices must have a supported OS and screen lock enabled.",
+    "Q4": "Never expose the system directly to the public internet. Remote access goes only through a zero-trust access gateway into the virtual desktop, restricted to US locations.",
+    "Q5": "Mandatory MFA through the clinic's SSO identity provider for every remote user. Clinic IT provisions one named account per contractor (no shared accounts) at the request of the firm's manager, expiring every 90 days unless renewed. Clinic IT revokes access; the firm must notify us within 24 hours of a departure, and all contractor accounts are revoked when the engagement ends."
+  },
+  "h-data-01": {
+    "Q1": "The live rule matches the backfill: delivered_at_utc always equals the timestamp of the latest DELIVERED event in UTC, so a later DELIVERED event overwrites it. Changing from DELIVERED to another status does not clear it."
+  },
+  "h-data-02": {
+    "Q1": "Old means time since the candidate's last activity (application, update or interview). Defaults, applied equally to profiles, CVs and interview notes: 12 months for UK and EU candidates, 24 months for US candidates. Each customer, as controller, can configure its own period, but not below 6 months in the UK and EU or 12 months in the US.",
+    "Q2": "We add a legal-hold flag on the candidate; only the customer's admin users can set or clear it, and flagged candidates are never purged. Purging is withheld entirely until the flag exists and customers have had the 60-day notice period to set it.",
+    "Q3": "Purge means hard deletion after a 30-day soft-delete grace period. It covers the primary database, attachment storage, search indexes, analytics copies and deletion requests to third-party processors. Backups expire on their existing rotation, and any restore must re-apply purges before use.",
+    "Q4": "Legal/privacy sign-off is required before the job is enabled. All customers are notified 60 days before their first run with their retention period and the hold flag; no opt-in is required. The job is enabled per customer only after that notice period ends."
+  },
+  "h-multi-01": {
+    "Q1": "Yes: a gift card can be combined with one other payment method to cover the remainder. Up to 5 gift cards can be used on one order. When the balance exceeds the order total, only the order total is deducted.",
+    "Q2": "Gift card purchases are refundable within 14 days only if the code is completely unused, which voids the code; once any balance is used, no refund. A chargeback on a purchase freezes the code's remaining balance. Refunds or cancellations of orders paid with a gift card return the gift card portion to the same card balance and the rest to the original method. Liability = issued - redeemed + restored - voided.",
+    "Q3": "US only, USD only. Cards never expire and carry no fees, which meets federal CARD Act rules; show no expiration and no fees on the purchase page, recipient email and balance page. Finance records purchaser state for unclaimed-property reporting. Legal must approve non-expiring cards before launch.",
+    "Q4": "Delete the gift message 90 days after delivery; keep the recipient email for 13 months after delivery for resends and support, then delete it. Only customer support can access them. Deletion requests are honoured without affecting the card balance, and there is no content moderation."
+  }
+}

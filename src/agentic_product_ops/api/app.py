@@ -57,6 +57,7 @@ from agentic_product_ops.services.drafting import draft
 from agentic_product_ops.services.durable_analysis import (
     analysis_mode,
     load_analysis,
+    passing_review,
     recorded_review,
 )
 from agentic_product_ops.services.native_publication import publication_writes
@@ -699,10 +700,13 @@ def create_app(
     ) -> dict[str, Any]:
         spec = spec_for(db, actor, identifier)
         answers = load_clarifications(db, spec, active_policy)
+        review = passing_review(db, actor.workspace_id, spec, active_policy)
         plan = (
-            build_native_plan(spec, active_policy, linear_scope, clarifications=answers)
+            build_native_plan(
+                spec, active_policy, linear_scope, clarifications=answers, review=review
+            )
             if linear_scope
-            else build_plan(spec, active_policy, clarifications=answers)
+            else build_plan(spec, active_policy, clarifications=answers, review=review)
         )
         return {"publication": "disabled", "plan": plan.model_dump(mode="json")}
 
@@ -726,10 +730,13 @@ def create_app(
             except Missing as exc:
                 raise PolicyError("analysis and review have not completed") from exc
             answers = load_clarifications(db, spec, active_policy)
+            review = passing_review(db, actor.workspace_id, spec, active_policy)
             plan = (
-                build_native_plan(spec, active_policy, linear_scope, clarifications=answers)
+                build_native_plan(
+                    spec, active_policy, linear_scope, clarifications=answers, review=review
+                )
                 if linear_scope
-                else build_plan(spec, active_policy, clarifications=answers)
+                else build_plan(spec, active_policy, clarifications=answers, review=review)
             )
             if (
                 linear_scope is not None or body.plan_digest is not None
@@ -767,6 +774,7 @@ def create_app(
                     operation_keys=tuple(o.operation_key for o in plan.operations),
                     now=now,
                     clarifications=answers,
+                    review=review,
                 )
             db.put(conn, actor.workspace_id, "approval", str(approval.approval_id), 1, approval)
             db.put(

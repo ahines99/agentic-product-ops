@@ -19,7 +19,11 @@ from decimal import Decimal
 from pathlib import Path
 
 from agentic_product_ops.adapters.model.anthropic import AnthropicProvider
-from agentic_product_ops.adapters.model.contracts import ModelBudget, RuntimeConfiguration
+from agentic_product_ops.adapters.model.contracts import (
+    PROMPT_VERSION,
+    ModelBudget,
+    RuntimeConfiguration,
+)
 from agentic_product_ops.adapters.model.runner import RunStopped
 from agentic_product_ops.adapters.persistence.store import (
     Conflict,
@@ -78,7 +82,7 @@ def main() -> None:
         budget=ModelBudget(
             max_calls=6,
             max_input_bytes=200000,
-            max_output_tokens=6000,
+            max_output_tokens=8000,
             max_estimated_cost=Decimal("4"),
             input_cost_per_million=RESERVE_INPUT,
             output_cost_per_million=RESERVE_OUTPUT,
@@ -180,6 +184,7 @@ def main() -> None:
         "schema_version": "1",
         "generated_at": datetime.now(UTC).isoformat(),
         "model": MODEL,
+        "prompt_version": PROMPT_VERSION,
         "configuration": configuration.model_dump(mode="json"),
         "corpus_author": corpus.get("author"),
         "cases_file": args.cases.as_posix(),

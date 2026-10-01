@@ -1,0 +1,1218 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-10-01T00:27:47.486847+00:00",
+  "model": "claude-opus-5-5",
+  "prompt_version": "roles-v2",
+  "configuration": {
+    "configuration_id": "model-eval-v2-r2b",
+    "provider_id": "anthropic-messages",
+    "model": "claude-opus-5-5",
+    "budget": {
+      "max_calls": 6,
+      "max_input_bytes": 200000,
+      "max_output_tokens": 8000,
+      "max_estimated_cost": "4",
+      "input_cost_per_million": "8",
+      "output_cost_per_million": "20"
+    },
+    "max_review_attempts": 2
+  },
+  "corpus_author": "separate Claude subagent context (held-out set), 2026-09-30",
+  "cases_file": "evals/fixtures/m3-heldout-cases.json",
+  "summary": {
+    "cases": 12,
+    "outcome_accuracy": 0.083,
+    "clarify_recall": null,
+    "clarify_precision": null,
+    "question_topic_coverage": null,
+    "fact_capture": 0.878,
+    "work_item_count_in_range": 0.0,
+    "cases_with_leaked_phrases": 0,
+    "pipeline_failures": 11,
+    "by_category": {
+      "clear_feature": {
+        "cases": 2,
+        "outcome_correct": 1
+      },
+      "ambiguous_request": {
+        "cases": 3,
+        "outcome_correct": 0
+      },
+      "bug_report": {
+        "cases": 1,
+        "outcome_correct": 0
+      },
+      "analytics": {
+        "cases": 2,
+        "outcome_correct": 0
+      },
+      "security": {
+        "cases": 1,
+        "outcome_correct": 0
+      },
+      "data": {
+        "cases": 2,
+        "outcome_correct": 0
+      },
+      "multi_ticket": {
+        "cases": 1,
+        "outcome_correct": 0
+      }
+    }
+  },
+  "spend": {
+    "authorization": "model-eval-heldout-r2-2026-09-30",
+    "reserved_usd": "12.704448",
+    "reserved_calls": 39,
+    "observed_calls": 38,
+    "input_tokens": 329668,
+    "output_tokens": 158770,
+    "actual_billing_verified": false,
+    "estimated_usd_standard_rates": "4.494072",
+    "cap_usd": "13"
+  },
+  "scores": [
+    {
+      "id": "h-clear-01",
+      "category": "clear_feature",
+      "expected": "propose",
+      "outcome": "failed",
+      "outcome_correct": false,
+      "topics_asked": 0,
+      "topics_expected": 0,
+      "facts_captured": 4,
+      "facts_expected": 4,
+      "leaked_phrases": [],
+      "work_item_count": 0,
+      "work_items_in_range": null
+    },
+    {
+      "id": "h-clear-03",
+      "category": "clear_feature",
+      "expected": "propose",
+      "outcome": "propose",
+      "outcome_correct": true,
+      "topics_asked": 0,
+      "topics_expected": 0,
+      "facts_captured": 3,
+      "facts_expected": 4,
+      "leaked_phrases": [],
+      "work_item_count": 5,
+      "work_items_in_range": false
+    },
+    {
+      "id": "h-ambig-01",
+      "category": "ambiguous_request",
+      "expected": "propose",
+      "outcome": "failed",
+      "outcome_correct": false,
+      "topics_asked": 0,
+      "topics_expected": 0,
+      "facts_captured": 3,
+      "facts_expected": 3,
+      "leaked_phrases": [],
+      "work_item_count": 0,
+      "work_items_in_range": null
+    },
+    {
+      "id": "h-ambig-02",
+      "category": "ambiguous_request",
+      "expected": "propose",
+      "outcome": "failed",
+      "outcome_correct": false,
+      "topics_asked": 0,
+      "topics_expected": 0,
+      "facts_captured": 3,
+      "facts_expected": 3,
+      "leaked_phrases": [],
+      "work_item_count": 0,
+      "work_items_in_range": null
+    },
+    {
+      "id": "h-ambig-03",
+      "category": "ambiguous_request",
+      "expected": "propose",
+      "outcome": "failed",
+      "outcome_correct": false,
+      "topics_asked": 0,
+      "topics_expected": 0,
+      "facts_captured": 3,
+      "facts_expected": 3,
+      "leaked_phrases": [],
+      "work_item_count": 0,
+      "work_items_in_range": null
+    },
+    {
+      "id": "h-bug-02",
+      "category": "bug_report",
+      "expected": "propose",
+      "outcome": "failed",
+      "outcome_correct": false,
+      "topics_asked": 0,
+      "topics_expected": 0,
+      "facts_captured": 3,
+      "facts_expected": 3,
+      "leaked_phrases": [],
+      "work_item_count": 0,
+      "work_items_in_range": null
+    },
+    {
+      "id": "h-analytics-01",
+      "category": "analytics",
+      "expected": "propose",
+      "outcome": "failed",
+      "outcome_correct": false,
+      "topics_asked": 0,
+      "topics_expected": 0,
+      "facts_captured": 4,
+      "facts_expected": 4,
+      "leaked_phrases": [],
+      "work_item_count": 0,
+      "work_items_in_range": null
+    },
+    {
+      "id": "h-analytics-02",
+      "category": "analytics",
+      "expected": "propose",
+      "outcome": "failed",
+      "outcome_correct": false,
+      "topics_asked": 0,
+      "topics_expected": 0,
+      "facts_captured": 3,
+      "facts_expected": 3,
+      "leaked_phrases": [],
+      "work_item_count": 0,
+      "work_items_in_range": null
+    },
+    {
+      "id": "h-security-02",
+      "category": "security",
+      "expected": "propose",
+      "outcome": "failed",
+      "outcome_correct": false,
+      "topics_asked": 0,
+      "topics_expected": 0,
+      "facts_captured": 3,
+      "facts_expected": 3,
+      "leaked_phrases": [],
+      "work_item_count": 0,
+      "work_items_in_range": null
+    },
+    {
+      "id": "h-data-01",
+      "category": "data",
+      "expected": "propose",
+      "outcome": "failed",
+      "outcome_correct": false,
+      "topics_asked": 0,
+      "topics_expected": 0,
+      "facts_captured": 4,
+      "facts_expected": 4,
+      "leaked_phrases": [],
+      "work_item_count": 0,
+      "work_items_in_range": null
+    },
+    {
+      "id": "h-data-02",
+      "category": "data",
+      "expected": "propose",
+      "outcome": "failed",
+      "outcome_correct": false,
+      "topics_asked": 0,
+      "topics_expected": 0,
+      "facts_captured": 3,
+      "facts_expected": 3,
+      "leaked_phrases": [],
+      "work_item_count": 0,
+      "work_items_in_range": null
+    },
+    {
+      "id": "h-multi-01",
+      "category": "multi_ticket",
+      "expected": "propose",
+      "outcome": "failed",
+      "outcome_correct": false,
+      "topics_asked": 0,
+      "topics_expected": 0,
+      "facts_captured": 0,
+      "facts_expected": 4,
+      "leaked_phrases": [],
+      "work_item_count": 0,
+      "work_items_in_range": null
+    }
+  ],
+  "runs": [
+    {
+      "case": {
+        "id": "h-clear-01",
+        "category": "clear_feature",
+        "request": "Our dispatch team wants customers to get an SMS when their driver is two stops away. We already send delivery-confirmation texts through the existing Twilio integration, so reuse that sender and the template system. Message text: 'Your driver is about 2 stops away. Track your delivery: {tracking_link}'. Rules: send at most once per delivery, only between 7am and 9pm in the recipient's local time, and only to customers with the existing sms_opt_in flag set. If the route is resequenced after the text went out, do not send a second one. Please add a daily count of these messages to the existing notifications report. Done means opted-out customers never receive it and the report shows zero duplicate sends.",
+        "expected_outcome": "propose",
+        "must_ask_about": [],
+        "must_capture": [
+          [
+            "two stops",
+            "2 stops"
+          ],
+          [
+            "opt-in",
+            "opt in",
+            "opted",
+            "sms_opt_in",
+            "consent"
+          ],
+          [
+            "7am",
+            "9pm",
+            "7 am",
+            "9 pm",
+            "quiet hours",
+            "local time"
+          ],
+          [
+            "once per delivery",
+            "only once",
+            "at most once",
+            "duplicate",
+            "second"
+          ]
+        ],
+        "must_not_contain": [],
+        "work_items": [
+          1,
+          3
+        ],
+        "rationale": "Trigger, content, channel, consent rule, time window and dedup behaviour are all stated, so only implementation detail remains."
+      },
+      "answers": {
+        "Q1": "Use the dispatch system's stop-status events, not telematics. Each time a stop on the route is completed, failed or skipped, recompute the remaining sequence; when exactly 2 unresolved stops remain before this customer's stop, send the SMS. Completed, failed and skipped stops are resolved and drop out of the count; cancelled stops are removed from the sequence and never count.",
+        "Q2": "Suppress it entirely for that delivery. Do not defer or queue it for when the window opens.",
+        "Q3": "Use the time zone of the delivery address on the delivery record. If that time zone is unknown, do not send the SMS for that delivery and log it as suppressed."
+      },
+      "observed": {
+        "state": "REVISION_REQUIRED",
+        "reason": "deterministic_revision_gate",
+        "requirements": [
+          "Send the customer an SMS when their driver is two stops away from the customer's delivery.",
+          "Send the SMS by reusing the existing Twilio integration sender and the existing template system that deliver the delivery-confirmation texts.",
+          "The message text must be 'Your driver is about 2 stops away. Track your delivery: {tracking_link}', with {tracking_link} replaced by the delivery's tracking link.",
+          "Send the two-stops-away SMS at most once per delivery.",
+          "Send the SMS only between 7am and 9pm in the recipient's local time.",
+          "Send the SMS only to customers whose existing sms_opt_in flag is set.",
+          "If the route is resequenced after the SMS has been sent for a delivery, do not send a second SMS for that delivery.",
+          "Add a daily count of two-stops-away SMS messages to the existing notifications report.",
+          "Acceptance: opted-out customers never receive the two-stops-away SMS.",
+          "Acceptance: the notifications report shows zero duplicate sends of the two-stops-away SMS.",
+          "Evaluate the customer's sms_opt_in flag at send time, immediately before handing the message to the Twilio sender, so a customer who opts out after the trigger is not messaged.",
+          "Persist a per-delivery record of the two-stops-away SMS send, enforced atomically so concurrent or repeated triggers (including after resequencing) cannot produce a second send, and usable as the data source for the daily count and duplicate check.",
+          "The new send path must not be able to send messages in production until the opt-in check, the local-time window check and the once-per-delivery enforcement are all active (for example, keep it disabled behind a flag until they ship together).",
+          "Detect the two-stops-away condition from the dispatch system's stop-status events, not telematics: each time a stop on the route is completed, failed or skipped, recompute the remaining sequence, and send the SMS when exactly 2 unresolved stops remain before this customer's stop.",
+          "When counting stops remaining before the customer's stop, treat completed, failed and skipped stops as resolved so they drop out of the count, and remove cancelled stops from the sequence so they never count.",
+          "If the two-stops-away condition occurs outside the 7am-9pm recipient local-time window, suppress the SMS entirely for that delivery; do not defer or queue it for when the window opens.",
+          "Determine the recipient's local time using the time zone of the delivery address on the delivery record.",
+          "If the delivery address time zone is unknown, do not send the SMS for that delivery and log it as suppressed."
+        ],
+        "blocking_questions": [],
+        "work_items": [],
+        "risk_tier": 3,
+        "review_findings": [],
+        "calls": 2,
+        "analyst_attempts": 1,
+        "input_tokens": 21745,
+        "output_tokens": 11569,
+        "elapsed_ms": 96640
+      }
+    },
+    {
+      "case": {
+        "id": "h-clear-03",
+        "category": "clear_feature",
+        "request": "For our internal deploy CLI, please add a --dry-run flag to the `deploy` command. With --dry-run it should resolve the target environment, compute the same change plan it would normally apply (services to restart, config diffs, migrations to run), print that plan, and exit with code 0 without touching anything. If plan computation fails it should exit non-zero with the same error it would give in a real run. It should also work with the existing --output json option so CI can parse the plan. Add a line to the command's --help text. No changes to how a normal deploy behaves.",
+        "expected_outcome": "propose",
+        "must_ask_about": [],
+        "must_capture": [
+          [
+            "--dry-run",
+            "dry run",
+            "dry-run"
+          ],
+          [
+            "exit code 0",
+            "exit 0",
+            "code 0",
+            "non-zero",
+            "exit code"
+          ],
+          [
+            "json",
+            "--output"
+          ],
+          [
+            "without touching",
+            "no changes",
+            "does not apply",
+            "without applying",
+            "not apply"
+          ]
+        ],
+        "must_not_contain": [],
+        "work_items": [
+          1,
+          2
+        ],
+        "rationale": "A bounded CLI flag with explicit behaviour, exit codes and output format."
+      },
+      "answers": {
+        "Q1": "A dry run must be fully read-only: no deploy locks, no deploy-history or audit records, no notifications, and no state or cache writes during environment resolution; any step that writes must be skipped in dry-run mode. It should not wait on or block a concurrent real deploy; it computes the plan from current state. Dry runs are not recorded anywhere; the printed plan is the only output."
+      },
+      "observed": {
+        "state": "PROPOSED",
+        "reason": "reviewed_revision",
+        "requirements": [
+          "The internal deploy CLI's `deploy` command accepts a new --dry-run flag.",
+          "With --dry-run, the command resolves the target environment and computes the same change plan a normal deploy would apply. The plan covers services to restart, config diffs and migrations to run.",
+          "With --dry-run, the command prints the computed change plan.",
+          "With --dry-run, when plan computation succeeds, the command exits with code 0.",
+          "A --dry-run invocation must not touch anything. It must not restart services, apply config changes or run migrations. The full set of other side effects that must be suppressed is pending clarification: deploy locks, audit or history writes, notifications, and state or cache writes during environment resolution.",
+          "With --dry-run, if plan computation fails, the command exits with a non-zero code and reports the same error it would give in a real run.",
+          "--dry-run works together with the existing --output json option, so that CI can parse the plan.",
+          "The `deploy` command's --help text includes a line describing --dry-run.",
+          "The behavior of a normal deploy (without --dry-run) is unchanged.",
+          "A dry run must be fully read-only: it acquires no deploy locks, writes no deploy-history or audit records, sends no notifications, and performs no state or cache writes during environment resolution. Any step that writes must be skipped in dry-run mode.",
+          "A dry run must not wait on or block a concurrent real deploy; it computes the plan from current state.",
+          "Dry runs are not recorded anywhere; the printed plan is the only output of a dry run."
+        ],
+        "blocking_questions": [],
+        "work_items": [
+          {
+            "title": "Add --dry-run flag to the deploy command and document it in --help",
+            "type": "task",
+            "description": "Scope: register a new boolean --dry-run option on the internal deploy CLI's `deploy` command and add one line describing it to the command's --help text. Expected behavior: `deploy --dry-run` is parsed without an unknown-option error. The flag value is passed to the deploy execution path so later tickets can branch on it. `deploy --help` shows a line for --dry-run. Approach: use the CLI's existing option-definition mechanism for `deploy`. Draft the help wording for review; exact wording is open but non-blocking (Q5). This ticket adds no dry-run execution behavior. No repository evidence was supplied, so file locations and test commands must be identified during implementation and must not be assumed.",
+            "criteria": [
+              "Invoking `deploy --dry-run` with otherwise valid arguments is accepted by the argument parser and does not fail with an unknown-option or usage error. The parsed flag is exposed to the deploy execution path as true; omitting it yields false.",
+              "The output of `deploy --help` contains exactly one line describing the --dry-run option."
+            ]
+          },
+          {
+            "title": "Compute the real change plan in dry-run mode and set the dry-run exit codes",
+            "type": "feature",
+            "description": "Scope: when --dry-run is set, run the same environment resolution and change-plan computation a normal deploy uses, then stop before any apply step. Expected behavior: the plan has the same content a real deploy would apply, covering services to restart, config diffs and migrations to run. On success the process exits 0. If plan computation fails, the process exits non-zero with the same error a real run gives. Approach: reuse the existing resolution and planning code instead of duplicating it, so the plans stay identical. Branch on the dry-run flag after planning and before application. Open, non-blocking points: whether dry-run skips confirmation prompts and whether it needs the same credentials as a real deploy (Q6); the conservative default is to keep the normal access checks. JSON-mode error parity (Q3) is also open. Side-effect suppression is handled in W3 and output formatting in W4.",
+            "criteria": [
+              "For a fixture target environment, the plan computed under --dry-run equals the plan a normal deploy computes for the same inputs. The equality covers the services-to-restart list, the config diffs and the migrations-to-run list.",
+              "When plan computation succeeds under --dry-run, the process exit code is 0. This includes the case where the plan is empty.",
+              "When plan computation fails under --dry-run (for example, an unresolvable environment or a planner error), the process exits with a non-zero code. The error message and exit code are identical to those of a normal run that hits the same failure."
+            ]
+          },
+          {
+            "title": "Make dry-run fully read-only and non-blocking with no recording",
+            "type": "feature",
+            "description": "Scope: ensure a --dry-run invocation touches nothing. It must not restart services, apply config changes or run migrations. Per the authenticated answer to Q1, it must also: acquire no deploy locks; write no deploy-history or audit records; send no notifications; and perform no state or cache writes during environment resolution. Any step that writes must be skipped in dry-run mode. A dry run must not wait on or block a concurrent real deploy; it computes the plan from current state. Dry runs are not recorded anywhere. Approach: audit the resolution and planning path reused in W2 for every write, lock or notification. Guard each one on the dry-run flag, so dry-run skips it while normal deploys keep doing it. Verify with spies or fakes on every side-effecting dependency. No repository evidence was supplied; the inventory of side-effecting calls must come from code inspection.",
+            "criteria": [
+              "During a successful --dry-run with a non-empty plan, zero service-restart calls, zero config-apply calls and zero migration-run calls are made.",
+              "During a --dry-run, zero deploy-lock acquisitions occur, zero deploy-history or audit records are written, zero notifications are sent, and zero state or cache writes occur during environment resolution or planning.",
+              "While a deploy lock is held by a simulated concurrent real deploy, a --dry-run for the same environment finishes without waiting on the lock, and the holder keeps the lock uninterrupted.",
+              "After a --dry-run, no persistent record of the run exists in any audit log, deploy history or state store. The only output is the printed plan, or the error on failure."
+            ]
+          },
+          {
+            "title": "Print the dry-run plan in text mode and under --output json",
+            "type": "feature",
+            "description": "Scope: print the plan computed under --dry-run in default text mode and in the existing --output json mode, so CI can parse it. Expected behavior: text mode lists the services to restart, the config diffs and the migrations to run. JSON mode emits a parseable document containing the same plan. Approach: reuse the CLI's existing --output json convention as the starting point. The exact JSON structure, and whether stdout must contain only the JSON document, are still open (Q2, non-blocking); propose a schema for review. Empty-plan messaging (Q4) is also open; implement a draft and flag it for review.",
+            "criteria": [
+              "A successful --dry-run in default output mode prints the computed plan. The printed output contains every service to restart, every config diff and every migration to run in the fixture plan.",
+              "`deploy --dry-run --output json` emits output that a standard JSON parser accepts. The parsed document contains the same services, config diffs and migrations as the computed plan."
+            ]
+          },
+          {
+            "title": "Regression coverage: normal deploy behavior unchanged",
+            "type": "task",
+            "description": "Scope: show that deploys without --dry-run behave as they did before this change. Expected behavior: normal deploys still acquire locks, apply restarts, config changes and migrations, write history and audit records, send notifications, and produce the same output and exit codes. Approach: run the existing deploy test suite unchanged. Add tests asserting that every side effect guarded in W3 still happens in normal mode, and compare normal-mode output before and after the change on fixtures.",
+            "criteria": [
+              "All pre-existing deploy tests pass without modification. For fixture deploys without --dry-run, the lock acquisition, apply calls, history and audit writes, notifications, output and exit codes are identical to the pre-change baseline."
+            ]
+          }
+        ],
+        "risk_tier": 3,
+        "review_findings": [
+          "R5 still says the full set of other side effects to suppress \"is pending clarification\", yet needs_human_decision is now false and Q1 has an authenticated answer (C-a5600b11-ba73-5498-8b58-d7d55f269574). That answer is captured separately in R10, R11 and R12. A reader of R5 alone could conclude the safety scope is still undecided. Keeping R5 preserves the original requirement, which is correct, but its text is internally inconsistent with its flag. Recommend a note or cross-reference to R10/R11/R12. Do not drop R5 or mix clarification refs into its explicit_source provenance.",
+          "R6/W2-AC3 require the dry-run error and exit code to be identical to a real run's. R10/R11 require dry-run to skip locks and writes and not wait on concurrent deploys. Some real runs fail on steps dry-run skips, such as lock contention or a state/cache write during resolution. In those cases dry-run cannot reproduce the real-run error. W2-AC3 should limit parity to failures in plan computation itself, as R6 states. It should explicitly exclude failures in steps that dry-run skips, so the test fixtures are not contradictory.",
+          "R12 and W3-AC4 state that the printed plan, or the error, is the only output of a dry run. Q2 is still open on whether logs may go to stderr under --output json. R12 should be read as \"no persistent recording\" rather than as banning diagnostic or log output. Otherwise the implementer may suppress existing logging, which interacts with Q2.",
+          "W3 adds dry-run guards around locks, writes and notifications in shared resolution and planning code. A missed guard, or a guard with inverted logic, could cause real side effects in dry-run or suppress them in production deploys. W3-AC2 relies on an inventory of side-effecting calls made by code inspection, and no repository evidence was supplied. W5 regression coverage mitigates this, and the risk correctly remains at tier 3. Reviewers should require the inventory and the W5 spies to cover the same call list.",
+          "No repository ID or evidence was supplied. All file locations, test suites, fixture mechanisms and the existing --output json convention are therefore ungrounded. Assumption A1 acknowledges this correctly, and repository_id is null on all work items, which is consistent with configuration. The acceptance criteria assume test infrastructure exists, for example spies, fakes and fixture environments, but that has not been verified.",
+          "Q6 is non-blocking and unanswered. It asks whether dry-run skips confirmation prompts and whether it needs the same credentials as a real deploy. W2 adopts the conservative default of keeping normal access checks, but it has no criterion asserting this. If prompts remain, CI use under R7 may be impaired. A reviewer should confirm the default or add a criterion."
+        ],
+        "calls": 3,
+        "analyst_attempts": 1,
+        "input_tokens": 30655,
+        "output_tokens": 10815,
+        "elapsed_ms": 108985
+      }
+    },
+    {
+      "case": {
+        "id": "h-ambig-01",
+        "category": "ambiguous_request",
+        "request": "Customers keep complaining about checkout on the storefront and leadership wants it fixed this sprint. I don't have the support ticket export handy but apparently it comes up a lot. Can we put together a plan to make checkout better? Maybe a redesign, maybe faster payments, maybe fewer steps, honestly I'm not sure what the main issue is. Whatever you think will have the biggest impact, just scope it so the team can get going on Monday.",
+        "expected_outcome": "clarify",
+        "must_ask_about": [
+          [
+            "complaint",
+            "problem",
+            "pain point",
+            "issue",
+            "what specifically",
+            "what are customers",
+            "support ticket"
+          ],
+          [
+            "metric",
+            "success",
+            "measure",
+            "conversion",
+            "goal",
+            "outcome",
+            "abandon"
+          ]
+        ],
+        "must_capture": [
+          [
+            "checkout"
+          ],
+          [
+            "complain",
+            "customers"
+          ],
+          [
+            "this sprint",
+            "sprint"
+          ]
+        ],
+        "must_not_contain": [],
+        "work_items": null,
+        "rationale": "The actual problem and the success measure are unknown, so any proposed tickets would be guesses about what to build."
+      },
+      "answers": {
+        "Q1": "We do not know the main issue yet and will not guess. I will get the last 90 days of checkout-tagged tickets exported from the support tool to the team by Monday; the first task is to categorise them and confirm the top complaint against checkout funnel data. No change to payment handling is in scope until that evidence points to payments."
+      },
+      "observed": {
+        "state": "REVISION_REQUIRED",
+        "reason": "deterministic_revision_gate",
+        "requirements": [
+          "Produce a plan to improve the storefront checkout experience that addresses the customer complaints about checkout.",
+          "Prioritize the checkout improvement with the biggest expected impact among candidate options (e.g. redesign, faster payments, fewer steps).",
+          "Scope the plan so the team can begin work on Monday.",
+          "The checkout fix is expected to be delivered within the current sprint.",
+          "The first task of the plan is to categorise the last 90 days of checkout-tagged support tickets (exported from the support tool and provided to the team by Monday) and confirm the top complaint against checkout funnel data; the main issue must not be guessed before this evidence is reviewed.",
+          "No change to payment handling is in scope until the ticket and funnel evidence points to payments as the problem."
+        ],
+        "blocking_questions": [],
+        "work_items": [],
+        "risk_tier": 3,
+        "review_findings": [],
+        "calls": 2,
+        "analyst_attempts": 1,
+        "input_tokens": 13662,
+        "output_tokens": 5776,
+        "elapsed_ms": 58000
+      }
+    },
+    {
+      "case": {
+        "id": "h-ambig-02",
+        "category": "ambiguous_request",
+        "request": "Several people managers asked for more visibility into their teams in our HR app. Today the team view shows name, title, start date and location. Some managers want compensation, some want performance ratings, one asked for sick-leave history. HR hasn't weighed in yet. We have customers in both the US and the EU, and some of them use skip-level managers. Can you spec out adding more employee information to the team view?",
+        "expected_outcome": "clarify",
+        "must_ask_about": [
+          [
+            "which fields",
+            "which data",
+            "what information",
+            "which information",
+            "compensation",
+            "salary",
+            "performance",
+            "sick"
+          ],
+          [
+            "who can see",
+            "access",
+            "permission",
+            "skip-level",
+            "skip level",
+            "role",
+            "privacy",
+            "gdpr",
+            "hr approv",
+            "hr sign"
+          ]
+        ],
+        "must_capture": [
+          [
+            "team view"
+          ],
+          [
+            "manager"
+          ],
+          [
+            "eu",
+            "europe"
+          ]
+        ],
+        "must_not_contain": [],
+        "work_items": null,
+        "rationale": "Which sensitive fields to expose and to whom changes both what is built and the legal exposure, and HR has not decided."
+      },
+      "answers": {
+        "Q1": "HR has approved two fields: current base salary (with currency) and the most recent performance rating. Both are off by default and enabled per customer. Sick-leave history is not approved and is out of scope.",
+        "Q2": "Direct reports only by default. Each customer can enable skip-level visibility so managers also see the approved fields for indirect reports; it stays off unless the customer turns it on.",
+        "Q3": "Sick-leave history will not be shown in the team view for any customer, US or EU. No health-related data is in scope, so no legal basis is needed for this release.",
+        "Q4": "No region-specific field list: the same two fields are available in the US and EU, since health data is excluded. Access is controlled per customer: only the customer's HR admin role can enable compensation and performance rating visibility, each independently, and both default to off."
+      },
+      "observed": {
+        "state": "REVISION_REQUIRED",
+        "reason": "deterministic_revision_gate",
+        "requirements": [
+          "Extend the team view in the HR app so people managers can see additional employee information about their teams. The candidate fields requested by managers are compensation, performance ratings and sick-leave history. The final field set is pending HR approval.",
+          "The team view must continue to show the existing fields: name, title, start date and location.",
+          "Any additional employee information must be visible only to managers entitled to see it for their own team. Whether skip-level managers can see indirect reports is pending a decision.",
+          "Handling and display of the additional employee data must comply with the obligations that apply to customers in both the US and the EU.",
+          "The HR-approved additional fields for the team view are exactly two: current base salary (shown with its currency) and the most recent performance rating. Both are off by default and enabled per customer.",
+          "Sick-leave history must not be shown in the team view for any customer, US or EU. No health-related data is in scope for this release.",
+          "By default managers see the approved fields for direct reports only. Each customer can enable skip-level visibility so managers also see the approved fields for indirect reports; this setting stays off unless the customer turns it on.",
+          "Visibility of compensation and performance rating is controlled per customer: only the customer's HR admin role can enable each field, independently of the other, and both default to off.",
+          "There is no region-specific field list: the same two approved fields are available to US and EU customers."
+        ],
+        "blocking_questions": [],
+        "work_items": [],
+        "risk_tier": 3,
+        "review_findings": [],
+        "calls": 2,
+        "analyst_attempts": 1,
+        "input_tokens": 17688,
+        "output_tokens": 8646,
+        "elapsed_ms": 75327
+      }
+    },
+    {
+      "case": {
+        "id": "h-ambig-03",
+        "category": "ambiguous_request",
+        "request": "Our streaming app needs an offline mode. Subscribers on flights and commutes keep asking for it and a competitor just launched downloads. We should support it on iOS and Android. We haven't worked out whether this is the whole catalogue or just our originals, since some licensed titles may not allow downloads, and product hasn't decided whether downloads are a premium-tier perk or available on every plan. Please break this down so engineering can start.",
+        "expected_outcome": "clarify",
+        "must_ask_about": [
+          [
+            "which content",
+            "which titles",
+            "whole catalog",
+            "whole catalogue",
+            "originals",
+            "licens",
+            "rights"
+          ],
+          [
+            "tier",
+            "premium",
+            "entitle",
+            "every plan",
+            "which plan",
+            "which subscribers",
+            "all subscribers"
+          ]
+        ],
+        "must_capture": [
+          [
+            "offline",
+            "download"
+          ],
+          [
+            "ios"
+          ],
+          [
+            "android"
+          ]
+        ],
+        "must_not_contain": [],
+        "work_items": null,
+        "rationale": "Content scope is constrained by licensing and entitlement is undecided; both change what gets built."
+      },
+      "answers": {
+        "Q2": "Launch with our originals only. Licensed titles are excluded until our content licensing team confirms per title that the licence permits downloads; that is recorded as a per-title downloadable flag in content metadata, default false, editable only by content licensing.",
+        "Q3": "Downloads are a premium-tier perk only. If a subscriber downgrades or cancels, their downloaded titles stop playing at the next licence check."
+      },
+      "observed": {
+        "state": "PAUSED",
+        "reason": "provider_or_schema_hold",
+        "requirements": [
+          "The streaming app shall provide an offline mode that lets subscribers download titles and play them back without a network connection, for example on flights and commutes.",
+          "Offline mode shall be supported in both the iOS and Android apps.",
+          "Download eligibility shall be limited to an approved catalogue scope. Whether that scope is the whole catalogue or only originals is undecided.",
+          "Titles whose licences do not permit downloads shall not be offered for download.",
+          "Access to downloads shall be gated by subscription plan according to a product decision. That decision could make downloads a premium-tier perk or make them available on every plan.",
+          "At launch, only our originals shall be downloadable. Licensed titles shall be excluded from download until the content licensing team confirms, per title, that the licence permits downloads.",
+          "Content metadata shall include a per-title downloadable flag that records download permission, defaulting to false; only titles with the flag set shall be offered for download.",
+          "The per-title downloadable flag shall be editable only by the content licensing team.",
+          "Downloads shall be a premium-tier perk only; the app shall allow downloading only for subscribers on the premium tier.",
+          "If a subscriber downgrades from premium or cancels, their downloaded titles shall stop playing at the next licence check."
+        ],
+        "blocking_questions": [],
+        "work_items": [],
+        "risk_tier": 3,
+        "review_findings": [
+          "The Q2 answer describes the downloadable flag as the record of licensing confirmation for licensed titles. It does not say that originals also need the flag set. R7 extends this to 'only titles with the flag set shall be offered for download', and the W2-AC1 truth table makes an original with flag=false ineligible. W1-AC1 then forces every existing title to false, and W1-AC2 lets only the content licensing team edit the flag. Taken together, zero titles are downloadable at launch unless content licensing manually flags every original. That contradicts the answer's 'launch with our originals only'. A human needs to confirm whether originals are eligible by default or must also be flagged by content licensing.",
+          "W2-AC1 makes a licensed title with flag=true ineligible 'at launch'. The Q2 answer says licensed titles are excluded until content licensing confirms per title, which implies a confirmed licensed title becomes eligible. 'At launch' is never defined as a time window or switch, and no criterion covers when or how confirmed licensed titles become downloadable. As written, W2 could permanently block every licensed title, or leave the post-launch transition undefined.",
+          "The W2 eligibility rule depends on knowing whether a title is 'one of our originals' or licensed. No requirement, work item or metadata field establishes that classification, its source of truth, or who maintains it. Unlike the downloadable flag, this classification has no work item. A data source or work item for it is needed.",
+          "W3-AC1 tests a premium subscriber downloading an 'eligible title', which relies on the eligibility decision from W2. However, W3 declares no dependency on W2. Either declare the dependency or define the entitlement check independently of eligibility.",
+          "R3 and R5 still state that catalogue scope and plan gating are undecided, yet needs_human_decision is now false. The original text is preserved, as the instructions require, and the resolved behaviour is captured in R6, R7, R9 and R10. Implementers should be told that R6 and R9 supersede the 'undecided' wording, so readers do not treat R3 and R5 as still open.",
+          "Several items add behaviour that neither the source nor the answers mention. W1 adds audit logging of flag changes (W1-AC3) and attributes it to R4 and R6. W3-AC1 requires a 'distinct entitlement error'. W3 also adds upgrade prompts. These are reasonable, but they are additions; they should be marked as proposals or confirmed, not presented as derived from the requirements.",
+          "The W5 and W6 descriptions say users can 'see their downloads' (download management), but no acceptance criterion verifies a downloads list, or deleting and managing downloads, on either platform.",
+          "R10 revocation only takes effect at the 'next licence check'. The check interval and offline licence duration are deferred to the non-blocking Q4, and the only constraint is that they be configurable (W4-AC3). Until Q4 is decided, a cancelled or downgraded subscriber could keep offline access indefinitely, which has revenue and licence-compliance exposure. The risk tier is correctly kept at 3. A bounded default or a launch gate on the Q4 decision should be considered."
+        ],
+        "calls": 5,
+        "analyst_attempts": 2,
+        "input_tokens": 34656,
+        "output_tokens": 14641,
+        "elapsed_ms": 223795
+      }
+    },
+    {
+      "case": {
+        "id": "h-bug-02",
+        "category": "bug_report",
+        "request": "Since the 3.8 billing release, customers who upgrade plans mid-cycle are charged proration based on actual calendar days in the month, whereas the old system used a flat 30-day month. About 1,200 accounts were affected over six weeks; the differences range from a few cents to roughly $40 either way. Finance thinks the new calculation is actually correct and the old one was wrong. Support wants us to restore the old behaviour and refund everyone. Please fix the bug and handle the affected accounts.",
+        "expected_outcome": "clarify",
+        "must_ask_about": [
+          [
+            "which calculation",
+            "correct",
+            "intended",
+            "expected behavio",
+            "calendar days",
+            "30-day",
+            "30 day",
+            "proration method"
+          ],
+          [
+            "refund",
+            "credit",
+            "affected accounts",
+            "1,200",
+            "1200",
+            "retroactive",
+            "existing customers",
+            "back-bill",
+            "charge the difference"
+          ]
+        ],
+        "must_capture": [
+          [
+            "prorat"
+          ],
+          [
+            "1,200",
+            "1200"
+          ],
+          [
+            "3.8"
+          ]
+        ],
+        "must_not_contain": [],
+        "work_items": null,
+        "rationale": "Stakeholders disagree on which behaviour is correct and how to remediate money already charged, so the fix itself is undefined."
+      },
+      "answers": {
+        "Q1": "The calendar-day calculation from 3.8 is authoritative, so this is not a bug and no proration code change is made. It is consistent with our published terms, which say upgrades are prorated for the days remaining in the billing period.",
+        "Q2": "No blanket refund and no re-billing of undercharged customers. Customers who paid more than the old 30-day method would have charged get an account credit (not a cash refund) for the difference, with no minimum amount. Finance must approve the credit list before any credits are applied."
+      },
+      "observed": {
+        "state": "REVISION_REQUIRED",
+        "reason": "deterministic_revision_gate",
+        "requirements": [
+          "Make mid-cycle plan-upgrade proration use a single approved calculation method (either actual calendar days in the month, as since the 3.8 release, or the previous flat 30-day month), replacing the current disputed behaviour as decided by an authorized human.",
+          "Remediate the accounts affected since the 3.8 billing release (about 1,200 accounts over six weeks, with differences from a few cents to roughly $40 in either direction) according to an approved remediation policy.",
+          "Identify every account that had a mid-cycle plan upgrade prorated since the 3.8 billing release and compute, per account, the difference between the calendar-day proration charged and the flat 30-day-month proration, including the direction of the difference.",
+          "Retain the calendar-day proration calculation introduced in 3.8 as the authoritative method for mid-cycle upgrades; treat it as not a bug and make no change to the proration code. This behaviour is consistent with published terms (upgrades prorated for the days remaining in the billing period).",
+          "Do not issue a blanket refund to all affected accounts and do not re-bill customers who were undercharged relative to the old 30-day method.",
+          "For each affected customer who paid more than the old 30-day method would have charged, issue an account credit (not a cash refund) equal to the difference, with no minimum amount threshold.",
+          "Produce the credit list of overcharged customers and amounts and obtain Finance approval of that list before any credits are applied; no credits may be applied without that approval."
+        ],
+        "blocking_questions": [],
+        "work_items": [],
+        "risk_tier": 3,
+        "review_findings": [],
+        "calls": 2,
+        "analyst_attempts": 1,
+        "input_tokens": 15774,
+        "output_tokens": 7716,
+        "elapsed_ms": 74452
+      }
+    },
+    {
+      "case": {
+        "id": "h-analytics-01",
+        "category": "analytics",
+        "request": "We need visibility into over-the-air firmware update reliability for our smart thermostats. Devices already emit ota_started, ota_completed and ota_failed telemetry events with device_model, from_version and to_version fields. Please build a dashboard in our existing Grafana showing daily update success rate (completed / started) broken down by device model and target firmware version, plus the top failure error codes. Add an alert to the firmware on-call channel if the failure rate for any model/version pair exceeds 5% over a rolling 24 hours with at least 200 attempts. Data retention can follow the existing telemetry policy.",
+        "expected_outcome": "propose",
+        "must_ask_about": [],
+        "must_capture": [
+          [
+            "ota_started",
+            "ota_completed",
+            "ota_failed",
+            "telemetry"
+          ],
+          [
+            "success rate",
+            "failure rate"
+          ],
+          [
+            "5%",
+            "5 percent",
+            "five percent"
+          ],
+          [
+            "grafana",
+            "dashboard"
+          ]
+        ],
+        "must_not_contain": [],
+        "work_items": [
+          1,
+          3
+        ],
+        "rationale": "Source events, metric definition, breakdowns and alert thresholds are all specified."
+      },
+      "answers": {
+        "Q1": "There is no error-code field in the telemetry today. Defer the top failure error codes panel to a follow-up; do not change device firmware or telemetry as part of this work.",
+        "Q2": "An attempt is an ota_started event. Failure rate = ota_failed / attempts with an outcome, for updates started in the rolling 24 hours; in-flight updates are excluded from both sides and the 200-attempt minimum counts only attempts with an outcome. An update with no completed or failed event 24 hours after starting counts as failed."
+      },
+      "observed": {
+        "state": "REVISION_REQUIRED",
+        "reason": "deterministic_revision_gate",
+        "requirements": [
+          "Build a dashboard in the existing Grafana showing daily update success rate (completed / started) broken down by device model and target firmware version.",
+          "Dashboard and alert metrics are derived from the existing ota_started, ota_completed and ota_failed telemetry events; device model is taken from device_model and target firmware version from to_version.",
+          "The dashboard shows the top failure error codes.",
+          "Add an alert to the firmware on-call channel that fires if the failure rate for any model/version pair exceeds 5% over a rolling 24 hours with at least 200 attempts.",
+          "Data retention for this work follows the existing telemetry policy.",
+          "There is no error-code field in the telemetry today: defer the top failure error codes panel to a follow-up, and do not change device firmware or telemetry as part of this work.",
+          "For the alert, an attempt is an ota_started event. Failure rate = ota_failed / attempts with an outcome, for updates started in the rolling 24 hours; in-flight updates are excluded from both numerator and denominator, and the 200-attempt minimum counts only attempts with an outcome.",
+          "An update with no ota_completed or ota_failed event 24 hours after its ota_started event counts as failed in the alert failure-rate calculation."
+        ],
+        "blocking_questions": [],
+        "work_items": [],
+        "risk_tier": 3,
+        "review_findings": [],
+        "calls": 2,
+        "analyst_attempts": 1,
+        "input_tokens": 16196,
+        "output_tokens": 7371,
+        "elapsed_ms": 68829
+      }
+    },
+    {
+      "case": {
+        "id": "h-analytics-02",
+        "category": "analytics",
+        "request": "Marketing wants to start tracking what people do across our online store, both the website and the iOS/Android apps, so they can build audiences and retarget them on ad platforms like Meta and Google. They'd like it as detailed as possible: page views, searches, cart activity, maybe even what people type into the search box before submitting. We sell in the US, UK and Germany. There is no consent banner on the site today. Can you turn this into tickets?",
+        "expected_outcome": "clarify",
+        "must_ask_about": [
+          [
+            "consent",
+            "gdpr",
+            "ccpa",
+            "privacy",
+            "opt-in",
+            "opt in",
+            "legal",
+            "cookie"
+          ],
+          [
+            "which events",
+            "what events",
+            "tracking plan",
+            "what data",
+            "which data",
+            "which actions",
+            "search box",
+            "keystroke",
+            "typed"
+          ]
+        ],
+        "must_capture": [
+          [
+            "meta",
+            "google",
+            "ad platform",
+            "retarget"
+          ],
+          [
+            "germany",
+            "uk"
+          ],
+          [
+            "consent"
+          ]
+        ],
+        "must_not_contain": [],
+        "work_items": null,
+        "rationale": "Sharing behavioural data with ad platforms in the UK and EU without a consent mechanism is a legal decision that must be made before anything is built."
+      },
+      "answers": {
+        "Q1": "UK and Germany: a consent management banner on web and a consent prompt in the apps, with reject as prominent as accept; no non-essential tracking or ad-platform sharing until opt-in. US: a Do Not Sell or Share link plus Global Privacy Control support, honoured before sharing. iOS: App Tracking Transparency prompt; no tracking if declined. Our legal/privacy counsel signs off before any tracking ships, and consent must ship first.",
+        "Q2": "No. Pre-submit keystroke capture is not approved. Only submitted search queries are tracked.",
+        "Q3": "Server-side only (Meta Conversions API and Google enhanced conversions), consented users only. Share event name, product IDs, cart value, currency and timestamp, plus SHA-256 hashed email for logged-in users; no device advertising IDs unless ATT or consent allows, and no search text, raw email, name or address. Track only page views, submitted searches and cart events. Retain raw event data for 13 months."
+      },
+      "observed": {
+        "state": "REVISION_REQUIRED",
+        "reason": "deterministic_revision_gate",
+        "requirements": [
+          "Track page view events on the online store website and the iOS and Android apps.",
+          "Track search events on the online store website and the iOS and Android apps.",
+          "Track cart activity events on the online store website and the iOS and Android apps.",
+          "Make tracked behaviour available for building audiences and retargeting them on ad platforms such as Meta and Google.",
+          "Optionally capture search-box input typed before the user submits the search (requested tentatively with 'maybe').",
+          "Tracking must operate for users in the US, UK and Germany, the markets the store sells in, and must account for the absence of any existing consent banner on the site.",
+          "For UK and German users, provide a consent management banner on the web and a consent prompt in the apps, with reject as prominent as accept; no non-essential tracking or ad-platform sharing may occur until the user opts in.",
+          "For US users, provide a Do Not Sell or Share link plus Global Privacy Control support, honoured before any ad-platform sharing.",
+          "On iOS, show the App Tracking Transparency prompt; no tracking may occur if the user declines.",
+          "Legal/privacy counsel must sign off before any tracking ships, and the consent mechanisms must ship before any tracking.",
+          "Pre-submit keystroke capture of search-box input must not be implemented; only submitted search queries are tracked.",
+          "Ad-platform sharing must be server-side only, via Meta Conversions API and Google enhanced conversions, and only for consented users.",
+          "Data shared with ad platforms is limited to event name, product IDs, cart value, currency and timestamp, plus a SHA-256 hashed email for logged-in users.",
+          "Do not share device advertising IDs unless ATT or consent allows, and never share search text, raw email, name or address with ad platforms.",
+          "Track only page views, submitted searches and cart events.",
+          "Retain raw event data for 13 months."
+        ],
+        "blocking_questions": [],
+        "work_items": [],
+        "risk_tier": 3,
+        "review_findings": [],
+        "calls": 2,
+        "analyst_attempts": 1,
+        "input_tokens": 19039,
+        "output_tokens": 10763,
+        "elapsed_ms": 104172
+      }
+    },
+    {
+      "case": {
+        "id": "h-security-02",
+        "category": "security",
+        "request": "Our clinics want front desk staff and our external billing contractors to be able to open patient records from their personal laptops and phones so they can work from home a couple of days a week. Right now the scheduling and records system is only reachable from clinic workstations on the office network. Can we open it up so they can log in from anywhere? The contractors are a third-party firm we started using last month.",
+        "expected_outcome": "clarify",
+        "must_ask_about": [
+          [
+            "contractor",
+            "third-party",
+            "third party",
+            "baa",
+            "business associate",
+            "external"
+          ],
+          [
+            "which records",
+            "what data",
+            "which fields",
+            "minimum necessary",
+            "phi",
+            "scope of access",
+            "what access"
+          ],
+          [
+            "device",
+            "mdm",
+            "byod",
+            "personal laptop",
+            "personal device",
+            "managed"
+          ]
+        ],
+        "must_capture": [
+          [
+            "front desk"
+          ],
+          [
+            "contractor",
+            "billing"
+          ],
+          [
+            "personal",
+            "work from home",
+            "remote",
+            "anywhere"
+          ]
+        ],
+        "must_not_contain": [],
+        "work_items": null,
+        "rationale": "Opening patient data to a third party on unmanaged devices depends on access scope and contractual/regulatory decisions nobody has stated."
+      },
+      "answers": {
+        "Q1": "HIPAA governs these records. No Business Associate Agreement is signed with the billing firm yet, so contractor access must not be enabled until our compliance officer confirms a signed BAA.",
+        "Q2": "Billing contractors see only billing data: patient name, date of birth, insurance, visit dates, procedure and diagnosis codes, and charges; no clinical notes. Front desk staff see scheduling, demographic and insurance data only; no clinical records.",
+        "Q3": "Personal laptops are allowed only through a browser-based virtual desktop with download, printing, clipboard and local caching blocked; personal phones are not allowed. Devices must have a supported OS and screen lock enabled.",
+        "Q4": "Never expose the system directly to the public internet. Remote access goes only through a zero-trust access gateway into the virtual desktop, restricted to US locations.",
+        "Q5": "Mandatory MFA through the clinic's SSO identity provider for every remote user. Clinic IT provisions one named account per contractor (no shared accounts) at the request of the firm's manager, expiring every 90 days unless renewed. Clinic IT revokes access; the firm must notify us within 24 hours of a departure, and all contractor accounts are revoked when the engagement ends."
+      },
+      "observed": {
+        "state": "REVISION_REQUIRED",
+        "reason": "deterministic_revision_gate",
+        "requirements": [
+          "Front desk staff must be able to open patient records in the scheduling and records system from their personal laptops and phones.",
+          "External billing contractors, who belong to a third-party firm, must be able to open patient records in the scheduling and records system from their personal laptops and phones.",
+          "The scheduling and records system, currently reachable only from clinic workstations on the office network, must be reachable for login from outside the office network (e.g. from home) by the permitted users.",
+          "Remote access must require users to log in (authenticate) before they can open patient records.",
+          "The patient records are governed by HIPAA, and remote access must be designed to meet HIPAA obligations.",
+          "Remote access for the third-party billing contractor firm must not be enabled until the clinic's compliance officer confirms a signed Business Associate Agreement with the firm (none is signed yet).",
+          "Billing contractors must see only billing data: patient name, date of birth, insurance, visit dates, procedure and diagnosis codes, and charges; they must not see clinical notes.",
+          "Front desk staff must see only scheduling, demographic and insurance data; they must not see clinical records.",
+          "Personal laptops may access the system only through a browser-based virtual desktop with download, printing, clipboard and local caching blocked.",
+          "Personal phones must not be allowed to access the system.",
+          "Devices used for remote access must have a supported OS and screen lock enabled.",
+          "The system must never be exposed directly to the public internet; remote access must go only through a zero-trust access gateway into the virtual desktop.",
+          "Remote access must be restricted to US locations.",
+          "Every remote user must authenticate with mandatory MFA through the clinic's SSO identity provider.",
+          "Clinic IT must provision one named account per contractor (no shared accounts) at the request of the contractor firm's manager.",
+          "Contractor accounts must expire every 90 days unless renewed.",
+          "Clinic IT is responsible for revoking contractor access; the firm must notify the clinic within 24 hours of a contractor departure, and all contractor accounts must be revoked when the engagement ends."
+        ],
+        "blocking_questions": [],
+        "work_items": [],
+        "risk_tier": 3,
+        "review_findings": [],
+        "calls": 2,
+        "analyst_attempts": 1,
+        "input_tokens": 21821,
+        "output_tokens": 12998,
+        "elapsed_ms": 124952
+      }
+    },
+    {
+      "case": {
+        "id": "h-data-01",
+        "category": "data",
+        "request": "Reporting needs a reliable delivery timestamp. Add a nullable delivered_at_utc column to the shipments table in Postgres. For new shipments, set it when the shipment status changes to DELIVERED, using the timestamp of that status event converted to UTC. Backfill existing rows from the shipment_events table (latest DELIVERED event per shipment); shipments never delivered stay null. The backfill must run in batches of 10,000 rows, be safe to re-run, and not lock the table, since the table has about 80 million rows and is written to constantly. Add an index on the new column. Reports will switch to it in a later ticket.",
+        "expected_outcome": "propose",
+        "must_ask_about": [],
+        "must_capture": [
+          [
+            "delivered_at_utc"
+          ],
+          [
+            "backfill"
+          ],
+          [
+            "10,000",
+            "10000",
+            "batch"
+          ],
+          [
+            "re-run",
+            "rerun",
+            "idempotent",
+            "not lock",
+            "lock"
+          ]
+        ],
+        "must_not_contain": [],
+        "work_items": [
+          1,
+          3
+        ],
+        "rationale": "Schema, population rule, backfill source and operational constraints are all specified."
+      },
+      "answers": {
+        "Q1": "The live rule matches the backfill: delivered_at_utc always equals the timestamp of the latest DELIVERED event in UTC, so a later DELIVERED event overwrites it. Changing from DELIVERED to another status does not clear it."
+      },
+      "observed": {
+        "state": "REVISION_REQUIRED",
+        "reason": "deterministic_revision_gate",
+        "requirements": [
+          "Add a nullable column named delivered_at_utc to the shipments table in Postgres.",
+          "When a shipment's status changes to DELIVERED, set delivered_at_utc to the timestamp of that status event, converted to UTC. The rule for repeated DELIVERED events, and for shipments that leave DELIVERED, is pending Q1.",
+          "Backfill delivered_at_utc for existing shipments from the shipment_events table, using the latest DELIVERED event per shipment, converted to UTC.",
+          "Shipments that were never delivered keep delivered_at_utc as null.",
+          "The backfill runs in batches of 10,000 rows.",
+          "The backfill is safe to re-run. Repeated executions produce the same result without corrupting data.",
+          "The backfill must not lock the shipments table, because the table has about 80 million rows and is written to constantly.",
+          "Add an index on the delivered_at_utc column.",
+          "The column addition and index creation should avoid prolonged locks that block writes to the constantly written shipments table. Any unavoidable brief lock must be bounded, for example by lock_timeout, and the index should be built without blocking writes.",
+          "The live rule matches the backfill rule: delivered_at_utc always equals the timestamp of the latest DELIVERED event in UTC, so a later DELIVERED event overwrites the existing value.",
+          "When a shipment's status changes from DELIVERED to another status, delivered_at_utc is not cleared."
+        ],
+        "blocking_questions": [],
+        "work_items": [],
+        "risk_tier": 3,
+        "review_findings": [],
+        "calls": 2,
+        "analyst_attempts": 1,
+        "input_tokens": 16984,
+        "output_tokens": 8685,
+        "elapsed_ms": 73608
+      }
+    },
+    {
+      "case": {
+        "id": "h-data-02",
+        "category": "data",
+        "request": "Our recruiting product has kept every candidate profile, CV and interview note since launch, about 4 million candidates across customers in the US, UK and EU. Storage costs are climbing and a couple of enterprise customers have asked whether we comply with privacy rules on retention. Please set up an automated job to purge old candidate data. Some customers have mentioned that candidates involved in ongoing disputes need to be kept, but we don't have a flag for that yet.",
+        "expected_outcome": "clarify",
+        "must_ask_about": [
+          [
+            "retention",
+            "how long",
+            "how old",
+            "cutoff",
+            "period",
+            "months",
+            "years",
+            "threshold"
+          ],
+          [
+            "hard delete",
+            "soft delete",
+            "anonymi",
+            "irreversib",
+            "permanent",
+            "backup",
+            "restore"
+          ],
+          [
+            "legal hold",
+            "dispute",
+            "exempt",
+            "exclude",
+            "per-customer",
+            "per customer",
+            "configurable"
+          ]
+        ],
+        "must_capture": [
+          [
+            "candidate"
+          ],
+          [
+            "storage",
+            "cost"
+          ],
+          [
+            "privacy",
+            "comply",
+            "compliance",
+            "retention"
+          ]
+        ],
+        "must_not_contain": [],
+        "work_items": null,
+        "rationale": "Deleting candidate data is irreversible and the retention period, deletion method and hold exemptions are all unstated."
+      },
+      "answers": {
+        "Q1": "Old means time since the candidate's last activity (application, update or interview). Defaults, applied equally to profiles, CVs and interview notes: 12 months for UK and EU candidates, 24 months for US candidates. Each customer, as controller, can configure its own period, but not below 6 months in the UK and EU or 12 months in the US.",
+        "Q2": "We add a legal-hold flag on the candidate; only the customer's admin users can set or clear it, and flagged candidates are never purged. Purging is withheld entirely until the flag exists and customers have had the 60-day notice period to set it.",
+        "Q3": "Purge means hard deletion after a 30-day soft-delete grace period. It covers the primary database, attachment storage, search indexes, analytics copies and deletion requests to third-party processors. Backups expire on their existing rotation, and any restore must re-apply purges before use.",
+        "Q4": "Legal/privacy sign-off is required before the job is enabled. All customers are notified 60 days before their first run with their retention period and the hold flag; no opt-in is required. The job is enabled per customer only after that notice period ends."
+      },
+      "observed": {
+        "state": "PAUSED",
+        "reason": "provider_or_schema_hold",
+        "requirements": [
+          "Provide an automated job that purges old candidate data.",
+          "The purge scope covers candidate profiles, CVs and interview notes.",
+          "Candidates involved in ongoing disputes must be kept and excluded from purging.",
+          "Introduce a mechanism (e.g. a flag) to mark candidates involved in ongoing disputes so the purge job can exclude them, since no such flag exists today.",
+          "Retention and purge behaviour must comply with applicable privacy retention rules for customers in the US, UK and EU.",
+          "The purge job must run automatically on a recurring basis without manual triggering and handle a data volume of roughly 4 million candidates.",
+          "Purging should reduce storage consumed by retained candidate data.",
+          "Candidate data age is measured as time since the candidate's last activity (application, update or interview).",
+          "Default retention periods, applied equally to profiles, CVs and interview notes, are 12 months for UK and EU candidates and 24 months for US candidates.",
+          "Each customer, as controller, can configure its own retention period, but not below 6 months for UK and EU candidates or 12 months for US candidates.",
+          "Add a legal-hold flag on the candidate; only the customer's admin users can set or clear it.",
+          "Candidates with the legal-hold flag set are never purged.",
+          "Purging is withheld entirely until the legal-hold flag exists and customers have had the 60-day notice period to set it.",
+          "Purge means hard deletion after a 30-day soft-delete grace period.",
+          "Purging covers the primary database, attachment storage, search indexes, analytics copies, and issuing deletion requests to third-party processors.",
+          "Backups expire on their existing rotation; any restore from backup must re-apply purges before the restored data is used.",
+          "Legal/privacy sign-off is required before the purge job is enabled.",
+          "All customers are notified 60 days before their first purge run, including their retention period and the legal-hold flag; no opt-in is required.",
+          "The purge job is enabled per customer only after that customer's 60-day notice period ends."
+        ],
+        "blocking_questions": [],
+        "work_items": [],
+        "risk_tier": 3,
+        "review_findings": [
+          "The dependency order lets W3 ship before W7. W3 delivers a recurring purge job that runs on schedule without manual triggering and deletes eligible candidates (W3-AC1, W3-AC2). The enablement gate that withholds all purging until sign-off, the hold flag and the 60-day notice are in place comes only in W7, which depends on W3. If W3 is deployed before W7, real deletions could happen without the required gate, breaking R13, R17 and R19. W3 needs a blocking criterion that the job ships disabled or as a no-op until the W7 gate exists. Alternatively, the gate should be a prerequisite of W3.",
+          "The spec does not say how a candidate's jurisdiction (US, UK or EU) is determined. It could be the candidate's residence, the job location or the customer's location. It also does not say which retention period applies to candidates outside the US, UK and EU, or with an unknown jurisdiction. Default periods differ between 12 and 24 months. Misclassifying a candidate could therefore cause premature, irreversible deletion. W1 assumes a jurisdiction attribute exists and defines no fallback.",
+          "W3-AC3 says a hold set during the grace period prevents the hard delete. It does not say whether the soft-deleted records are then restored to normal visibility. It also does not say whether admins can find and flag candidates that are already soft-deleted.",
+          "'Last activity' includes an 'update', but the spec does not define which updates count. Recruiter edits, system or automated changes, and views are all unspecified. This changes eligibility dates and the risk of retaining data indefinitely.",
+          "W6 notifies customers 60 days before their first run. No criterion covers customers onboarded after the initial notice or customers who later shorten their retention period. It is unclear whether those changes need fresh notice or gating.",
+          "The W5 purge ledger retains the IDs of hard-deleted candidates indefinitely. This may itself be retained personal data, which needs legal/privacy review against R5. No criterion limits the ledger's contents or retention.",
+          "R5 (compliance with US, UK and EU retention rules) is verified only through the default retention periods and the existence of legal sign-off. No criterion checks that the configured defaults and minimums were reviewed against each jurisdiction's actual obligations. This remains a residual compliance risk, held at tier 3.",
+          "No repository evidence or repository_id was supplied. Every work item leaves storage locations, processors, analytics stores and code paths to the implementer, so the effort and the systems involved are ungrounded."
+        ],
+        "calls": 4,
+        "analyst_attempts": 2,
+        "input_tokens": 36661,
+        "output_tokens": 13640,
+        "elapsed_ms": 130404
+      }
+    },
+    {
+      "case": {
+        "id": "h-multi-01",
+        "category": "multi_ticket",
+        "request": "We want to launch digital gift cards on the web store before the holidays. Shoppers can buy a gift card for $25, $50 or $100, pay with any existing payment method, and have it emailed to a recipient with an optional message. Each card gets a unique 16-character code. Recipients redeem the code at checkout; partial redemption is allowed and the remaining balance stays on the code. Cards don't expire. Add a public balance-check page where you enter a code and see the remaining balance, rate-limited to prevent code guessing. Finance needs a daily report of cards sold, redeemed and outstanding liability.",
+        "expected_outcome": "propose",
+        "must_ask_about": [],
+        "must_capture": [
+          [
+            "$25",
+            "$50",
+            "$100",
+            "25",
+            "denomination"
+          ],
+          [
+            "partial redemption",
+            "partial",
+            "remaining balance"
+          ],
+          [
+            "balance check",
+            "balance-check",
+            "balance page"
+          ],
+          [
+            "liability",
+            "daily report",
+            "finance"
+          ]
+        ],
+        "must_not_contain": [],
+        "work_items": [
+          3,
+          6
+        ],
+        "rationale": "A well-specified feature spanning purchase, delivery, redemption, balance lookup and reporting that naturally splits into several tickets."
+      },
+      "answers": {
+        "Q1": "Yes: a gift card can be combined with one other payment method to cover the remainder. Up to 5 gift cards can be used on one order. When the balance exceeds the order total, only the order total is deducted.",
+        "Q2": "Gift card purchases are refundable within 14 days only if the code is completely unused, which voids the code; once any balance is used, no refund. A chargeback on a purchase freezes the code's remaining balance. Refunds or cancellations of orders paid with a gift card return the gift card portion to the same card balance and the rest to the original method. Liability = issued - redeemed + restored - voided.",
+        "Q3": "US only, USD only. Cards never expire and carry no fees, which meets federal CARD Act rules; show no expiration and no fees on the purchase page, recipient email and balance page. Finance records purchaser state for unclaimed-property reporting. Legal must approve non-expiring cards before launch.",
+        "Q4": "Delete the gift message 90 days after delivery; keep the recipient email for 13 months after delivery for resends and support, then delete it. Only customer support can access them. Deletion requests are honoured without affecting the card balance, and there is no content moderation."
+      },
+      "observed": {
+        "state": "PAUSED",
+        "reason": "provider_or_schema_hold",
+        "requirements": [],
+        "blocking_questions": [],
+        "work_items": [],
+        "risk_tier": null,
+        "review_findings": [],
+        "calls": 1,
+        "analyst_attempts": 1,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "elapsed_ms": 16
+      }
+    }
+  ]
+}

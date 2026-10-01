@@ -7,6 +7,7 @@ from uuid import UUID
 from pydantic import Field, model_validator
 
 from agentic_product_ops.adapters.linear.offline import description
+from agentic_product_ops.adapters.model.contracts import Review
 from agentic_product_ops.domain.clarifications import ClarificationReceipt
 from agentic_product_ops.domain.contracts import (
     ID,
@@ -90,8 +91,9 @@ def build_native_plan(
     scope: LinearScope,
     *,
     clarifications: tuple[ClarificationReceipt, ...] = (),
+    review: Review | None = None,
 ) -> NativePlan:
-    proposal_ready(spec, policy, clarifications=clarifications)
+    proposal_ready(spec, policy, clarifications=clarifications, review=review)
     teams = {b.local_id: str(b.provider_id) for b in scope.teams}
     projects = {b.local_id: str(b.provider_id) for b in scope.projects}
     labels = {b.local_id: str(b.provider_id) for b in scope.labels}

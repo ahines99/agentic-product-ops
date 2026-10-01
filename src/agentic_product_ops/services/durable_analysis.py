@@ -254,6 +254,17 @@ def recorded_review(
     return parsed.model_dump(mode="json")
 
 
+def passing_review(
+    store: Store, workspace: str, spec: WorkSpecification, policy: ServerPolicy
+) -> Review | None:
+    """The stored independent review that passed this exact content, if there is one."""
+    try:
+        recorded = recorded_review(store, workspace, spec, policy)
+    except (Missing, PolicyError):
+        return None
+    return Review.model_validate_json(json.dumps(recorded["review"]))
+
+
 def analysis_mode(store: Store, workspace: str, spec: WorkSpecification) -> dict[str, Any]:
     index = store.get(workspace, "analysis_index", str(spec.specification_id), spec.revision)
     try:

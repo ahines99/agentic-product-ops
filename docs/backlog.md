@@ -19,7 +19,8 @@ Version 0.6.0 recovery and hardening ([ADR-021](adr/021-publication-recovery-and
 | R08 | Per-profile worker routing | C01 | Done offline; two-profile live check open | New profiles get their own queue; workers dispatch only their own workspace's outbox rows. |
 | R09 | Remove unwired adapters and consolidate records | R01-R08 | Done (ADR-022) | OpenAI, OAuth, JWT, mock GraphQL and simulation publishers removed; their useful tests ported to production paths; superseded docs moved to `docs/history/`. |
 | R10 | Paid model evaluation harness and first 16-case run | R09 | Done | Explicit flag, key file and durable spend cap; resumable; every attempt kept; results in [validation](validation.md#model-evaluation). |
-| R11 | Calibrate the blocking-question threshold | R10 | Open | On a held-out set written by someone other than the model, well-specified requests reach a reviewed proposal while ambiguous ones still stop, without changing the deterministic gate. |
+| R11 | Calibrate the blocking-question threshold | R10 | Done (ADR-023) | Held-out 20-case set: routing accuracy 70% (25% before), 7 of 7 ambiguous requests still stop, 8 of 20 reach an approvable proposal. |
+| R12 | Decide whether optional questions block clearing a human-decision flag | R11 | Open; owner decision | If approved, a flag clears once every blocking question affecting the requirement has an authenticated answer; re-measure on a fresh held-out set. |
 
 Local prompt-entry continuation (dependency order):
 

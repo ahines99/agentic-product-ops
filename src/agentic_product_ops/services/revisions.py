@@ -127,9 +127,10 @@ def revise_specification(
                 "established product ambiguity. Extract actual requirements and actual unknowns. "
                 "Preserve S0 exactly. Return exact source excerpts with unique IDs and cite them. "
                 "On a clarification revision preserve every original requirement and answer, "
-                "and return unresolved_questions exactly as given, including "
+                "and return the objective and unresolved_questions exactly as given, including "
                 "affected_requirement_ids; link new requirements to an answer only through "
-                "their source_refs. "
+                "their source_refs. Once every blocking question affecting a requirement has an "
+                "authenticated answer, set that requirement's needs_human_decision to false. "
                 "Use only the configured team/project/label scope and supplied repository ID. "
                 "Do not fabricate approvals or answers. Decomposer must include every requirement "
                 "in work item requirement_ids and every criterion must cite real requirements."
@@ -259,7 +260,7 @@ def revise_specification(
             if any(f.blocking for f in review.findings):
                 state, reason = "REVISION_REQUIRED", "review_blocker"
             else:
-                proposal_ready(candidate, policy, clarifications=answers)
+                proposal_ready(candidate, policy, clarifications=answers, review=review)
                 state, reason = "PROPOSED", "reviewed_revision"
         except RunStopped:
             state, reason = "PAUSED", "provider_or_schema_hold"
