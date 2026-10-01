@@ -1,5 +1,7 @@
 # Dependency-ordered implementation backlog
 
+The joint plan with Delivery OS, including the ticket pickup contract, is in [roadmap.md](roadmap.md).
+
 The later [PER-7 live integration record](per7-validation-record.md) supersedes historical
 claims below about missing human approval, genuine Linear events, live publication and actual
 Delivery acceptance. The [current continuation](prompt-to-delivery.md#dependency-ordered-continuation)

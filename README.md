@@ -152,7 +152,7 @@ open. Delivery OS accepts one ticket per handoff. There is no production deploym
 ## Documentation
 
 - [Product specification](docs/product-spec.md) and the [original brief](docs/original-initialization-specification.txt)
-- [Implementation status](docs/implementation-status.md), [validation](docs/validation.md), [backlog](docs/backlog.md)
+- [Roadmap with Delivery OS](docs/roadmap.md), [Implementation status](docs/implementation-status.md), [validation](docs/validation.md), [backlog](docs/backlog.md)
 - [Linear integration](docs/linear-integration.md), [Delivery OS handoff](docs/delivery-os-handoff.md), [evaluation methodology](docs/evaluation-methodology.md)
 - [Pilot runbook](docs/local-pilot.md), [Linear monitor](docs/linear-monitor.md), [prompt console](docs/local-prompt-console.md)
 - Superseded plans and versioned records: `docs/history/`
