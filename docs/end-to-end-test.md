@@ -18,7 +18,7 @@ Steps marked **(you)** are human decisions. Nobody else runs them.
 
 Delivery OS:
 
-1. PRs #15 (DO-1, DO-2, DO-4), #16 (DO-3 pull intake) and the documentation-lane PR are merged
+1. PRs #15 (DO-1, DO-2, DO-4), #16 (DO-3 pull intake) and #17 (documentation lane) are merged
    and installed on the service. Its checkout of `main` is clean.
 2. `config.local.json`, for the `agentic-delivery-engineer` repository entry:
    `automatic_execution: true`, `linear_repository_names: ["agentic-delivery-engineer"]`, and

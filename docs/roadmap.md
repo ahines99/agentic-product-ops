@@ -2,7 +2,8 @@
 
 Updated 2026-10-01. Product Ops items PO-1 to PO-8 are implemented
 ([ADR-027](adr/027-ticket-pickup-contract-product-ops-side.md)); PO-7 is built switched off pending
-the owner's decision. Delivery OS items are open. This is the joint plan for the two systems. Product Ops items (`PO-`) are built
+the owner's decision. Delivery OS items DO-1 to DO-5 are merged; DO-6 is in progress. This is the
+joint plan for the two systems. Product Ops items (`PO-`) are built
 in this repository. Delivery OS items (`DO-`) are built in `agentic-delivery-engineer` and are
 listed here so both sides work to the same contract. The detailed engineering backlog stays in
 [backlog.md](backlog.md).
@@ -43,8 +44,8 @@ Goal: no Product Ops ticket reaches Delivery OS unless Product Ops' policy says 
 | --- | --- | --- | --- | --- |
 | PO-1 (done) | Product Ops | Add the `Repository:` line to every published description, under a new policy version `pilot-execution-v2`. Include the R14 escaping fix in the same version. | None | New proposals render `Repository: <name>` as the first line; apostrophes are never sent as a literal `&#x27;`; plans approved under `pilot-execution-v1` publish unchanged; read-back comparison passes on a mock round trip. |
 | PO-2 (done) | Product Ops | Apply the `delivery-ready` label only when the handoff policy allows delivery. The label must already exist in Linear and is bound in the profile's scope like other labels. | PO-1 | The label appears in the exact publication plan and therefore in the approval; it is absent for every tier-2 or tier-3 specification; tests cover both cases. |
-| DO-1 (built, PR #15) | Delivery OS | Require the `delivery-ready` label in the Linear monitor's eligibility check, configurable per repository. | Contract v1 | An eligible-looking ticket without the label is never assigned or run; with the label, current behaviour is unchanged; a regression test reproduces the PER-16 case and shows no claim. |
-| DO-2 (built, PR #15) | Delivery OS | Make the `Repository:` line mandatory for automatic pickup instead of optional. | Contract v1 | Tickets with no line are skipped; tickets naming another repository are skipped; existing configured repositories still pick up correctly named tickets. |
+| DO-1 (merged, PR #15) | Delivery OS | Require the `delivery-ready` label in the Linear monitor's eligibility check, configurable per repository. | Contract v1 | An eligible-looking ticket without the label is never assigned or run; with the label, current behaviour is unchanged; a regression test reproduces the PER-16 case and shows no claim. |
+| DO-2 (merged, PR #15) | Delivery OS | Make the `Repository:` line mandatory for automatic pickup instead of optional. | Contract v1 | Tickets with no line are skipped; tickets naming another repository are skipped; existing configured repositories still pick up correctly named tickets. |
 | PO-3 (done) | Product Ops | Add a "Publish to Linear" button to the console, shown only after the exact plan is approved, with a confirmation step. All publish-time checks still run on the server. | PO-1 | The button is absent before approval and after expiry; the server rechecks approval, grant, scope and budget; an uncertain result shows a reconcile action, not a retry. |
 
 Owner decisions in this phase: the label name, if `delivery-ready` is not wanted, and whether
@@ -58,8 +59,8 @@ its state.
 | ID | Owner | Work | Depends on | Acceptance criteria |
 | --- | --- | --- | --- | --- |
 | PO-4 (done, ADR-028) | Product Ops | Write `Handoff: sha256:<digest>` into each `delivery-ready` ticket, and serve the signed envelope at `GET /handoffs/<digest>` to Delivery OS's separate read-only credential. | PO-2 | Delivery OS can fetch the envelope by the reference; the envelope verifies with the pinned key; an expired or revoked approval returns no envelope. |
-| DO-3 (built, PR #16; documentation lane in its own PR) | Delivery OS | Before executing a Product Ops ticket, fetch and verify its signed envelope (issuer, key, audience, expected digest, freshness) and check that the ticket text matches the approved plan. | PO-4, DO-1 | A labelled ticket without a valid envelope is held, not run; a ticket edited after approval is held; the PER-7 path still works. |
-| DO-4 (built, PR #15) | Delivery OS | Report progress back to Linear: claimed, in progress, in review, done or blocked, with the reason when blocked, as comments with hidden markers that Product Ops reads (PO-5). | DO-3 | Each state change appears on the ticket within one poll interval; a policy block like PER-16's is visible on the ticket, not only in Delivery OS storage. |
+| DO-3 (merged, PR #16; documentation lane PR #17) | Delivery OS | Before executing a Product Ops ticket, fetch and verify its signed envelope (issuer, key, audience, expected digest, freshness) and check that the ticket text matches the approved plan. | PO-4, DO-1 | A labelled ticket without a valid envelope is held, not run; a ticket edited after approval is held; the PER-7 path still works. |
+| DO-4 (merged, PR #15) | Delivery OS | Report progress back to Linear: claimed, in progress, in review, done or blocked, with the reason when blocked, as comments with hidden markers that Product Ops reads (PO-5). | DO-3 | Each state change appears on the ticket within one poll interval; a policy block like PER-16's is visible on the ticket, not only in Delivery OS storage. |
 | PO-5 (done) | Product Ops | Read Delivery OS progress and extend the derived lifecycle beyond `HANDOFF_READY` to `IN_DELIVERY`, `IN_REVIEW`, `DELIVERED` and `DELIVERY_BLOCKED`. | DO-4 | The `state` command and console show delivery progress from durable records; nothing in Product Ops changes on the strength of a Linear status alone. |
 
 ## Phase 3: real features flow end to end
@@ -70,8 +71,8 @@ Goal: an ordinary multi-ticket feature can go from the browser to reviewed chang
 | --- | --- | --- | --- | --- |
 | PO-6 (partly met: splitting in range, routing 36% below target) | Product Ops | Calibrate ticket splitting after answers and cross-domain routing (backlog R13). | None | On a fresh set from new domains, answered proposals stay within the expected ticket range and first-pass routing holds above 60%. |
 | PO-7 (switch built, off) | Owner, then Product Ops | Decide which code changes may be handed off, then encode it as a handoff policy. | Owner decision | The policy is versioned and tested; tier 3 stays excluded; approved low-risk code changes receive `delivery-ready`. |
-| DO-5 | Delivery OS | Accept a multi-ticket handoff with dependencies: admit all or none, refuse cycles, start a ticket only after its prerequisites succeed, never start one twice. | DO-3 | Tests cover all-or-none admission, cycles, ordering, retries and restarts; single-ticket handoffs are unchanged. |
-| DO-6 | Delivery OS | Propagate cancellation and supersession from Product Ops: a cancelled or superseded specification stops pending tickets; already-dispatched effects are reconciled, not replayed. | DO-5, PO-5 | Cancelling in Product Ops stops unstarted Delivery OS work within one poll; in-flight work finishes to a reviewable state or is marked superseded. |
+| DO-5 (merged, PR #18; multi-item handoffs need PO-7, since the documentation lane takes one item) | Delivery OS | Accept a multi-ticket handoff with dependencies: admit all or none, refuse cycles, start a ticket only after its prerequisites succeed, never start one twice. | DO-3 | Tests cover all-or-none admission, cycles, ordering, retries and restarts; single-ticket handoffs are unchanged. |
+| DO-6 (in progress) | Delivery OS | Propagate cancellation and supersession from Product Ops: a cancelled or superseded specification stops pending tickets; already-dispatched effects are reconciled, not replayed. | DO-5, PO-5 | Cancelling in Product Ops stops unstarted Delivery OS work within one poll; in-flight work finishes to a reviewable state or is marked superseded. |
 | PO-8 (done) | Product Ops | Per-request inference budget in the console (backlog C02). | Owner decision on limits | Each request reserves its own allowance before analysis; exhaustion holds that request only. |
 
 ## Phase 4: evidence and release
