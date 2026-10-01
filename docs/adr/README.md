@@ -27,3 +27,4 @@
 - [025: Only blocking questions look required](025-only-blocking-questions-look-required.md)
 - [026: Pause the webhook before stopping; one worker per workspace](026-pause-the-webhook-before-stopping.md)
 - [027: Ticket pickup contract, Product Ops side](027-ticket-pickup-contract-product-ops-side.md)
+- [028: Pull handoff contract with Delivery OS](028-pull-handoff-contract-with-delivery-os.md)

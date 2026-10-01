@@ -48,6 +48,7 @@ from agentic_product_ops.services.publication_state import publication_state
 from agentic_product_ops.services.revisions import revise_specification
 from agentic_product_ops.services.risk_reassessment import RiskCommand, reassess_risk
 from agentic_product_ops.services.signed_handoff import (
+    HandoffGone,
     dispatch_approval_id,
     export_signed_handoff,
 )
@@ -420,7 +421,7 @@ class PilotRuntime:
         }
         if result["complete"]:
             with self.store.database.begin() as conn:
-                # The ticket's Product-Ops-Specification line resolves through this index.
+                # The Handoff: sha256:<digest> line on delivery-ready tickets resolves through this index.
                 self.store.put(
                     conn,
                     self.settings.workspace,
@@ -459,13 +460,29 @@ class PilotRuntime:
         """
         if not self.handoff_reader_matches(bearer):
             raise PolicyError("handoff reader credential required")
+        if digest.startswith("sha256:"):
+            digest = digest[len("sha256:") :]
         if re.fullmatch(r"[a-f0-9]{64}", digest) is None:
-            raise PolicyError("invalid specification digest")
-        index = self.store.get(self.settings.workspace, "handoff_index", digest)
-        spec, _, _ = self.records(index["specification_id"])
+            raise Missing("unknown specification digest")
+        workspace = self.settings.workspace
+        index = self.store.get(workspace, "handoff_index", digest)
+        identifier = index["specification_id"]
+        if self.store.cancelled(workspace, identifier):
+            raise HandoffGone("revoked")
+        spec, plan, _ = self.records(identifier)
         if spec.content_digest != digest:
-            raise PolicyError("specification superseded since publication")
-        return self.handoff(index["specification_id"])
+            raise HandoffGone("superseded")
+        approval_id = dispatch_approval_id(self.store, workspace, plan)
+        approval = SpecificationApproval.model_validate_json(
+            json.dumps(self.store.get(workspace, "approval", approval_id))
+        )
+        try:
+            if self.authority.is_revoked("approval", approval_id):
+                raise PolicyError("approval revoked")
+            self.authority.grant(approval.actor_id)
+        except PolicyError:
+            raise HandoffGone("revoked") from None
+        return self.handoff(identifier)
 
     def delivery_status(self, identifier: str) -> dict[str, Any]:
         """Read-only delivery progress from Linear for a published specification."""
@@ -481,7 +498,7 @@ class PilotRuntime:
             issues = [
                 adapter._query(
                     "query ProductOpsProgress($id: String!) { issue(id: $id) { identifier "
-                    "state { name type } labels(first: 20) { nodes { name } } } }",
+                    "state { name type } comments(first: 50) { nodes { body createdAt } } } }",
                     {"id": str(operation.target_id)},
                 )["issue"]
                 for operation in plan.operations

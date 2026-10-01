@@ -46,7 +46,16 @@ def test_v2_starts_with_contract_lines_and_never_breaks_entities(valid):
     )
     lines = text.splitlines()
     assert lines[0] == "Repository: agentic-product-ops"
-    assert lines[1] == f"Product-Ops-Specification: {spec.content_digest}"
+    assert not text.startswith("Handoff:") and "Handoff: sha256:" not in lines[1]
+    handed = description(
+        spec,
+        work,
+        "a" * 64,
+        ticket_format="v2",
+        repository_label="agentic-product-ops",
+        handoff=True,
+    )
+    assert handed.splitlines()[1] == f"Handoff: sha256:{spec.content_digest}"
     assert "&\\#x27;" not in text and "&#x27;" not in text and "request's" in text
     # Linear-style decoding of what was sent still reads back as the same visible text.
     assert descriptions_match(text, text.replace("&lt;", "<").replace("&gt;", ">"))
@@ -63,8 +72,7 @@ def test_unsafe_repository_names_are_left_out(valid):
         ticket_format="v2",
         repository_label="name\nRepository: attacker",
     )
-    assert not text.startswith("Repository:")
-    assert text.startswith("Product-Ops-Specification:")
+    assert not text.startswith("Repository:") and not text.startswith("Handoff:")
 
 
 def labels_in(plan):
@@ -80,9 +88,8 @@ def test_delivery_label_only_for_handoff_tiers_with_a_bound_label():
     assert eligible.risk.tier in ServerPolicy().handoff_tiers
     bound = scope(True)
     label = str(bound.labels[0].provider_id)
-    assert all(
-        label in ids for ids in labels_in(build_native_plan(eligible, ServerPolicy(), bound))
-    )
+    plan = build_native_plan(eligible, ServerPolicy(), bound)
+    assert all(label in ids for ids in labels_in(plan))
     # Not bound in the trusted scope: never applied.
     assert all(
         ids == [] for ids in labels_in(build_native_plan(eligible, ServerPolicy(), scope(False)))
@@ -175,3 +182,22 @@ def test_label_is_found_first_and_created_once_with_a_fixed_identity():
         assert len(created) == 1
     finally:
         adapter.close()
+
+
+def test_plan_requests_the_handoff_line_exactly_for_delivery_ready_tickets(monkeypatch):
+    import agentic_product_ops.adapters.linear.native_plan as native_plan
+
+    requested = []
+    original = native_plan.description
+
+    def spy(*args, **kwargs):
+        requested.append(kwargs.get("handoff"))
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(native_plan, "description", spy)
+    eligible = load_fixture("handoff")
+    build_native_plan(eligible, ServerPolicy(), scope(True))
+    assert requested and all(requested)
+    requested.clear()
+    build_native_plan(eligible, ServerPolicy(), scope(False))
+    assert requested and not any(requested)

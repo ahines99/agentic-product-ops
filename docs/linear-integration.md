@@ -21,11 +21,11 @@ These paths are covered by mock-transport tests only. See [ADR-021](adr/021-publ
 
 ## Ticket format and pickup contract (version 0.6, 2026-10-01)
 
-Profiles using `pilot-execution-v2` start each description with `Repository: <name>` and
-`Product-Ops-Specification: <digest>`. A plan adds the `delivery-ready` label only when the handoff
+Profiles using `pilot-execution-v2` start each description with `Repository: <name>`. A plan
+adds the `delivery-ready` label, and a `Handoff: sha256:<digest>` line, only when the handoff
 policy allows the specification's tier and the profile binds the label (`delivery-label`). Delivery
-OS can fetch the signed handoff for a ticket's digest with its separate read-only credential
-(`handoff-reader-init`). See the [roadmap](roadmap.md) for the full contract and
+OS fetches the signed handoff from `GET /handoffs/<digest>` with its separate read-only credential
+(`handoff-reader-init`); see [ADR-028](adr/028-pull-handoff-contract-with-delivery-os.md). See the [roadmap](roadmap.md) for the full contract and
 [ADR-027](adr/027-ticket-pickup-contract-product-ops-side.md).
 
 ## Identity and scope

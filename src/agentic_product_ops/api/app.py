@@ -64,6 +64,7 @@ from agentic_product_ops.services.native_publication import publication_writes
 from agentic_product_ops.services.plan_inputs import repository_label
 from agentic_product_ops.services.publication_state import publication_state
 from agentic_product_ops.services.risk_reassessment import RiskCommand
+from agentic_product_ops.services.signed_handoff import HandoffGone
 from agentic_product_ops.services.ticket_readiness import delivery_findings, ticket_findings
 
 
@@ -1053,16 +1054,25 @@ def create_app(
     ) -> dict[str, Any]:
         return db.get(actor.workspace_id, "publication", str(identifier))
 
-    @app.get("/v1/handoffs/specification/{digest}")
+    @app.get("/handoffs/{digest}", response_model=None)
     def handoff_by_specification(
         digest: str, authorization: Annotated[str | None, Header()] = None
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | JSONResponse:
         # Delivery OS's read-only credential, separate from the operator and the browser.
+        # 200: freshly signed envelope; 404: unknown or not yet available; 410 + Reason:
+        # superseded or revoked (pull contract, ADR-028).
         if handoff_reader is None:
             raise HTTPException(503, "handoff reading is not configured")
         if authorization is None or not authorization.startswith("Bearer "):
             raise HTTPException(401, "authentication required")
-        return handoff_reader(authorization[7:], digest)
+        try:
+            return handoff_reader(authorization[7:], digest)
+        except HandoffGone as gone:
+            return JSONResponse(
+                status_code=410,
+                content={"detail": "handoff no longer valid", "reason": gone.reason},
+                headers={"Reason": gone.reason},
+            )
 
     @app.get("/v1/handoffs/{identifier}")
     def handoff(

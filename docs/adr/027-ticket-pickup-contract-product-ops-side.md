@@ -1,7 +1,9 @@
 # ADR-027: Ticket pickup contract, Product Ops side
 
 Status: accepted, 2026-10-01. Implements the Product Ops items PO-1 to PO-8 in the
-[roadmap](../roadmap.md).
+[roadmap](../roadmap.md). Amended by [ADR-028](028-pull-handoff-contract-with-delivery-os.md):
+the ticket reference, handoff path, response codes and progress source changed to match Delivery
+OS's pull contract.
 
 ## Context
 

@@ -1,34 +1,48 @@
 """Delivery progress read back from Linear; informational only, it never grants authority.
 
-Delivery OS reports progress through ticket status and, when it stops, a ``delivery-blocked``
-label (roadmap DO-4). Product Ops reads both, read-only, to show where published work stands.
+Delivery OS reports progress as ticket comments carrying a hidden marker,
+``<!-- delivery-progress:<key>:<status> -->`` with status ``in_progress``, ``done`` or
+``blocked`` (its ADR-037). Product Ops reads the newest marker, falling back to the ticket's
+status type, to show where published work stands.
 """
 
+import re
 from typing import Any
 
-DELIVERY_BLOCKED_LABEL = "delivery-blocked"
+MARKER = re.compile(r"<!--\s*delivery-progress:[^\s>]*:(in_progress|done|blocked)\s*-->")
+FROM_MARKER = {"in_progress": "IN_DELIVERY", "done": "DELIVERED", "blocked": "DELIVERY_BLOCKED"}
 
 
-def ticket_progress(issue: dict[str, Any]) -> str:
-    labels = {node["name"] for node in (issue.get("labels") or {}).get("nodes", [])}
+def ticket_progress(issue: dict[str, Any]) -> tuple[str, str | None]:
+    """Return the ticket's progress and, when blocked, Delivery OS's recorded reason."""
+    reports = []
+    for comment in (issue.get("comments") or {}).get("nodes", []):
+        body = str(comment.get("body") or "")
+        match = MARKER.search(body)
+        if match:
+            reports.append((str(comment.get("createdAt") or ""), match[1], body[match.end() :]))
+    if reports:
+        _, status, rest = max(reports)
+        reason = rest.strip()[:300] or None if status == "blocked" else None
+        return FROM_MARKER[status], reason
     state = issue.get("state") or {}
     kind, name = state.get("type"), str(state.get("name", "")).casefold()
-    if DELIVERY_BLOCKED_LABEL in labels:
-        return "DELIVERY_BLOCKED"
     if kind == "completed":
-        return "DELIVERED"
+        return "DELIVERED", None
     if kind == "canceled":
-        return "CANCELED"
+        return "CANCELED", None
     if kind == "started":
-        return "IN_REVIEW" if "review" in name else "IN_DELIVERY"
-    return "NOT_STARTED"
+        return ("IN_REVIEW" if "review" in name else "IN_DELIVERY"), None
+    return "NOT_STARTED", None
 
 
 def delivery_progress(issues: list[dict[str, Any]]) -> dict[str, Any]:
-    tickets = [
-        {"identifier": issue.get("identifier"), "progress": ticket_progress(issue)}
-        for issue in issues
-    ]
+    tickets = []
+    for issue in issues:
+        progress, reason = ticket_progress(issue)
+        tickets.append(
+            {"identifier": issue.get("identifier"), "progress": progress, "reason": reason}
+        )
     states = {ticket["progress"] for ticket in tickets}
     for overall in ("DELIVERY_BLOCKED", "IN_DELIVERY", "IN_REVIEW"):
         if overall in states:

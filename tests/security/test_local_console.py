@@ -206,19 +206,28 @@ def test_handoff_reader_endpoint_uses_its_own_credential(operator):
     seen = []
 
     def reader(bearer, digest):
+        from agentic_product_ops.adapters.persistence.store import Missing
+        from agentic_product_ops.policies.validation import PolicyError
+        from agentic_product_ops.services.signed_handoff import HandoffGone
+
         seen.append((bearer, digest))
         if bearer != "reader-token":
-            from agentic_product_ops.policies.validation import PolicyError
-
             raise PolicyError("handoff reader credential required")
+        if digest.startswith("d"):
+            raise HandoffGone("superseded")
+        if digest.startswith("e"):
+            raise Missing("unknown")
         return {"payload_digest": digest}
 
     app = create_app(authority.store, policy, auth, authority, handoff_reader=reader)
     with TestClient(app, base_url=ORIGIN) as client:
-        digest = "c" * 64
-        url = f"/v1/handoffs/specification/{digest}"
+        reader_headers = {"Authorization": "Bearer reader-token"}
+        url = "/handoffs/" + "c" * 64
         assert client.get(url).status_code == 401
         assert client.get(url, headers={"Authorization": "Bearer " + token}).status_code == 403
-        ok = client.get(url, headers={"Authorization": "Bearer reader-token"})
-        assert ok.status_code == 200 and ok.json() == {"payload_digest": digest}
+        ok = client.get(url, headers=reader_headers)
+        assert ok.status_code == 200 and ok.json() == {"payload_digest": "c" * 64}
+        gone = client.get("/handoffs/" + "d" * 64, headers=reader_headers)
+        assert gone.status_code == 410 and gone.headers["Reason"] == "superseded"
+        assert client.get("/handoffs/" + "e" * 64, headers=reader_headers).status_code == 404
     assert app.title  # endpoint is mounted without the browser console

@@ -3,6 +3,7 @@
 import base64
 import json
 from datetime import datetime, timedelta
+from typing import Literal
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from sqlalchemy import select
@@ -23,6 +24,14 @@ from agentic_product_ops.services.durable_analysis import passing_review, record
 from agentic_product_ops.services.plan_inputs import repository_label
 
 SIGNING_DOMAIN = b"AgenticProductOps/Handoff/v2\x00"
+
+
+class HandoffGone(Exception):
+    """The digest named a handoff that is no longer valid; Delivery OS must not run it."""
+
+    def __init__(self, reason: Literal["superseded", "revoked"]):
+        super().__init__(reason)
+        self.reason = reason
 
 
 def dispatch_approval_id(store: Store, workspace: str, plan: NativePlan) -> str:

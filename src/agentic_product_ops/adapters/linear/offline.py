@@ -109,6 +109,7 @@ def description(
     execution_details: bool = False,
     ticket_format: str = "v1",
     repository_label: str | None = None,
+    handoff: bool = False,
 ) -> str:
     """Render a ticket body. Format v2 starts with the lines the Delivery OS pickup contract reads.
 
@@ -126,8 +127,11 @@ def description(
     header = []
     if repository_label and REPOSITORY_LABEL.fullmatch(repository_label):
         header.append(f"Repository: {repository_label}")
-    header.append(f"Product-Ops-Specification: {spec.content_digest}")
-    return "\n".join(header) + "\n\n" + rendered
+    if handoff:
+        # Delivery OS fetches this specification's signed handoff from its configured Product
+        # Ops URL; the ticket never supplies a destination (pull contract, ADR-028).
+        header.append(f"Handoff: sha256:{spec.content_digest}")
+    return ("\n".join(header) + "\n\n" if header else "") + rendered
 
 
 def _description(
