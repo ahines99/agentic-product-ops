@@ -127,6 +127,36 @@ def initialize(args: argparse.Namespace) -> None:
         runtime.store.database.dispose()
 
 
+SUPERVISOR_TASK = "AgenticProductOpsPilot"
+
+
+def supervisor(action: str) -> dict[str, Any]:
+    """Enable and run, or end and disable, the Windows login task that supervises the pilot."""
+    if os.name != "nt":
+        raise ValueError("the login supervisor is a Windows scheduled task")
+    tool = str(Path(os.environ["SystemRoot"]) / "System32" / "schtasks.exe")
+    steps = (
+        [["/Change", "/TN", SUPERVISOR_TASK, "/ENABLE"], ["/Run", "/TN", SUPERVISOR_TASK]]
+        if action == "start"
+        else [["/End", "/TN", SUPERVISOR_TASK], ["/Change", "/TN", SUPERVISOR_TASK, "/DISABLE"]]
+    )
+    for step in steps:
+        subprocess.run([tool, *step], check=True, capture_output=True)  # noqa: S603
+    return {"supervisor": action}
+
+
+def stop(runtime: PilotRuntime, *, services: bool) -> dict[str, Any]:
+    """Pause the webhook first, so a stopped tunnel never collects failed deliveries."""
+    result: dict[str, Any] = {}
+    if runtime.settings.linear_monitor_enabled:
+        from agentic_product_ops.pilot.monitor import LinearMonitor
+
+        result["webhook"] = LinearMonitor(runtime).pause()
+    if services:
+        result.update(supervisor("stop"))
+    return result
+
+
 def open_console(directory: Path) -> None:
     settings = read_settings(directory)
     if not settings.local_console_enabled:
@@ -218,7 +248,9 @@ async def run(runtime: PilotRuntime) -> None:
         )
     )
     tasks = [asyncio.create_task(server.serve())]
-    if runtime.settings.documentation_capability is None:
+    if runtime.settings.documentation_capability is None and getattr(
+        runtime.settings, "worker_enabled", True
+    ):
         tasks.append(asyncio.create_task(worker(runtime)))
     if runtime.settings.delivery_specification_ids:
         tasks.append(asyncio.create_task(delivery_loop(runtime)))
@@ -345,6 +377,11 @@ def main() -> int:
         "grant-renew", help="Issue the next operator grant revision; older approvals go stale"
     )
     renew.add_argument("--days", type=int, default=30)
+    commands.add_parser(
+        "stop", help="Pause the Linear webhook, then stop and disable the login-supervised pilot"
+    )
+    commands.add_parser("start", help="Enable and start the login-supervised pilot")
+    commands.add_parser("webhook-pause", help="Pause the owned Linear webhook without stopping")
     revoke = commands.add_parser("revoke", help="Permanently revoke an identity or approval")
     revoke.add_argument("--kind", choices=("actor", "subject", "token", "approval"), required=True)
     revoke.add_argument("--identity", required=True)
@@ -404,6 +441,8 @@ def main() -> int:
     try:
         if args.command == "init":
             initialize(args)
+        elif args.command == "start":
+            print(json.dumps(supervisor("start")))
         elif args.command == "open":
             open_console(args.directory)
         elif args.command in {
@@ -416,6 +455,8 @@ def main() -> int:
             "run",
             "grant-renew",
             "revoke",
+            "stop",
+            "webhook-pause",
         }:
             runtime = PilotRuntime(args.directory)
             try:
@@ -443,6 +484,8 @@ def main() -> int:
                             indent=2,
                         )
                     )
+                elif args.command in {"stop", "webhook-pause"}:
+                    print(json.dumps(stop(runtime, services=args.command == "stop")))
                 elif args.command == "grant-renew":
                     print(json.dumps(runtime.renew_grant(args.days)))
                 elif args.command == "revoke":

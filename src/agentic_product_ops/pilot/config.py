@@ -30,6 +30,8 @@ class PilotSettings(Contract):
     worker_queue: Annotated[str, Field(pattern=r"^product-ops-[a-z0-9-]{1,64}$")] = (
         "product-ops-pilot"
     )
+    # Profiles sharing a workspace must not both run a worker; see docs/linear-monitor.md.
+    worker_enabled: bool = True
     api_port: Annotated[int, Field(ge=1024, le=65535)] = 18001
     linear_scope: LinearScope
     linear_key_file: str

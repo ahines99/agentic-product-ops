@@ -25,3 +25,4 @@
 - [023: Reviewed inferences may proceed; calibrate when questions block](023-reviewed-inferences-and-question-calibration.md)
 - [024: Blocking questions settle decisions; observed calls settle spend](024-blocking-questions-settle-decisions-and-observed-spend.md)
 - [025: Only blocking questions look required](025-only-blocking-questions-look-required.md)
+- [026: Pause the webhook before stopping; one worker per workspace](026-pause-the-webhook-before-stopping.md)

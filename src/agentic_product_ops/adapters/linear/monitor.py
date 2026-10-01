@@ -132,3 +132,48 @@ def configure_webhook(
     if result["success"] is not True or result["webhook"]["id"] != str(identifier):
         raise PolicyError("webhook management outcome requires reconciliation")
     return {"id": str(identifier), "enabled": result["webhook"]["enabled"]}
+
+
+def pause_webhook(adapter: NativeGraphQLAdapter, identifier: UUID) -> dict[str, Any]:
+    """Disable the owned webhook so Linear stops delivering to a tunnel that is going away.
+
+    Linear disables a webhook after repeated failed deliveries. Pausing it before the monitor
+    stops avoids that; the next registration re-points and re-enables it, and polling recovers
+    any events missed in between. Only the owned ID is ever touched.
+    """
+    if not adapter.allow_mutations or len(adapter.scope.teams) != 1:
+        raise PolicyError("explicit single-team webhook management required")
+    identity = adapter._query("query { organization { id } viewer { id admin } }", {})
+    if (
+        identity["organization"]["id"] != str(adapter.scope.organization_id)
+        or identity["viewer"]["id"] != str(adapter.scope.actor_id)
+        or identity["viewer"]["admin"] is not True
+    ):
+        raise PolicyError("webhook administrator scope mismatch")
+    existing = adapter._query(
+        "query { webhooks(first: 100) { nodes { id url enabled team { id } resourceTypes } "
+        "pageInfo { hasNextPage } } }",
+        {},
+    )["webhooks"]
+    if existing["pageInfo"]["hasNextPage"]:
+        raise PolicyError("webhook inventory bound exceeded")
+    owned = next((w for w in existing["nodes"] if w["id"] == str(identifier)), None)
+    if owned is None:
+        return {"id": str(identifier), "present": False, "enabled": False}
+    if owned["team"]["id"] != str(adapter.scope.teams[0].provider_id):
+        raise PolicyError("owned webhook scope changed")
+    if not owned["enabled"]:
+        return {"id": str(identifier), "present": True, "enabled": False}
+    result = adapter._query(
+        "mutation ProductOpsWebhookPause($id: String!, $input: WebhookUpdateInput!) { "
+        "webhookUpdate(id: $id, input: $input) { success webhook { id enabled } } }",
+        {"id": str(identifier), "input": {"enabled": False}},
+        write=True,
+    )["webhookUpdate"]
+    if (
+        result["success"] is not True
+        or result["webhook"]["id"] != str(identifier)
+        or result["webhook"]["enabled"] is not False
+    ):
+        raise PolicyError("webhook pause outcome requires reconciliation")
+    return {"id": str(identifier), "present": True, "enabled": False}

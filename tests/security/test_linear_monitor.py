@@ -370,3 +370,58 @@ def test_monitor_policy_hold_never_calls_local_intake(inbox, event):
     with pytest.raises(PolicyError, match="disabled"):
         monitor.process(event)
     assert inbox.store.pending_workflows() == []
+
+
+def test_pause_disables_only_the_owned_webhook(event):
+    from agentic_product_ops.adapters.linear.monitor import pause_webhook
+
+    identifier, mutations = uuid4(), []
+
+    def handler(body, scope):
+        query = body["query"]
+        if "viewer" in query:
+            return {
+                "organization": {"id": str(scope.organization_id)},
+                "viewer": {"id": str(scope.actor_id), "admin": True},
+            }
+        if "webhooks(" in query:
+            return {
+                "webhooks": {
+                    "nodes": [
+                        {"id": str(uuid4()), "url": "https://unrelated.example", "enabled": True},
+                        {
+                            "id": str(identifier),
+                            "url": "https://old.trycloudflare.com/webhooks/linear",
+                            "enabled": True,
+                            "team": {"id": str(event.team_id)},
+                            "resourceTypes": ["Issue"],
+                        },
+                    ],
+                    "pageInfo": {"hasNextPage": False},
+                }
+            }
+        assert "webhookUpdate" in query and body["variables"]["id"] == str(identifier)
+        assert body["variables"]["input"] == {"enabled": False}
+        mutations.append(body)
+        return {
+            "webhookUpdate": {
+                "success": True,
+                "webhook": {"id": str(identifier), "enabled": False},
+            }
+        }
+
+    reader = mock_adapter(event, handler)
+    try:
+        with pytest.raises(PolicyError):
+            pause_webhook(reader, identifier)
+        assert not mutations
+    finally:
+        reader.close()
+    manager = mock_adapter(event, handler, scopes=("read", "admin"))
+    try:
+        assert pause_webhook(manager, identifier)["enabled"] is False
+        assert len(mutations) == 1
+        assert pause_webhook(manager, uuid4())["present"] is False  # unknown ID is never touched
+        assert len(mutations) == 1
+    finally:
+        manager.close()

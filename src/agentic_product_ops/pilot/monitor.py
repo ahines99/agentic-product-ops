@@ -17,7 +17,11 @@ import uvicorn
 from sqlalchemy import select
 
 from agentic_product_ops.adapters.linear.intake import repository_name
-from agentic_product_ops.adapters.linear.monitor import configure_webhook, poll_events
+from agentic_product_ops.adapters.linear.monitor import (
+    configure_webhook,
+    pause_webhook,
+    poll_events,
+)
 from agentic_product_ops.adapters.linear.native_graphql import NativeGraphQLAdapter
 from agentic_product_ops.adapters.persistence.store import Missing, operations
 from agentic_product_ops.api.linear_webhook import webhook_app
@@ -172,6 +176,13 @@ class LinearMonitor:
         finally:
             adapter.close()
 
+    def pause(self) -> dict[str, Any]:
+        adapter = self.adapter(manage=True)
+        try:
+            return pause_webhook(adapter, self.webhook_id)
+        finally:
+            adapter.close()
+
     def report(self, status: dict[str, Any]) -> None:
         temporary = self.runtime.directory / "monitor-health.tmp"
         temporary.write_text(
@@ -285,6 +296,12 @@ class LinearMonitor:
                     self.report(status)
                     await asyncio.sleep(5)
         finally:
+            # Pause delivery before the tunnel goes away, so Linear does not record failures and
+            # disable the webhook. Best effort: a hard kill skips this, and `stop` covers that.
+            try:
+                await asyncio.to_thread(self.pause)
+            except Exception:
+                status["pause_error"] = "webhook pause held; run product-ops-pilot stop"
             if tunnel is not None:
                 tunnel.terminate()
                 try:

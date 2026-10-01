@@ -10,6 +10,27 @@ Every five minutes, a scoped, paginated API query reconciles changes since the d
 
 The Windows `AgenticProductOpsPilot` scheduled task runs `scripts/run_local_pilot.ps1` at login under the existing user, without elevation or a stored password. It starts the established `apo-offline-g07` infrastructure, keeps WSL available and supervises the combined Python process. Failed processes restart; the one owned Linear webhook is updated to the new temporary address. This is login startup, not a pre-login Windows service or an always-on deployment.
 
+## Starting and stopping safely
+
+Always stop the monitor with the command below, never by ending the task or killing processes.
+A Linear webhook pointing at a stopped tunnel collects failed deliveries, and Linear disables it
+after repeated failures. That happened on 2026-09-30 when the pilot was stopped by ending its
+scheduled task.
+
+```powershell
+python -m uv run product-ops-pilot stop            # pause the webhook, then end and disable the login task
+python -m uv run product-ops-pilot start           # enable and run the login task; it re-points and re-enables the webhook
+python -m uv run product-ops-pilot webhook-pause   # pause the webhook only
+```
+
+The monitor also pauses the webhook when it shuts down cleanly. A crash or reboot skips that, so
+the webhook may fail until the next start; startup then re-registers and re-enables it, and
+polling recovers events missed in between ([ADR-026](adr/026-pause-the-webhook-before-stopping.md)).
+
+The main pilot profile runs with `worker_enabled: false`. It shares a database and workspace with
+the prompt-console profile, and only one worker may serve a workspace, otherwise each would start
+the other's queued work under the wrong policy.
+
 ## Operator diagnostics and acceptance commands
 
 ```powershell
