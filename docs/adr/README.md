@@ -24,3 +24,4 @@
 - [022: Remove unwired adapters, consolidate records and measure the model](022-remove-unwired-adapters-and-measure-the-model.md)
 - [023: Reviewed inferences may proceed; calibrate when questions block](023-reviewed-inferences-and-question-calibration.md)
 - [024: Blocking questions settle decisions; observed calls settle spend](024-blocking-questions-settle-decisions-and-observed-spend.md)
+- [025: Only blocking questions look required](025-only-blocking-questions-look-required.md)

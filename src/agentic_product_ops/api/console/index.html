@@ -18,7 +18,7 @@
     <input id="repository" name="repository" maxlength="128" placeholder="agentic-product-ops" required autocomplete="off">
     <label for="prompt">What would you like to change?</label>
     <textarea id="prompt" name="prompt" rows="7" maxlength="16000" placeholder="Describe the outcome you want, who it is for, and anything that must stay unchanged." required></textarea>
-    <p class="hint">A basic request is enough to start. Missing decisions become questions for you.</p>
+    <p class="hint">A basic request is enough to start. Only decisions that block the work become questions; minor details are filled with stated defaults.</p>
     <button id="submit" type="submit" disabled>Prepare proposed tickets</button>
   </form>
   <section id="result" hidden aria-live="polite">

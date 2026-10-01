@@ -71,12 +71,24 @@ async function refresh() {
     const reviewed = review.result && review.result.review;
     for (const finding of (reviewed ? reviewed.findings : [])) if (finding.blocking) findings.push(finding.summary || finding.kind || "Review raised a blocker.");
     for (const finding of new Set(findings)) appendText($("blockers"), "li", finding);
-    for (const question of spec.unresolved_questions.filter(q => !q.resolution)) {
+    const open = spec.unresolved_questions.filter(q => !q.resolution);
+    const optional = open.filter(q => !q.blocking);
+    let optionalList = null;
+    if (optional.length) {
+      // Optional questions never block approval; answering one starts a new revision.
+      optionalList = document.createElement("details"); optionalList.className = "optional";
+      appendText(optionalList, "summary", "Optional notes (" + optional.length + ") · not needed to approve");
+      appendText(optionalList, "p", "The implementer will choose a sensible default for each of these. " +
+        "Answer one only if the default matters to you: that creates a new revision that needs fresh analysis and approval.");
+    }
+    if (open.some(q => q.blocking)) appendText($("questions"), "h3", "Answer required before approval");
+    for (const question of [...open.filter(q => q.blocking), ...optional]) {
       const row = document.createElement("div"); row.className = "question";
-      appendText(row, "h3", question.question); appendText(row, "p", question.why_it_matters);
+      appendText(row, question.blocking ? "h3" : "h4", question.question); appendText(row, "p", question.why_it_matters);
       const answer = document.createElement("textarea"); answer.rows = 2; answer.maxLength = 16000;
       answer.setAttribute("aria-label", "Answer: " + question.question); row.append(answer);
-      const button = appendText(row, "button", "Submit answer");
+      const button = appendText(row, "button", question.blocking ? "Submit answer" : "Answer anyway");
+      if (!question.blocking) button.className = "quiet";
       let answerKey = null, answerText = null;
       button.addEventListener("click", async () => {
         if (!answer.value.trim()) return; button.disabled = true;
@@ -85,15 +97,16 @@ async function refresh() {
           question_id: question.id, answer: answerText}, answerKey); await refresh(); }
         catch (error) { notice(error.message, true); button.disabled = false; }
       });
-      $("questions").append(row);
+      (question.blocking ? $("questions") : optionalList).append(row);
     }
+    if (optionalList) $("questions").append(optionalList);
     for (const ticket of tickets.tickets) {
       const article = document.createElement("article"); appendText(article, "h3", ticket.id + " · " + ticket.title);
       const details = document.createElement("details"); appendText(details, "summary", "Read proposed ticket");
       appendText(details, "pre", ticket.description); article.append(details); $("tickets").append(article);
     }
     notice(!settings.analysis_enabled && !reviewed ? "Saved. Paid analysis is disabled; no tickets have been published."
-      : reviewed ? "Proposal available. Review the full tickets and unresolved questions below."
+      : reviewed ? "Proposal available. Review the tickets below and approve the exact plan when ready."
       : "Analysis or clarification is pending. Refresh to check progress.");
     $("approval-note").textContent = "Approval requires a completed review and an exact publication plan. " +
       (settings.publication_enabled ? "Delivery eligibility is checked separately." : "Linear publication is currently disabled.");

@@ -26,9 +26,10 @@ from agentic_product_ops.domain.contracts import (
 )
 
 Role = Literal["requirements_analyst", "work_decomposer", "specification_reviewer"]
-# roles-v2 calibrates when questions block (ADR-023). Older receipts keep roles-v1.
-PromptVersion = Literal["roles-v1", "roles-v2"]
-PROMPT_VERSION: PromptVersion = "roles-v2"
+# roles-v2 calibrates when questions block (ADR-023); roles-v3 turns minor gaps into recorded
+# assumptions (ADR-025). Older receipts keep their version.
+PromptVersion = Literal["roles-v1", "roles-v2", "roles-v3"]
+PROMPT_VERSION: PromptVersion = "roles-v3"
 Money = Annotated[Decimal, Field(ge=0, max_digits=18, decimal_places=8, allow_inf_nan=False)]
 
 
