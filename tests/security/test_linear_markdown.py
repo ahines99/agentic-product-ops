@@ -43,3 +43,12 @@ def test_changed_semantics_denied(expected: str, observed: str) -> None:
 def test_bounds_and_type() -> None:
     assert not descriptions_match("a" * 65_001, "a" * 65_001)
     assert not descriptions_match("a", None)
+
+
+def test_decoded_entities_and_inline_html_from_linear_match_the_visible_text():
+    sent = "- shows that request&\\#x27;s total for \\&lt;short\\-id\\&gt; files\n"
+    stored = "* shows that request's total for <short-id> files\n"
+    assert descriptions_match(sent, stored)
+    # A real wording change, or a dropped list item, still fails.
+    assert not descriptions_match(sent, "* shows that request's total for <long-id> files\n")
+    assert not descriptions_match(sent, "shows that request's total for <short-id> files\n")

@@ -22,6 +22,7 @@ Version 0.6.0 recovery and hardening ([ADR-021](adr/021-publication-recovery-and
 | R11 | Calibrate the blocking-question threshold | R10 | Done (ADR-023) | Held-out 20-case set: routing accuracy 70% (25% before), 7 of 7 ambiguous requests still stop, 8 of 20 reach an approvable proposal. |
 | R12 | Optional questions no longer hold a human-decision flag | R11 | Done (ADR-024) | Fresh set: no answered case stopped on the flag rule; 5 of 7 evaluated answered cases reached a proposal. |
 | R13 | Calibrate ticket splitting and cross-domain routing | R12 | Open; needs budget | Answered proposals stay within the expected ticket range and first-pass routing holds above 60% on a fresh set from new domains. |
+| R14 | Fix double escaping of apostrophes in ticket descriptions | R13 | Open | Under a new policy version, descriptions escape Markdown before HTML entities so apostrophes are never sent as a literal `&#x27;`; existing approved plans are unaffected. |
 
 Local prompt-entry continuation (dependency order):
 

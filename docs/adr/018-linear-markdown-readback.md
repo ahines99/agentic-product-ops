@@ -35,3 +35,17 @@ Unsupported Linear editor transformations remain held for operator review.
 
 References: [Linear GraphQL](https://linear.app/developers/graphql),
 [markdown-it-py parser](https://markdown-it-py.readthedocs.io/en/latest/using.html).
+
+## Addendum, 2026-09-30: entity-decoded text
+
+Publishing PER-16 from the prompt console returned an uncertain result although the issue was
+created correctly. Linear had decoded HTML entities in the stored description (`&#x27;` to an
+apostrophe, `&lt;short-id&gt;` to `<short-id>`, which then parses as inline HTML). The comparison
+now joins text and inline-HTML runs and decodes entities before comparing, so it judges the
+characters a reader sees. Links, formatting, list structure and every other token must still
+match, and a real wording change still fails. Reconciliation then confirmed PER-16 read-only and
+publication completed with PER-17; nothing was created twice.
+
+The renderer's escaping is itself imperfect: it HTML-escapes apostrophes and then escapes the `#`
+of the entity, so the sent Markdown spells `&#x27;` literally. Correcting it changes ticket text
+and therefore plan digests, so it belongs in a new policy version (backlog R14).
