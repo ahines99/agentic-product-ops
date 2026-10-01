@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from agentic_product_ops.domain.clarifications import ClarificationReceipt
 from agentic_product_ops.domain.contracts import (
@@ -38,6 +38,17 @@ class ServerPolicy(Contract):
     handoff_tiers: tuple[Tier, ...] = (0, 1)
     max_mutations: int = 20
     max_approval_seconds: int = 3600
+
+
+class LowRiskCodePolicy(ServerPolicy):
+    """Owner opt-in (roadmap PO-7): low-risk code changes may become handoff-eligible.
+
+    The only change is the floor for a model proposal whose text matches no risk term: 1
+    instead of 2. Nothing is lowered automatically; a security approver must still reassess a
+    specific request to tier 1, followed by a fresh review and approval.
+    """
+
+    low_risk_code_handoff: Literal[True] = True
 
 
 class DocumentationPolicy(ServerPolicy):
@@ -115,7 +126,7 @@ def risk_floor(spec: WorkSpecification, policy: ServerPolicy | None = None) -> T
     ):
         return 2
     if spec.provenance.mode != "authored_fixture":
-        return 2
+        return 1 if isinstance(policy, LowRiskCodePolicy) else 2
     return 1
 
 

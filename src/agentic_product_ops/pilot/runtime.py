@@ -37,7 +37,7 @@ from agentic_product_ops.pilot.config import (
     read_settings,
     secret_from_env,
 )
-from agentic_product_ops.policies.validation import PolicyError, ServerPolicy
+from agentic_product_ops.policies.validation import LowRiskCodePolicy, PolicyError, ServerPolicy
 from agentic_product_ops.services.authority import ActorGrant, Authority
 from agentic_product_ops.services.decisions import current_decision
 from agentic_product_ops.services.delivery_progress import delivery_progress
@@ -97,7 +97,8 @@ class PilotRuntime:
                 {"pilot-v1": bytes.fromhex(self.secrets["storage_key"])}, "pilot-v1"
             ),
         )
-        self.base_policy = ServerPolicy(
+        policy_class = LowRiskCodePolicy if self.settings.low_risk_code_handoff else ServerPolicy
+        self.base_policy = policy_class(
             # Detailed tickets use format v2 (Repository line, fixed escaping); earlier
             # requests stay under the policy version they were approved with.
             version=self.settings.ticket_policy if self.settings.detailed_tickets else "pilot-v1",

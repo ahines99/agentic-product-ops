@@ -44,6 +44,8 @@ class PilotSettings(Contract):
     request_maximum_spend: Annotated[str, Field(pattern=r"^\d+(\.\d{1,2})?$")] | None = None
     # Separate read-only credential Delivery OS uses to fetch signed handoffs (roadmap PO-4).
     handoff_reader_token_file: str | None = None
+    # Owner decision (roadmap PO-7). Off: only the constrained documentation lane can hand off.
+    low_risk_code_handoff: bool = False
     allow_paid_execution: bool = False
     allow_publication: bool = False
     allow_revision_republication: bool = False
@@ -87,6 +89,10 @@ class PilotSettings(Contract):
         ):
             raise ValueError(
                 "automatic delivery needs explicit enrolled work, publication and local endpoint"
+            )
+        if self.low_risk_code_handoff and self.documentation_capability is not None:
+            raise ValueError(
+                "low-risk code handoff and the documentation lane are separate profiles"
             )
         if len(self.repository_search_roots) > 16 or any(
             not Path(root).is_absolute() for root in self.repository_search_roots

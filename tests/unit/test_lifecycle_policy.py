@@ -99,3 +99,24 @@ def test_scope_allowlists(valid, field, value):
     payload["work_items"][0][field] = value
     with pytest.raises(PolicyError, match="not allowed"):
         proposal_ready(seal_specification(payload), ServerPolicy())
+
+
+def test_low_risk_code_policy_only_moves_the_clean_model_proposal_floor():
+    from agentic_product_ops.policies.validation import LowRiskCodePolicy
+    from agentic_product_ops.services.drafting import load_fixture
+
+    def proposal(objective=None):
+        payload = load_fixture("handoff").model_dump(mode="json")
+        payload["provenance"]["mode"] = "model_proposal"
+        if objective:
+            payload["objective"] = objective
+        return seal_specification(payload)
+
+    clean = proposal()
+    risky = proposal("Change the payment retry schedule")
+    destructive = proposal("Purge archived exports")
+    assert risk_floor(clean, ServerPolicy()) == 2
+    assert risk_floor(clean, LowRiskCodePolicy()) == 1
+    assert risk_floor(risky, LowRiskCodePolicy()) == 2
+    assert risk_floor(destructive, LowRiskCodePolicy()) == 3
+    assert ServerPolicy().model_dump() != LowRiskCodePolicy().model_dump()  # distinct bindings
