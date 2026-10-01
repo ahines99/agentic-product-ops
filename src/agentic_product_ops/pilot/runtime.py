@@ -133,7 +133,7 @@ class PilotRuntime:
             ),
         )
 
-    def provider(self) -> SpendingProvider:
+    def provider(self, request: str | None = None) -> SpendingProvider:
         provider = AnthropicProvider(
             model=self.settings.model,
             api_key=secret_from_env(Path(self.settings.anthropic_key_file), "ANTHROPIC_API_KEY"),
@@ -148,6 +148,10 @@ class PilotRuntime:
             maximum=Decimal(self.settings.maximum_spend),
             input_rate=self.configuration.budget.input_cost_per_million,
             output_rate=self.configuration.budget.output_cost_per_million,
+            request_scope=request if self.settings.request_maximum_spend else None,
+            request_maximum=Decimal(self.settings.request_maximum_spend)
+            if self.settings.request_maximum_spend and request
+            else None,
         )
 
     def read_linear_source(self, reference: str) -> LinearSource:
@@ -195,6 +199,7 @@ class PilotRuntime:
             linear_scope=self.settings.linear_scope,
             revision_configuration=self.configuration,
             revision_provider=self.provider,
+            provider_per_request=True,
         )
 
     def analyze(self, identifier: str, revision: int, digest: str, key: str) -> dict[str, Any]:
@@ -225,7 +230,7 @@ class PilotRuntime:
             digest,
             self.policy,
             self.configuration,
-            self.provider(),
+            self.provider(identifier),
             initial=spec.provenance.mode == "unrecognized_input"
             and not spec.provenance.clarification_refs,
         )
@@ -586,7 +591,7 @@ class PilotRuntime:
             self.authority,
             self.policy,
             self.configuration,
-            self.provider(),
+            self.provider(identifier),
             identifier,
             actor,
             command,

@@ -100,9 +100,20 @@ class SpendingProvider:
         maximum: Decimal,
         input_rate: Decimal,
         output_rate: Decimal,
+        request_scope: str | None = None,
+        request_maximum: Decimal | None = None,
     ) -> None:
         if any(not value.is_finite() or value <= 0 for value in (maximum, input_rate, output_rate)):
             raise ValueError("positive explicit spending authorization and rates required")
+        if (request_scope is None) != (request_maximum is None) or (
+            request_maximum is not None
+            and (not request_maximum.is_finite() or not 0 < request_maximum <= maximum)
+        ):
+            raise ValueError(
+                "a request allowance needs a scope and a positive limit within the cap"
+            )
+        # One request's allowance; exhausting it holds that request only (roadmap PO-8).
+        self.request_scope, self.request_maximum = request_scope, request_maximum
         self.store, self.workspace, self.authorization = store, workspace, authorization
         self.provider, self.model = provider, model
         self.maximum, self.input_rate, self.output_rate = maximum, input_rate, output_rate
@@ -148,7 +159,7 @@ class SpendingProvider:
             )
             if len(rows) > 10000:
                 raise RunStopped("spending ledger bound")
-            total = Decimal(0)
+            total, scoped = Decimal(0), Decimal(0)
             for identity in rows:
                 entry = self.store.get(
                     self.workspace, "spend_reservation", identity, connection=conn
@@ -156,9 +167,14 @@ class SpendingProvider:
                 if entry["authorization"] == self.authorization:
                     if identity == key:
                         raise RunStopped("previously reserved inference cannot be repeated")
-                    total += committed(self.store, self.workspace, identity, entry, terms, conn)
+                    amount = committed(self.store, self.workspace, identity, entry, terms, conn)
+                    total += amount
+                    if self.request_scope is not None and entry.get("scope") == self.request_scope:
+                        scoped += amount
             if total + reserve > self.maximum:
                 raise RunStopped("aggregate authorized spending limit reached")
+            if self.request_maximum is not None and scoped + reserve > self.request_maximum:
+                raise RunStopped("request spending allowance reached")
             self.store.put(
                 conn,
                 self.workspace,
@@ -170,6 +186,7 @@ class SpendingProvider:
                     "run_id": str(request.run_id),
                     "reserved": str(reserve),
                     "input_digest": request.input_digest,
+                    **({"scope": self.request_scope} if self.request_scope else {}),
                 },
             )
         response = self.provider.complete(request)

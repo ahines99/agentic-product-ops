@@ -140,3 +140,43 @@ def test_observed_calls_settle_at_usage_but_uncertain_calls_hold_everything(ledg
     with pytest.raises(RunStopped, match="limit reached"):
         wrapper(ledger, provider, maximum="0.0025").complete(request())
     assert len(provider.calls) == 3
+
+
+def test_request_allowance_holds_only_that_request(ledger):
+    provider = Provider(fail=True)
+    # Each reservation is 0.002 and uncertain calls keep it; request A may spend at most 0.003.
+
+    def scoped(scope):
+        return SpendingProvider(
+            ledger,
+            "workspace",
+            "authorization-1",
+            provider,
+            model="test-model",
+            maximum=Decimal("0.01"),
+            input_rate=Decimal("10"),
+            output_rate=Decimal("10"),
+            request_scope=scope,
+            request_maximum=Decimal("0.003"),
+        )
+
+    with pytest.raises(RunStopped, match="uncertain"):
+        scoped("request-a").complete(request())
+    with pytest.raises(RunStopped, match="request spending allowance"):
+        scoped("request-a").complete(request())
+    with pytest.raises(RunStopped, match="uncertain"):  # request B still gets its allowance
+        scoped("request-b").complete(request())
+    assert len(provider.calls) == 2
+    with pytest.raises(ValueError):
+        SpendingProvider(
+            ledger,
+            "workspace",
+            "authorization-1",
+            provider,
+            model="test-model",
+            maximum=Decimal("0.01"),
+            input_rate=Decimal("10"),
+            output_rate=Decimal("10"),
+            request_scope="request-a",
+            request_maximum=Decimal("0.02"),
+        )

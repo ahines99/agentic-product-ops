@@ -42,7 +42,8 @@ class GovernanceActivities:
         policy: ServerPolicy,
         *,
         revision_configuration: RuntimeConfiguration | None = None,
-        revision_provider: Callable[[], ModelProvider] | None = None,
+        revision_provider: Callable[..., ModelProvider] | None = None,
+        provider_per_request: bool = False,
         authority: Authority | None = None,
         linear_scope: LinearScope | None = None,
     ):
@@ -51,6 +52,7 @@ class GovernanceActivities:
         self.linear_scope = linear_scope
         if (revision_configuration is None) != (revision_provider is None):
             raise ValueError("revision runtime requires configuration and provider together")
+        self.provider_per_request = provider_per_request
         self.revision_configuration, self.revision_provider = (
             revision_configuration,
             revision_provider,
@@ -97,7 +99,10 @@ class GovernanceActivities:
                     request.content_digest,
                     self.policy,
                     self.revision_configuration,
-                    self.revision_provider(),
+                    # A per-request provider receives the specification it spends for.
+                    self.revision_provider(request.specification_id)
+                    if self.provider_per_request
+                    else self.revision_provider(),
                     initial=spec.provenance.mode == "unrecognized_input"
                     and not spec.provenance.clarification_refs,
                 )
