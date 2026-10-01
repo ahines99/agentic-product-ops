@@ -42,6 +42,8 @@ class PilotSettings(Contract):
     maximum_spend: Annotated[str, Field(pattern=r"^\d+(\.\d{1,2})?$")]
     # Per-request allowance within maximum_spend; None keeps only the aggregate cap.
     request_maximum_spend: Annotated[str, Field(pattern=r"^\d+(\.\d{1,2})?$")] | None = None
+    # Separate read-only credential Delivery OS uses to fetch signed handoffs (roadmap PO-4).
+    handoff_reader_token_file: str | None = None
     allow_paid_execution: bool = False
     allow_publication: bool = False
     allow_revision_republication: bool = False

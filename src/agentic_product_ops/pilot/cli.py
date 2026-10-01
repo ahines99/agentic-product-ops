@@ -127,6 +127,23 @@ def initialize(args: argparse.Namespace) -> None:
         runtime.store.database.dispose()
 
 
+def handoff_reader_init(directory: Path) -> dict[str, Any]:
+    """Create a separate, owner-private token that can only fetch signed handoffs."""
+    settings = read_settings(directory)
+    target = (directory / "handoff-reader.env").resolve()
+    if settings.handoff_reader_token_file or target.exists():
+        raise ValueError("handoff reader credential already exists; never overwritten")
+    private_directory(directory)
+    with target.open("x", encoding="utf-8", newline="\n") as stream:
+        stream.write("HANDOFF_READER_TOKEN=" + secrets.token_urlsafe(48) + "\n")
+    updated = settings.model_copy(update={"handoff_reader_token_file": str(target)})
+    PilotSettings.model_validate_json(updated.model_dump_json())
+    temporary = directory / "pilot.tmp"
+    temporary.write_text(json.dumps(updated.model_dump(mode="json"), indent=2) + "\n", "utf-8")
+    temporary.replace(directory / "pilot.json")
+    return {"credential_file": str(target), "token_printed": False}
+
+
 SUPERVISOR_TASK = "AgenticProductOpsPilot"
 
 
@@ -385,6 +402,9 @@ def main() -> int:
     commands.add_parser(
         "delivery-label", help="Find or create the delivery-ready label and bind it in this profile"
     )
+    commands.add_parser(
+        "handoff-reader-init", help="Create the read-only credential Delivery OS uses for handoffs"
+    )
     revoke = commands.add_parser("revoke", help="Permanently revoke an identity or approval")
     revoke.add_argument("--kind", choices=("actor", "subject", "token", "approval"), required=True)
     revoke.add_argument("--identity", required=True)
@@ -446,6 +466,8 @@ def main() -> int:
             initialize(args)
         elif args.command == "start":
             print(json.dumps(supervisor("start")))
+        elif args.command == "handoff-reader-init":
+            print(json.dumps(handoff_reader_init(args.directory)))
         elif args.command == "open":
             open_console(args.directory)
         elif args.command in {

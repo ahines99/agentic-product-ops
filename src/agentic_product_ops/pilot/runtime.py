@@ -1,6 +1,9 @@
 """Local pilot dependencies, live provider guards and explicit native publication assembly."""
 
+import hashlib
+import hmac
 import json
+import re
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -37,6 +40,7 @@ from agentic_product_ops.pilot.config import (
 from agentic_product_ops.policies.validation import PolicyError, ServerPolicy
 from agentic_product_ops.services.authority import ActorGrant, Authority
 from agentic_product_ops.services.decisions import current_decision
+from agentic_product_ops.services.delivery_progress import delivery_progress
 from agentic_product_ops.services.documentation import constrained_policy
 from agentic_product_ops.services.linear_source import validate_linear_source
 from agentic_product_ops.services.native_publication import NativePublisher
@@ -49,6 +53,7 @@ from agentic_product_ops.services.signed_handoff import (
 )
 from agentic_product_ops.services.spending import SpendingProvider, spending_summary
 from agentic_product_ops.workflows.activities import GovernanceActivities
+from agentic_product_ops.workflows.lifecycle import State
 
 
 def discover_linear(token: SecretStr, team: UUID) -> LinearScope:
@@ -413,6 +418,16 @@ class PilotRuntime:
             and all(r.status == "SUCCEEDED" for r in receipts),
         }
         if result["complete"]:
+            with self.store.database.begin() as conn:
+                # The ticket's Product-Ops-Specification line resolves through this index.
+                self.store.put(
+                    conn,
+                    self.settings.workspace,
+                    "handoff_index",
+                    spec.content_digest,
+                    1,
+                    {"specification_id": identifier, "revision": spec.revision},
+                )
             try:
                 return self.store.get(
                     self.settings.workspace, "publication", identifier, spec.revision
@@ -425,15 +440,71 @@ class PilotRuntime:
                 )
         return result
 
+    def handoff_reader_matches(self, bearer: str) -> bool:
+        if not self.settings.handoff_reader_token_file:
+            return False
+        expected = secret_from_env(
+            Path(self.settings.handoff_reader_token_file), "HANDOFF_READER_TOKEN"
+        ).get_secret_value()
+        return hmac.compare_digest(
+            hashlib.sha256(bearer.encode()).digest(), hashlib.sha256(expected.encode()).digest()
+        )
+
+    def handoff_for_digest(self, bearer: str, digest: str) -> dict[str, Any]:
+        """Signed handoff for the exact specification a ticket names; Delivery OS reads this.
+
+        The reader token can do nothing else. The specification must still be current, fully
+        published and within the handoff policy; export_signed_handoff rechecks all of it.
+        """
+        if not self.handoff_reader_matches(bearer):
+            raise PolicyError("handoff reader credential required")
+        if re.fullmatch(r"[a-f0-9]{64}", digest) is None:
+            raise PolicyError("invalid specification digest")
+        index = self.store.get(self.settings.workspace, "handoff_index", digest)
+        spec, _, _ = self.records(index["specification_id"])
+        if spec.content_digest != digest:
+            raise PolicyError("specification superseded since publication")
+        return self.handoff(index["specification_id"])
+
+    def delivery_status(self, identifier: str) -> dict[str, Any]:
+        """Read-only delivery progress from Linear for a published specification."""
+        _, plan, _ = self.records(identifier)
+        adapter = NativeGraphQLAdapter(
+            self.settings.linear_scope,
+            token=secret_from_env(Path(self.settings.linear_key_file), "LINEAR_API_KEY"),
+            token_kind="api_key",  # noqa: S106
+            scopes=("read",),
+            allow_network=True,
+        )
+        try:
+            issues = [
+                adapter._query(
+                    "query ProductOpsProgress($id: String!) { issue(id: $id) { identifier "
+                    "state { name type } labels(first: 20) { nodes { name } } } }",
+                    {"id": str(operation.target_id)},
+                )["issue"]
+                for operation in plan.operations
+                if operation.kind == "issue_create"
+            ]
+        finally:
+            adapter.close()
+        return delivery_progress([issue for issue in issues if issue])
+
     def state(self, identifier: str) -> dict[str, Any]:
         state = publication_state(
             self.store, self.settings.workspace, identifier, datetime.now(UTC)
         )
-        return {
+        result: dict[str, Any] = {
             "specification_id": identifier,
             "state": state.value if state else "PRE_DECISION_WORKFLOW",
             "source": "durable_records",
         }
+        if state in {State.PUBLISHED, State.HANDOFF_READY}:
+            try:
+                result["delivery"] = self.delivery_status(identifier)
+            except Exception:
+                result["delivery"] = {"overall": "UNAVAILABLE", "grants_authority": False}
+        return result
 
     def delivery_label(self) -> dict[str, Any]:
         """Find or create the delivery-ready team label and bind it in this profile's scope.
@@ -622,6 +693,7 @@ class PilotRuntime:
             reconciliation_handler=self.reconcile,
             state_handler=self.state,
             readiness=self.readiness,
+            handoff_reader=self.handoff_for_digest,
             risk_handler=self.risk,
             linear_source_reader=self.read_linear_source,
             repository_names=RepositoryNames(

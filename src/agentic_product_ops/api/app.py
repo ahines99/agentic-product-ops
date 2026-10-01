@@ -144,6 +144,7 @@ def create_app(
     publication_handler: Callable[[str, Principal, str], dict[str, Any]] | None = None,
     reconciliation_handler: Callable[[str, Principal], dict[str, Any]] | None = None,
     state_handler: Callable[[str], dict[str, Any]] | None = None,
+    handoff_reader: Callable[[str, str], dict[str, Any]] | None = None,
     readiness: Callable[[], dict[str, Any]] | None = None,
     risk_handler: Callable[[str, Principal, RiskCommand, str], dict[str, Any]] | None = None,
     linear_source_reader: Callable[[str], LinearSource] | None = None,
@@ -1051,6 +1052,17 @@ def create_app(
         db: Annotated[Store, Depends(database)],
     ) -> dict[str, Any]:
         return db.get(actor.workspace_id, "publication", str(identifier))
+
+    @app.get("/v1/handoffs/specification/{digest}")
+    def handoff_by_specification(
+        digest: str, authorization: Annotated[str | None, Header()] = None
+    ) -> dict[str, Any]:
+        # Delivery OS's read-only credential, separate from the operator and the browser.
+        if handoff_reader is None:
+            raise HTTPException(503, "handoff reading is not configured")
+        if authorization is None or not authorization.startswith("Bearer "):
+            raise HTTPException(401, "authentication required")
+        return handoff_reader(authorization[7:], digest)
 
     @app.get("/v1/handoffs/{identifier}")
     def handoff(

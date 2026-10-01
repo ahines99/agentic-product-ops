@@ -199,3 +199,26 @@ def test_browser_can_publish_only_when_the_profile_enables_publication(operator,
                 == 403
             )
     assert [c[0] for c in calls] == ["publish", "reconcile"]
+
+
+def test_handoff_reader_endpoint_uses_its_own_credential(operator):
+    authority, _, auth, token, policy = operator
+    seen = []
+
+    def reader(bearer, digest):
+        seen.append((bearer, digest))
+        if bearer != "reader-token":
+            from agentic_product_ops.policies.validation import PolicyError
+
+            raise PolicyError("handoff reader credential required")
+        return {"payload_digest": digest}
+
+    app = create_app(authority.store, policy, auth, authority, handoff_reader=reader)
+    with TestClient(app, base_url=ORIGIN) as client:
+        digest = "c" * 64
+        url = f"/v1/handoffs/specification/{digest}"
+        assert client.get(url).status_code == 401
+        assert client.get(url, headers={"Authorization": "Bearer " + token}).status_code == 403
+        ok = client.get(url, headers={"Authorization": "Bearer reader-token"})
+        assert ok.status_code == 200 and ok.json() == {"payload_digest": digest}
+    assert app.title  # endpoint is mounted without the browser console
