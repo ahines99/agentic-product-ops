@@ -158,7 +158,11 @@ def create_app(
     active_policy = policy or ServerPolicy()
     auth = authenticator or DenyAll()
     roots = dict(repository_roots or {})
-    browser = BrowserSessions(console_port) if console_port is not None else None
+    browser = (
+        BrowserSessions(console_port, publication=console_publication_enabled)
+        if console_port is not None
+        else None
+    )
     if browser:
         mount_console(app, browser)
     if not active_policy.allow_any_repository and not roots.keys() <= set(

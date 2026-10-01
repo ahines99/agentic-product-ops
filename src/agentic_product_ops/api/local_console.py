@@ -14,8 +14,11 @@ from pydantic import Field, SecretStr
 from agentic_product_ops.domain.contracts import Contract
 
 COOKIE = "apo_local_session"
-SAFE_READS = {"review", "plan", "tickets"}
+SAFE_READS = {"review", "plan", "tickets", "state"}
 SAFE_WRITES = {"approve", "reject", "clarifications"}
+# Publishing from the browser is allowed only when the profile enables publication. The server
+# still rechecks the exact approval, grant, scope, source and budget at every write.
+PUBLICATION_WRITES = {"publish", "reconcile"}
 
 
 class Exchange(Contract):
@@ -31,8 +34,9 @@ class Session:
 class BrowserSessions:
     """Memory-only browser authority; service restart intentionally signs browsers out."""
 
-    def __init__(self, port: int):
+    def __init__(self, port: int, *, publication: bool = False):
         self.origin = f"http://127.0.0.1:{port}"
+        self.writes = SAFE_WRITES | (PUBLICATION_WRITES if publication else set())
         self.pending: dict[str, Session] = {}
         self.sessions: dict[str, Session] = {}
         self.lock = threading.Lock()
@@ -91,7 +95,7 @@ class BrowserSessions:
                 and path[:2] == ["v1", "specifications"]
                 and (
                     (request.method == "GET" and (len(path) == 3 or path[3] in SAFE_READS))
-                    or (request.method == "POST" and len(path) == 4 and path[3] in SAFE_WRITES)
+                    or (request.method == "POST" and len(path) == 4 and path[3] in self.writes)
                 )
             )
         )

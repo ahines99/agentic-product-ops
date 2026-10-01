@@ -117,8 +117,41 @@ async function refresh() {
         $("approve").disabled = false;
       } catch (_) { $("approval-note").textContent = "The proposal is held by a current policy, scope, or ambiguity gate."; }
     }
+    await showPublication(base);
   } catch (error) { notice(error.message, true); }
 }
+async function showPublication(base) {
+  $("publication").hidden = true; $("publish").hidden = true; $("reconcile").hidden = true;
+  if (!settings.publication_enabled) return;
+  let state;
+  try { state = (await api(base + "/state")).state; } catch (_) { return; }
+  const notes = {
+    APPROVED: "Approved. Publishing creates exactly the tickets in the approved plan.",
+    EXPIRED: "The approval expired before publication. Approve the same plan again to publish.",
+    LINEAR_PUBLISHING: "Publication started but has not finished. Publish again to continue.",
+    RECONCILIATION_REQUIRED: "Linear did not confirm a ticket. Check Linear before anything else is sent; nothing is created twice.",
+    PUBLISHED: "Published to Linear.",
+    HANDOFF_READY: "Published to Linear and handed off.",
+  };
+  if (!notes[state]) return;
+  $("publication").hidden = false; $("publication-note").textContent = notes[state];
+  $("publish").hidden = !["APPROVED", "LINEAR_PUBLISHING"].includes(state);
+  $("reconcile").hidden = state !== "RECONCILIATION_REQUIRED";
+}
+async function publication(action) {
+  if (!current) return;
+  if (action === "publish" && !window.confirm("Create the approved tickets in Linear now?")) return;
+  $("publish").disabled = true; $("reconcile").disabled = true;
+  try {
+    const result = await api("/v1/specifications/" + current.specification_id + "/" + action, "POST", {},
+      action === "publish" ? crypto.randomUUID() : undefined);
+    notice(result.complete ? "All approved tickets are in Linear."
+      : "Linear did not confirm every ticket. Use Check Linear; nothing will be created twice.", !result.complete);
+  } catch (error) { notice(error.message, true); }
+  finally { $("publish").disabled = false; $("reconcile").disabled = false; await refresh(); }
+}
+$("publish").addEventListener("click", () => publication("publish"));
+$("reconcile").addEventListener("click", () => publication("reconcile"));
 $("refresh").addEventListener("click", refresh);
 $("approve").addEventListener("click", async () => {
   if (!plan || !current) return; $("approve").disabled = true;

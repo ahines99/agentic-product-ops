@@ -152,3 +152,50 @@ def test_console_disabled_by_default():
     with TestClient(create_app()) as client:
         assert client.get("/").status_code == 404
         assert client.get("/console.js").status_code == 404
+
+
+def test_browser_can_publish_only_when_the_profile_enables_publication(operator, tmp_path):
+    authority, _, auth, token, policy = operator
+    calls = []
+
+    def publish(identifier, actor, key):
+        calls.append(("publish", identifier, actor.actor_id))
+        return {"complete": True, "receipts": []}
+
+    def reconcile(identifier, actor):
+        calls.append(("reconcile", identifier, actor.actor_id))
+        return {"complete": True, "receipts": []}
+
+    for enabled in (False, True):
+        app = create_app(
+            authority.store,
+            policy,
+            auth,
+            authority,
+            force_model_intake=True,
+            intake_queue_enabled=False,
+            console_port=18013,
+            console_publication_enabled=enabled,
+            publication_handler=publish,
+            reconciliation_handler=reconcile,
+        )
+        with TestClient(app, base_url=ORIGIN) as client:
+            connect(client, token)
+            identifier = uuid4()
+            for action in ("publish", "reconcile"):
+                response = client.post(
+                    f"/v1/specifications/{identifier}/{action}",
+                    headers={**UI, "Idempotency-Key": "k"},
+                    json={},
+                )
+                assert response.status_code == (200 if enabled else 403)
+            # Risk changes stay out of the browser either way.
+            assert (
+                client.post(
+                    f"/v1/specifications/{identifier}/risk",
+                    headers={**UI, "Idempotency-Key": "r"},
+                    json={"revision": 1, "content_digest": "a" * 64, "tier": 1, "reason": "x"},
+                ).status_code
+                == 403
+            )
+    assert [c[0] for c in calls] == ["publish", "reconcile"]
