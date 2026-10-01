@@ -31,6 +31,7 @@ from agentic_product_ops.services.durable_analysis import (
     load_analysis,
     recorded_review,
 )
+from agentic_product_ops.services.plan_inputs import repository_label
 from product_ops_handoff.documentation import DocumentationCapability
 
 
@@ -139,9 +140,13 @@ def preview(
         "policy": policy.model_dump(mode="json"),
         "result": result.model_dump(mode="json"),
         "configuration": configuration.model_dump(mode="json"),
-        "plan": build_native_plan(candidate, policy, scope, clarifications=answers).model_dump(
-            mode="json"
-        ),
+        "plan": build_native_plan(
+            candidate,
+            policy,
+            scope,
+            clarifications=answers,
+            repository_label=repository_label(store, workspace, candidate),
+        ).model_dump(mode="json"),
     }
     with store.database.begin() as conn:
         if store.lock_specification(conn, workspace, identifier):

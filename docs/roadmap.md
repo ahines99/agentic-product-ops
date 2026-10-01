@@ -43,8 +43,8 @@ Goal: no Product Ops ticket reaches Delivery OS unless Product Ops' policy says 
 | --- | --- | --- | --- | --- |
 | PO-1 (done) | Product Ops | Add the `Repository:` line to every published description, under a new policy version `pilot-execution-v2`. Include the R14 escaping fix in the same version. | None | New proposals render `Repository: <name>` as the first line; apostrophes are never sent as a literal `&#x27;`; plans approved under `pilot-execution-v1` publish unchanged; read-back comparison passes on a mock round trip. |
 | PO-2 (done) | Product Ops | Apply the `delivery-ready` label only when the handoff policy allows delivery. The label must already exist in Linear and is bound in the profile's scope like other labels. | PO-1 | The label appears in the exact publication plan and therefore in the approval; it is absent for every tier-2 or tier-3 specification; tests cover both cases. |
-| DO-1 (built, PR #11) | Delivery OS | Require the `delivery-ready` label in the Linear monitor's eligibility check, configurable per repository. | Contract v1 | An eligible-looking ticket without the label is never assigned or run; with the label, current behaviour is unchanged; a regression test reproduces the PER-16 case and shows no claim. |
-| DO-2 (built, PR #11) | Delivery OS | Make the `Repository:` line mandatory for automatic pickup instead of optional. | Contract v1 | Tickets with no line are skipped; tickets naming another repository are skipped; existing configured repositories still pick up correctly named tickets. |
+| DO-1 (built, PR #15) | Delivery OS | Require the `delivery-ready` label in the Linear monitor's eligibility check, configurable per repository. | Contract v1 | An eligible-looking ticket without the label is never assigned or run; with the label, current behaviour is unchanged; a regression test reproduces the PER-16 case and shows no claim. |
+| DO-2 (built, PR #15) | Delivery OS | Make the `Repository:` line mandatory for automatic pickup instead of optional. | Contract v1 | Tickets with no line are skipped; tickets naming another repository are skipped; existing configured repositories still pick up correctly named tickets. |
 | PO-3 (done) | Product Ops | Add a "Publish to Linear" button to the console, shown only after the exact plan is approved, with a confirmation step. All publish-time checks still run on the server. | PO-1 | The button is absent before approval and after expiry; the server rechecks approval, grant, scope and budget; an uncertain result shows a reconcile action, not a retry. |
 
 Owner decisions in this phase: the label name, if `delivery-ready` is not wanted, and whether
@@ -58,8 +58,8 @@ its state.
 | ID | Owner | Work | Depends on | Acceptance criteria |
 | --- | --- | --- | --- | --- |
 | PO-4 (done, ADR-028) | Product Ops | Write `Handoff: sha256:<digest>` into each `delivery-ready` ticket, and serve the signed envelope at `GET /handoffs/<digest>` to Delivery OS's separate read-only credential. | PO-2 | Delivery OS can fetch the envelope by the reference; the envelope verifies with the pinned key; an expired or revoked approval returns no envelope. |
-| DO-3 (contract agreed; needs PR #9) | Delivery OS | Before executing a Product Ops ticket, fetch and verify its signed envelope (issuer, key, audience, expected digest, freshness) and check that the ticket text matches the approved plan. | PO-4, DO-1 | A labelled ticket without a valid envelope is held, not run; a ticket edited after approval is held; the PER-7 path still works. |
-| DO-4 (built, PR #12) | Delivery OS | Report progress back to Linear: claimed, in progress, in review, done or blocked, with the reason when blocked, as comments with hidden markers that Product Ops reads (PO-5). | DO-3 | Each state change appears on the ticket within one poll interval; a policy block like PER-16's is visible on the ticket, not only in Delivery OS storage. |
+| DO-3 (built, PR #16; documentation lane in its own PR) | Delivery OS | Before executing a Product Ops ticket, fetch and verify its signed envelope (issuer, key, audience, expected digest, freshness) and check that the ticket text matches the approved plan. | PO-4, DO-1 | A labelled ticket without a valid envelope is held, not run; a ticket edited after approval is held; the PER-7 path still works. |
+| DO-4 (built, PR #15) | Delivery OS | Report progress back to Linear: claimed, in progress, in review, done or blocked, with the reason when blocked, as comments with hidden markers that Product Ops reads (PO-5). | DO-3 | Each state change appears on the ticket within one poll interval; a policy block like PER-16's is visible on the ticket, not only in Delivery OS storage. |
 | PO-5 (done) | Product Ops | Read Delivery OS progress and extend the derived lifecycle beyond `HANDOFF_READY` to `IN_DELIVERY`, `IN_REVIEW`, `DELIVERED` and `DELIVERY_BLOCKED`. | DO-4 | The `state` command and console show delivery progress from durable records; nothing in Product Ops changes on the strength of a Linear status alone. |
 
 ## Phase 3: real features flow end to end
@@ -79,7 +79,7 @@ Goal: an ordinary multi-ticket feature can go from the browser to reviewed chang
 | ID | Owner | Work | Acceptance criteria |
 | --- | --- | --- | --- |
 | X-1 | Owner | Independent, human-graded evaluation of at least 40 cases (the MVP gate) | Cases written and graded by a person other than the builders; results published with failures. |
-| X-2 | Both | One real multi-ticket feature from the browser to merged code | Every gate on both sides exercised and recorded; a human merges. |
+| X-2 | Both | One real multi-ticket feature from the browser to merged code. The single-ticket documentation run comes first ([runbook](end-to-end-test.md)). | Every gate on both sides exercised and recorded; a human merges. |
 | X-3 | Both | Tagged releases with linked validation records | Hosted CI green on both repositories; release notes state limits honestly. |
 
 ## Order of work

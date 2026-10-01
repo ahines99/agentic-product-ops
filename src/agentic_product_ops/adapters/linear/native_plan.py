@@ -17,7 +17,12 @@ from agentic_product_ops.domain.contracts import (
     canonical_digest,
     unique,
 )
-from agentic_product_ops.policies.validation import PolicyError, ServerPolicy, proposal_ready
+from agentic_product_ops.policies.validation import (
+    DocumentationPolicy,
+    PolicyError,
+    ServerPolicy,
+    proposal_ready,
+)
 from agentic_product_ops.services.ticket_readiness import EXECUTION_POLICIES, EXECUTION_POLICY_V2
 
 DELIVERY_READY_LABEL = "delivery-ready"
@@ -105,6 +110,15 @@ def build_native_plan(
         (str(b.provider_id) for b in scope.labels if b.local_id == DELIVERY_READY_LABEL), None
     )
     deliverable = delivery_label is not None and spec.risk.tier in policy.handoff_tiers
+    # A documentation-lane handoff needs the lines Delivery OS's pull intake reads. Its policy
+    # version is the capability digest, so format v2 follows the label instead. PER-7's plan
+    # bound no label and keeps its v1 bytes.
+    ticket_format = (
+        "v2"
+        if policy.version == EXECUTION_POLICY_V2
+        or (isinstance(policy, DocumentationPolicy) and deliverable)
+        else "v1"
+    )
     teams = {b.local_id: str(b.provider_id) for b in scope.teams}
     projects = {b.local_id: str(b.provider_id) for b in scope.projects}
     labels = {b.local_id: str(b.provider_id) for b in scope.labels}
@@ -167,7 +181,7 @@ def build_native_plan(
                 work,
                 key("issue_create", work.local_id),
                 execution_details=policy.version in EXECUTION_POLICIES,
-                ticket_format="v2" if policy.version == EXECUTION_POLICY_V2 else "v1",
+                ticket_format=ticket_format,
                 repository_label=repository_label,
                 handoff=deliverable,
             ).replace(

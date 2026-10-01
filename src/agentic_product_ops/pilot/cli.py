@@ -405,6 +405,23 @@ def main() -> int:
     commands.add_parser(
         "handoff-reader-init", help="Create the read-only credential Delivery OS uses for handoffs"
     )
+    lane = commands.add_parser(
+        "doc-lane", help="Bind the documentation lane to one analysed request (restart to apply)"
+    )
+    lane.add_argument("--id", type=UUID, required=True)
+    lane.add_argument("--path", required=True, help="docs/<name>.md in the target repository")
+    lane.add_argument("--content-file", type=Path, required=True)
+    lane.add_argument("--base-sha", required=True, help="Target repository commit to add it on")
+    commands.add_parser("doc-lane-clear", help="Unbind the documentation lane (restart to apply)")
+    doc_preview = commands.add_parser(
+        "doc-preview", help="Paid review of the documentation-lane candidate; approves nothing"
+    )
+    doc_preview.add_argument("--id", type=UUID, required=True)
+    doc_promote = commands.add_parser(
+        "doc-promote", help="Security decision: move the reviewed candidate to the lane's tier 1"
+    )
+    doc_promote.add_argument("--candidate", required=True)
+    doc_promote.add_argument("--command-id")
     revoke = commands.add_parser("revoke", help="Permanently revoke an identity or approval")
     revoke.add_argument("--kind", choices=("actor", "subject", "token", "approval"), required=True)
     revoke.add_argument("--identity", required=True)
@@ -483,6 +500,10 @@ def main() -> int:
             "stop",
             "webhook-pause",
             "delivery-label",
+            "doc-lane",
+            "doc-lane-clear",
+            "doc-preview",
+            "doc-promote",
         }:
             runtime = PilotRuntime(args.directory)
             try:
@@ -512,6 +533,27 @@ def main() -> int:
                     )
                 elif args.command == "delivery-label":
                     print(json.dumps(runtime.delivery_label()))
+                elif args.command == "doc-lane":
+                    content = bounded_read(args.content_file, 16000).decode("utf-8")
+                    print(
+                        json.dumps(
+                            runtime.documentation_lane(
+                                str(args.id), args.path, content, args.base_sha
+                            )
+                        )
+                    )
+                elif args.command == "doc-lane-clear":
+                    print(json.dumps(runtime.documentation_lane_clear()))
+                elif args.command == "doc-preview":
+                    print(json.dumps(runtime.documentation_preview(str(args.id)), indent=2))
+                elif args.command == "doc-promote":
+                    print(
+                        json.dumps(
+                            runtime.documentation_promote(
+                                args.candidate, args.command_id or str(uuid4())
+                            )
+                        )
+                    )
                 elif args.command in {"stop", "webhook-pause"}:
                     print(json.dumps(stop(runtime, services=args.command == "stop")))
                 elif args.command == "grant-renew":

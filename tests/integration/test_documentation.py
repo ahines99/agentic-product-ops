@@ -243,3 +243,66 @@ def test_constrained_preview_still_needs_exact_approval_publication_and_consumer
         now=envelope.payload.issued_at,
     )
     assert verified["approval"]["policy_version"] == cap.policy_version
+
+
+def issue_descriptions(plan):
+    return [
+        json.loads(op.payload)["description"] for op in plan.operations if op.kind == "issue_create"
+    ]
+
+
+def test_delivery_ready_documentation_plan_carries_the_pull_contract_lines(documentation):
+    from agentic_product_ops.adapters.linear.native_plan import (
+        DELIVERY_READY_LABEL,
+        build_native_plan,
+    )
+
+    _, _, base_policy, _, original, _, cap, scope = documentation
+    policy = constrained_policy(base_policy, cap)
+    spec = candidate_for(original, policy)
+    labelled = scope.model_copy(
+        update={"labels": (ProviderBinding(local_id=DELIVERY_READY_LABEL, provider_id=uuid4()),)}
+    )
+    handed = issue_descriptions(
+        build_native_plan(spec, policy, labelled, repository_label="agentic-delivery-engineer")
+    )
+    assert handed and all(
+        text.splitlines()[:2]
+        == ["Repository: agentic-delivery-engineer", f"Handoff: sha256:{spec.content_digest}"]
+        for text in handed
+    )
+    # Without the label, as for PER-7's plan, the lane keeps its original v1 rendering.
+    plain = issue_descriptions(
+        build_native_plan(spec, policy, scope, repository_label="agentic-delivery-engineer")
+    )
+    assert plain and not any(text.startswith(("Repository:", "Handoff:")) for text in plain)
+
+
+def test_operator_binds_the_lane_only_to_the_exact_analysed_request(documentation, tmp_path):
+    from agentic_product_ops.pilot.config import PilotSettings, read_settings
+    from agentic_product_ops.pilot.runtime import PilotRuntime
+
+    store, _, policy, _, spec, _, cap, scope = documentation
+    runtime = PilotRuntime.__new__(PilotRuntime)
+    runtime.store, runtime.directory = store, tmp_path
+    runtime.settings = PilotSettings(
+        workspace=policy.workspace_id,
+        subject="person",
+        database_url="postgresql+psycopg://postgres@127.0.0.1/product_ops_pilot",
+        linear_scope=scope,
+        linear_key_file=str(tmp_path / "linear.env"),
+        anthropic_key_file=str(tmp_path / "anthropic.env"),
+        spend_authorization="mock-only",
+        maximum_spend="10",
+    )
+    identifier = str(spec.specification_id)
+    with pytest.raises(PolicyError, match="no documentation lane"):
+        runtime.documentation_preview(identifier)
+    with pytest.raises(ValueError, match="exact requested work"):
+        runtime.documentation_lane(identifier, cap.path, "# Other\n", cap.base_sha)
+    assert not (tmp_path / "pilot.json").exists()
+    bound = runtime.documentation_lane(identifier, cap.path, cap.content, cap.base_sha)
+    assert bound["policy_version"] == cap.policy_version
+    assert read_settings(tmp_path).documentation_capability == cap
+    runtime.documentation_lane_clear()
+    assert read_settings(tmp_path).documentation_capability is None

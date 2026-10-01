@@ -41,7 +41,7 @@ from agentic_product_ops.policies.validation import LowRiskCodePolicy, PolicyErr
 from agentic_product_ops.services.authority import ActorGrant, Authority
 from agentic_product_ops.services.decisions import current_decision
 from agentic_product_ops.services.delivery_progress import delivery_progress
-from agentic_product_ops.services.documentation import constrained_policy
+from agentic_product_ops.services.documentation import constrained_policy, preview, promote
 from agentic_product_ops.services.linear_source import validate_linear_source
 from agentic_product_ops.services.native_publication import NativePublisher
 from agentic_product_ops.services.publication_state import publication_state
@@ -55,6 +55,7 @@ from agentic_product_ops.services.signed_handoff import (
 from agentic_product_ops.services.spending import SpendingProvider, spending_summary
 from agentic_product_ops.workflows.activities import GovernanceActivities
 from agentic_product_ops.workflows.lifecycle import State
+from product_ops_handoff.documentation import DocumentationCapability, semantic_digest
 
 
 def discover_linear(token: SecretStr, team: UUID) -> LinearScope:
@@ -550,10 +551,15 @@ class PilotRuntime:
             adapter.close()
         bindings = [b for b in scope.labels if b.local_id != DELIVERY_READY_LABEL]
         bindings.append(ProviderBinding(local_id=DELIVERY_READY_LABEL, provider_id=label))
-        settings = self.settings.model_copy(
-            update={"linear_scope": scope.model_copy(update={"labels": tuple(bindings)})}
+        self._save_settings(
+            self.settings.model_copy(
+                update={"linear_scope": scope.model_copy(update={"labels": tuple(bindings)})}
+            )
         )
-        PilotSettings.model_validate_json(settings.model_dump_json())
+        return {"label": DELIVERY_READY_LABEL, "provider_id": str(label), "bound": True}
+
+    def _save_settings(self, settings: PilotSettings) -> None:
+        settings = PilotSettings.model_validate_json(settings.model_dump_json())
         target = self.directory / "pilot.json"
         temporary = target.with_suffix(".tmp")
         temporary.write_text(
@@ -561,7 +567,77 @@ class PilotRuntime:
         )
         temporary.replace(target)
         self.settings = settings
-        return {"label": DELIVERY_READY_LABEL, "provider_id": str(label), "bound": True}
+
+    def documentation_lane(
+        self, identifier: str, path: str, content: str, base_sha: str
+    ) -> dict[str, Any]:
+        """Bind this profile's documentation lane to one analysed request (ADR-017).
+
+        The capability is trusted policy the operator writes, never model output. It must match
+        the request's exact path, content and repository, and it holds until it is cleared.
+        Restart the service to apply it.
+        """
+        spec = WorkSpecification.model_validate_json(
+            json.dumps(self.store.get(self.settings.workspace, "specification", identifier))
+        )
+        if spec.repository_context is None:
+            raise PolicyError("documentation lane requires a selected repository")
+        capability = DocumentationCapability(
+            semantic_digest=semantic_digest(spec.model_dump(mode="json")),
+            repository_id=spec.repository_context.repository_id,
+            base_sha=base_sha,
+            path=path,
+            content=content,
+        )
+        capability.validate_specification(spec.model_dump(mode="json"))
+        self._save_settings(
+            self.settings.model_copy(update={"documentation_capability": capability})
+        )
+        return {
+            "specification_id": identifier,
+            "revision": spec.revision,
+            "policy_version": capability.policy_version,
+            "restart_required": True,
+        }
+
+    def documentation_lane_clear(self) -> dict[str, Any]:
+        """Return the profile to its ordinary policy; restart the service to apply it."""
+        self._save_settings(self.settings.model_copy(update={"documentation_capability": None}))
+        return {"documentation_lane": None, "restart_required": True}
+
+    def documentation_preview(self, identifier: str) -> dict[str, Any]:
+        """Paid review of the tier-1 candidate. It approves nothing and changes no revision."""
+        capability = self.settings.documentation_capability
+        if capability is None:
+            raise PolicyError("no documentation lane is bound in this profile")
+        if not self.settings.allow_paid_execution:
+            raise PolicyError("paid review is disabled")
+        document = preview(
+            self.store,
+            self.base_policy,
+            self.configuration,
+            self.provider(identifier),
+            self.settings.linear_scope,
+            identifier,
+            capability,
+        )
+        review = document["result"]["review"]
+        return {
+            "candidate_digest": document["candidate_digest"],
+            "findings": [
+                {"blocking": f["blocking"], "summary": f["summary"]} for f in review["findings"]
+            ],
+        }
+
+    def documentation_promote(self, candidate_digest: str, key: str) -> dict[str, Any]:
+        """The operator's security decision to use the lane for this exact candidate.
+
+        This sets the risk tier only. Publication still needs the ordinary exact approval.
+        """
+        actor = self.auth.authenticate(self.secrets["operator_token"])
+        if actor is None:
+            raise PolicyError("active operator required")
+        return promote(self.store, self.authority, self.base_policy, actor, candidate_digest, key)
 
     def renew_grant(self, days: int = 30) -> dict[str, Any]:
         """Issue the next grant revision for the same operator, subject, roles and scope.
