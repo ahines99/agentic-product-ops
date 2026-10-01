@@ -45,6 +45,7 @@ class PilotSettings(Contract):
     allow_revision_republication: bool = False
     local_console_enabled: bool = False
     detailed_tickets: bool = False
+    ticket_policy: Literal["pilot-execution-v1", "pilot-execution-v2"] = "pilot-execution-v1"
     repository_search_roots: tuple[str, ...] = ()
     linear_monitor_enabled: bool = False
     linear_monitor_enrolled_at: Timestamp | None = None

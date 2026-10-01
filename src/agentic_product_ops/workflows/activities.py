@@ -30,6 +30,7 @@ from agentic_product_ops.services.durable_analysis import (
     passing_review,
     recorded_review,
 )
+from agentic_product_ops.services.plan_inputs import repository_label
 from agentic_product_ops.services.revisions import revise_specification
 from agentic_product_ops.workflows.governance import GovernanceInput, GovernanceWorkflow
 
@@ -140,7 +141,12 @@ class GovernanceActivities:
             answers = load_clarifications(self.store, spec, self.policy)
             plan = (
                 build_native_plan(
-                    spec, self.policy, self.linear_scope, clarifications=answers, review=review
+                    spec,
+                    self.policy,
+                    self.linear_scope,
+                    clarifications=answers,
+                    review=review,
+                    repository_label=repository_label(self.store, request.workspace, spec),
                 )
                 if self.linear_scope
                 else build_plan(spec, self.policy, clarifications=answers, review=review)

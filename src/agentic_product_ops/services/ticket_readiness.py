@@ -3,6 +3,9 @@
 from agentic_product_ops.domain.contracts import WorkSpecification
 
 EXECUTION_POLICY = "pilot-execution-v1"
+# v2 adds the Repository and specification lines Delivery OS reads, and fixes escaping.
+EXECUTION_POLICY_V2 = "pilot-execution-v2"
+EXECUTION_POLICIES = frozenset({EXECUTION_POLICY, EXECUTION_POLICY_V2})
 PLACEHOLDERS = {"todo", "tbd", "done", "works", "it works", "as expected", "tests pass"}
 SUPPORTED_VERIFICATION = {"automated_test", "documentation", "manual_behavior"}
 

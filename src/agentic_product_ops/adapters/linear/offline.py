@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import html
+import re
+from collections.abc import Callable
 from datetime import datetime
 from typing import Annotated, Literal, Self
 
@@ -85,9 +87,58 @@ def escaped(text: str) -> str:
     return safe
 
 
+def escaped_v2(text: str) -> str:
+    """Markdown escapes first, then HTML entities, so an entity is never broken by a backslash.
+
+    Version 1 escaped the ``#`` of ``&#x27;``, which Markdown then showed literally.
+    """
+    safe = text
+    for character in "\\`*_{}[]()#+-.!|>@":
+        safe = safe.replace(character, "\\" + character)
+    return html.escape(safe, quote=False)
+
+
+REPOSITORY_LABEL = re.compile(r"[A-Za-z0-9_.-]{1,128}(/[A-Za-z0-9_.-]{1,128})?")
+
+
 def description(
-    spec: WorkSpecification, work: WorkItem, key: str, *, execution_details: bool = False
+    spec: WorkSpecification,
+    work: WorkItem,
+    key: str,
+    *,
+    execution_details: bool = False,
+    ticket_format: str = "v1",
+    repository_label: str | None = None,
 ) -> str:
+    """Render a ticket body. Format v2 starts with the lines the Delivery OS pickup contract reads.
+
+    The v1 rendering is kept byte-for-byte so plans approved under it still match.
+    """
+    rendered = _description(
+        spec,
+        work,
+        key,
+        execution_details=execution_details,
+        escape=escaped_v2 if ticket_format == "v2" else escaped,
+    )
+    if ticket_format != "v2":
+        return rendered
+    header = []
+    if repository_label and REPOSITORY_LABEL.fullmatch(repository_label):
+        header.append(f"Repository: {repository_label}")
+    header.append(f"Product-Ops-Specification: {spec.content_digest}")
+    return "\n".join(header) + "\n\n" + rendered
+
+
+def _description(
+    spec: WorkSpecification,
+    work: WorkItem,
+    key: str,
+    *,
+    execution_details: bool,
+    escape: Callable[[str], str],
+) -> str:
+    escaped = escape
     requirements = [r for r in spec.requirements if r.id in work.requirement_ids]
     context = spec.repository_context
     rendered = "\n\n".join(

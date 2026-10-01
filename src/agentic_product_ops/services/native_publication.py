@@ -25,6 +25,7 @@ from agentic_product_ops.policies.validation import PolicyError, ServerPolicy, v
 from agentic_product_ops.services.authority import Authority
 from agentic_product_ops.services.clarifications import load_clarifications
 from agentic_product_ops.services.durable_analysis import passing_review, recorded_review
+from agentic_product_ops.services.plan_inputs import repository_label
 
 
 def publication_writes(
@@ -76,7 +77,12 @@ class NativePublisher:
         answers = load_clarifications(self.store, spec, policy)
         review = passing_review(self.store, policy.workspace_id, spec, policy)
         if plan != build_native_plan(
-            spec, policy, self.provider.scope, clarifications=answers, review=review
+            spec,
+            policy,
+            self.provider.scope,
+            clarifications=answers,
+            review=review,
+            repository_label=repository_label(self.store, policy.workspace_id, spec),
         ):
             raise PolicyError("native publication plan changed")
         workspace, identifier = policy.workspace_id, str(spec.specification_id)

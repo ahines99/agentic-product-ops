@@ -382,6 +382,9 @@ def main() -> int:
     )
     commands.add_parser("start", help="Enable and start the login-supervised pilot")
     commands.add_parser("webhook-pause", help="Pause the owned Linear webhook without stopping")
+    commands.add_parser(
+        "delivery-label", help="Find or create the delivery-ready label and bind it in this profile"
+    )
     revoke = commands.add_parser("revoke", help="Permanently revoke an identity or approval")
     revoke.add_argument("--kind", choices=("actor", "subject", "token", "approval"), required=True)
     revoke.add_argument("--identity", required=True)
@@ -457,6 +460,7 @@ def main() -> int:
             "revoke",
             "stop",
             "webhook-pause",
+            "delivery-label",
         }:
             runtime = PilotRuntime(args.directory)
             try:
@@ -484,6 +488,8 @@ def main() -> int:
                             indent=2,
                         )
                     )
+                elif args.command == "delivery-label":
+                    print(json.dumps(runtime.delivery_label()))
                 elif args.command in {"stop", "webhook-pause"}:
                     print(json.dumps(stop(runtime, services=args.command == "stop")))
                 elif args.command == "grant-renew":

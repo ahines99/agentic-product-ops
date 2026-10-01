@@ -93,7 +93,9 @@ class PilotRuntime:
             ),
         )
         self.base_policy = ServerPolicy(
-            version="pilot-execution-v1" if self.settings.detailed_tickets else "pilot-v1",
+            # Detailed tickets use format v2 (Repository line, fixed escaping); earlier
+            # requests stay under the policy version they were approved with.
+            version=self.settings.ticket_policy if self.settings.detailed_tickets else "pilot-v1",
             workspace_id=self.settings.workspace,
             teams=tuple(b.local_id for b in self.settings.linear_scope.teams),
             repositories=(),
@@ -427,6 +429,45 @@ class PilotRuntime:
             "state": state.value if state else "PRE_DECISION_WORKFLOW",
             "source": "durable_records",
         }
+
+    def delivery_label(self) -> dict[str, Any]:
+        """Find or create the delivery-ready team label and bind it in this profile's scope.
+
+        Binding it only makes the label available; the plan applies it only when the handoff
+        policy allows delivery for a specification (pickup contract v1).
+        """
+        from agentic_product_ops.adapters.linear.labels import ensure_team_label
+        from agentic_product_ops.adapters.linear.native_plan import DELIVERY_READY_LABEL
+
+        scope = self.settings.linear_scope
+        if len(scope.teams) != 1:
+            raise PolicyError("delivery label requires exactly one configured team")
+        adapter = NativeGraphQLAdapter(
+            scope,
+            token=secret_from_env(Path(self.settings.linear_key_file), "LINEAR_API_KEY"),
+            token_kind="api_key",  # noqa: S106
+            scopes=("read", "write"),
+            allow_network=True,
+            allow_mutations=True,
+        )
+        try:
+            label = ensure_team_label(adapter, scope.teams[0].provider_id, DELIVERY_READY_LABEL)
+        finally:
+            adapter.close()
+        bindings = [b for b in scope.labels if b.local_id != DELIVERY_READY_LABEL]
+        bindings.append(ProviderBinding(local_id=DELIVERY_READY_LABEL, provider_id=label))
+        settings = self.settings.model_copy(
+            update={"linear_scope": scope.model_copy(update={"labels": tuple(bindings)})}
+        )
+        PilotSettings.model_validate_json(settings.model_dump_json())
+        target = self.directory / "pilot.json"
+        temporary = target.with_suffix(".tmp")
+        temporary.write_text(
+            json.dumps(settings.model_dump(mode="json"), indent=2) + "\n", encoding="utf-8"
+        )
+        temporary.replace(target)
+        self.settings = settings
+        return {"label": DELIVERY_READY_LABEL, "provider_id": str(label), "bound": True}
 
     def renew_grant(self, days: int = 30) -> dict[str, Any]:
         """Issue the next grant revision for the same operator, subject, roles and scope.

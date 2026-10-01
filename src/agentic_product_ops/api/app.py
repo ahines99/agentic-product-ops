@@ -61,6 +61,7 @@ from agentic_product_ops.services.durable_analysis import (
     recorded_review,
 )
 from agentic_product_ops.services.native_publication import publication_writes
+from agentic_product_ops.services.plan_inputs import repository_label
 from agentic_product_ops.services.publication_state import publication_state
 from agentic_product_ops.services.risk_reassessment import RiskCommand
 from agentic_product_ops.services.ticket_readiness import delivery_findings, ticket_findings
@@ -665,7 +666,10 @@ def create_app(
         db: Annotated[Store, Depends(database)],
     ) -> dict[str, Any]:
         from agentic_product_ops.adapters.linear.offline import description
-        from agentic_product_ops.services.ticket_readiness import EXECUTION_POLICY
+        from agentic_product_ops.services.ticket_readiness import (
+            EXECUTION_POLICIES,
+            EXECUTION_POLICY_V2,
+        )
 
         spec = spec_for(db, actor, identifier)
         if authority:
@@ -685,7 +689,11 @@ def create_app(
                         spec,
                         work,
                         "PREVIEW-NOT-PUBLISHED",
-                        execution_details=active_policy.version == EXECUTION_POLICY,
+                        execution_details=active_policy.version in EXECUTION_POLICIES,
+                        ticket_format="v2"
+                        if active_policy.version == EXECUTION_POLICY_V2
+                        else "v1",
+                        repository_label=repository_label(db, actor.workspace_id, spec),
                     ),
                 }
                 for work in spec.work_items
@@ -703,7 +711,12 @@ def create_app(
         review = passing_review(db, actor.workspace_id, spec, active_policy)
         plan = (
             build_native_plan(
-                spec, active_policy, linear_scope, clarifications=answers, review=review
+                spec,
+                active_policy,
+                linear_scope,
+                clarifications=answers,
+                review=review,
+                repository_label=repository_label(db, actor.workspace_id, spec),
             )
             if linear_scope
             else build_plan(spec, active_policy, clarifications=answers, review=review)
@@ -733,7 +746,12 @@ def create_app(
             review = passing_review(db, actor.workspace_id, spec, active_policy)
             plan = (
                 build_native_plan(
-                    spec, active_policy, linear_scope, clarifications=answers, review=review
+                    spec,
+                    active_policy,
+                    linear_scope,
+                    clarifications=answers,
+                    review=review,
+                    repository_label=repository_label(db, actor.workspace_id, spec),
                 )
                 if linear_scope
                 else build_plan(spec, active_policy, clarifications=answers, review=review)
