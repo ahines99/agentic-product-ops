@@ -421,7 +421,7 @@ class PilotRuntime:
         }
         if result["complete"]:
             with self.store.database.begin() as conn:
-                # The Handoff: sha256:<digest> line on delivery-ready tickets resolves through this index.
+                # Delivery-ready tickets name this digest in their Handoff line.
                 self.store.put(
                     conn,
                     self.settings.workspace,
