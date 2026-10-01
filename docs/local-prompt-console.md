@@ -59,3 +59,14 @@ passed. JavaScript syntax checking passed. Hosted CI was not run in this pass. A
 HTTP check saved one held request, confirmed identical replay, denied unreviewed approval and
 invalidated a signed-out session, with zero model calls and zero Linear writes. Its private
 receipt is stored in the prompt profile as `console-verification.json`.
+
+## Publishing and delivery status (2026-10-01)
+
+When the profile enables publication, an approved plan shows **Publish to Linear**. It asks for
+confirmation and creates exactly the approved tickets; the server rechecks every gate. If Linear
+does not confirm a ticket, the page offers **Check Linear for the uncertain ticket**, a read-only
+check that never creates anything twice. After publication, the state also shows read-only
+delivery progress from Linear. Each request has its own spending allowance
+(`request_maximum_spend`); when it is used up, only that request is held. See
+[ADR-027](adr/027-ticket-pickup-contract-product-ops-side.md).
+

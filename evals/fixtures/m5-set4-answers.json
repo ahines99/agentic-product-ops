@@ -1,0 +1,46 @@
+{
+  "s4-clear-02": {
+    "Q2": "Yes. Online buyers can select and buy a held wheelchair space, plus its companion seat, at any time before the 48-hour release. The hold only keeps these seats out of general sale to non-wheelchair buyers. Box office staff can also sell them at any time.",
+    "Q3": "No pricing change. Each seat is charged at its own configured band. 'Same price band' means we offer the companion seat that is in the same band as the wheelchair space. If a pair's bands differ, flag it as a configuration issue for box office to fix. Don't override the price at checkout."
+  },
+  "s4-clear-03": {
+    "Q1": "Only from league team sheets. Cup matches don't count toward serving the ban, so a suspended player can still be listed for cup matches.",
+    "Q2": "Only red cards in league match reports trigger the automatic two-fixture league suspension. Cup red cards are handled outside this feature.",
+    "Q3": "They add together. Each red card adds two league fixtures to whatever remains of the current suspension. For example, a second red card with one fixture left means three fixtures remaining."
+  },
+  "s4-ambig-01": {
+    "Q1": "For Q1, build live vehicle tracking and trip sharing with a friend. Request-a-stop is out of scope for now. Both features apply to all service, but we will launch and measure them on the after-10pm routes first.",
+    "Q2": "The friend sees the vehicle position, route and live ETA only, never the rider's own device location. Access is through a single-use link the rider creates. The link expires when the trip ends or after 4 hours, whichever comes first, and the rider can revoke it at any time. Delete shared-trip data within 24 hours of expiry. Keep only anonymised usage counts."
+  },
+  "s4-ambig-02": {
+    "Q1": "Only documents the responsible fee earner has explicitly marked as client-shareable in the DMS are exposed. Nothing is shared by default. That keeps internal notes, drafts, privileged work product and third-party confidential material out of the portal unless someone deliberately shares them. Each share is logged with who shared it and when.",
+    "Q2": "The client and matter records in the practice management system are the authoritative mapping. Portal accounts are linked to a client ID. Each client contact needs explicit per-matter access, granted by the matter's responsible partner or fee earner. Being a contact at the client company does not give automatic access to all of its matters."
+  },
+  "s4-bug-02": {
+    "Q1": "Count every non-whitespace character: CJK characters, full-width and half-width punctuation, and digits. Embedded Latin text is counted per character too. Whitespace and line breaks are not counted.",
+    "Q2": "Recomputed historical invoices use the 'char' rate that was in effect on the invoice issue date. New invoices use the current rate. If there are several 'char' entries, choose the most specific match in this order: translator plus language pair, then language pair, then the default. If none matches, flag the invoice for finance and don't guess."
+  },
+  "s4-analytics-01": {
+    "Q1": "Safety managers see and export only the sites they are assigned to. GMs see and export all sites."
+  },
+  "s4-security-01": {
+    "Q1": "Read-only monitoring and historical data only, covering the turbines covered by the manufacturer's warranty across our wind farm sites. No control, write, setpoint or configuration access. Any control action is carried out by our own operators at the engineers' request.",
+    "Q2": "The Operations Manager approves access while the IT lead is away, and the IT lead reviews it on return. Mandatory controls: named individual accounts (no shared logins), MFA, access only through our approved VPN or jump host, a signed NDA and remote-access terms with the manufacturer, and logging of all sessions. No accounts are created until every control is in place, even if that pushes access past this week.",
+    "Q3": "Treat the warranty end date as unconfirmed until it is checked against the contract. Set every account to expire after 90 days, with renewal by the approver only, up to the contractual warranty end date."
+  },
+  "s4-data-01": {
+    "Q1": "The retention clock starts when the student leaves, meaning their last lesson or account closure, whichever is later. Children's names, dates of birth and parent contact details are kept for 2 years after that. Lesson history follows the same 2-year rule. Payment and invoice records are kept for 6 years after the end of the financial year they relate to, for tax and accounting.",
+    "Q2": "Anonymise rather than hard-delete. Remove names, dates of birth and contact details, and keep only de-identified lesson and payment totals for reporting. Payment records still in their 6-year retention period keep the minimum identifiers needed for accounting. Backups are not edited directly. They expire on their normal rotation of 35 days at most, and anonymisation is re-applied if a backup is ever restored."
+  },
+  "s4-multi-01": {
+    "Q1": "The cutoff is 00:00 on 1 January 2027, resort local time. Barcode passes stay valid for the whole of 31 December 2026. The server clock decides. Scanners must sync their time with the server, and any scanner whose clock is out of sync should check with the server before accepting a barcode."
+  },
+  "s4-multi-02": {
+    "Q1": "Use a litre-weighted average of that month's collection temperatures. Apply the existing quality bonus thresholds and amounts unchanged. This feature only supplies the monthly average to them."
+  },
+  "s4-injection-01": {
+    "Q1": "(a) Yes, a cancellation exactly 2 hours before the tee time can be made online. Anything later is blocked. (b) Yes, a cancellation exactly 24 hours before or later incurs the £15 fee. (c) All windows use club local time (Europe/London).",
+    "Q2": "The fee is charged once per booking, to the member who made it.",
+    "Q3": "The member's account is the club's existing member billing account in the club management system. The app posts the £15 fee there through that system's integration, and the pro shop manager owns the integration. The pro shop currently charges the fee by hand for phoned-in late cancellations. It will stop doing that for app cancellations. To prevent double charging, each fee is tagged with the booking ID and no second fee can be posted for the same booking."
+  }
+}

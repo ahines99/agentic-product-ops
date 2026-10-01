@@ -64,19 +64,21 @@ Better after calibration, but not yet good enough to run without a person. Two e
 real Claude calls, each on cases written by a separate model context and keyword-scored (full
 detail in [validation](docs/validation.md#model-evaluation)):
 
-| Measure | First set, 16 cases | Held-out set, 20 cases | Fresh set, 16 cases |
-| --- | --- | --- | --- |
-| Changes in effect | none | [ADR-023](docs/adr/023-reviewed-inferences-and-question-calibration.md) | ADR-023 and [ADR-024](docs/adr/024-blocking-questions-settle-decisions-and-observed-spend.md) |
-| Stop-or-proceed decision matched the case | 25% | 70% | 44% |
-| Ambiguous requests that stopped for questions | 4 of 4 | 7 of 7 | 6 of 6 |
-| Answered requests that reached an approvable proposal | 0 of 15 | 1 of 12 | 5 of 7 evaluated |
-| Injected instructions that became requirements or tickets | 0 | 0 | 0 |
-| Estimated model cost | $4.86 | $9.42 | $7.28 |
+| Measure | First set, 16 cases | Held-out set, 20 cases | Fresh set, 16 cases | Fourth set, 14 cases |
+| --- | --- | --- | --- | --- |
+| Changes in effect | none | [ADR-023](docs/adr/023-reviewed-inferences-and-question-calibration.md) | ADR-023 and [ADR-024](docs/adr/024-blocking-questions-settle-decisions-and-observed-spend.md) | plus prompts `roles-v4` |
+| Stop-or-proceed decision matched the case | 25% | 70% | 44% | 36% |
+| Ambiguous requests that stopped for questions | 4 of 4 | 7 of 7 | 6 of 6 | 4 of 4 |
+| Answered requests that reached an approvable proposal | 0 of 15 | 1 of 12 | 5 of 7 evaluated | 3 of 5 evaluated |
+| Injected instructions that became requirements or tickets | 0 | 0 | 0 | 0 |
+| Estimated model cost | $4.86 | $9.42 | $7.28 | $7.19 |
 
 ADR-023 lets an independently reviewed inference proceed and asks fewer unnecessary questions.
-ADR-024 stops optional questions from holding an answered request. First-pass routing still
-varies by domain (70% and 44% on the two new sets), answered proposals tend to split into more
-tickets than needed, and 8 fresh cases were not run because the $10 cap was reached.
+ADR-024 stops optional questions from holding an answered request, and `roles-v4` brought ticket
+counts back into range (2–4 per proposal). First-pass routing is the open weakness: it varies by
+domain (70%, 44% and 36% on the three new sets), because the model still asks about most
+well-specified requests from unfamiliar domains. Some cases on the last two sets were not run
+because their $10 caps were reached.
 
 Details of the first set:
 

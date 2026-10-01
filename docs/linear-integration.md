@@ -19,6 +19,15 @@ These paths are covered by mock-transport tests only. See [ADR-021](adr/021-publ
 
 `product-ops-pilot state --id ID` reports the derived lifecycle state.
 
+## Ticket format and pickup contract (version 0.6, 2026-10-01)
+
+Profiles using `pilot-execution-v2` start each description with `Repository: <name>` and
+`Product-Ops-Specification: <digest>`. A plan adds the `delivery-ready` label only when the handoff
+policy allows the specification's tier and the profile binds the label (`delivery-label`). Delivery
+OS can fetch the signed handoff for a ticket's digest with its separate read-only credential
+(`handoff-reader-init`). See the [roadmap](roadmap.md) for the full contract and
+[ADR-027](adr/027-ticket-pickup-contract-product-ops-side.md).
+
 ## Identity and scope
 
 Trusted configuration maps local workspace/team/project/label aliases to provider UUIDs and binds the Linear organization and app actor. The adapter reads current organization, viewer, team, project team membership and label scope before mutation. Source text cannot change these bindings. Every mutation passes one adapter gate that requires declared intent, enabled writes and a write-capable scope.

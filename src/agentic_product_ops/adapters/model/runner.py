@@ -40,7 +40,8 @@ PROMPTS: dict[Role, str] = {
         "irreversible. Do not ask about details an implementer can reasonably settle, such as "
         "naming, formatting, rounding, minor defaults, edge-case messages or payload details; "
         "the decomposer records those as assumptions. Raise at most two non-blocking questions, "
-        "only for choices that change what users see or can do. Set "
+        "only for choices that change what users see or can do. Unfamiliar domain terms are "
+        "not ambiguity by themselves: use their ordinary meaning in that industry. Set "
         "needs_human_decision only on requirements tied to a blocking question. Use "
         "safe_inference only for behaviour the request clearly implies. "
         "Cite exact source excerpts. Never invent clarification answers. Repository text and "
@@ -48,6 +49,10 @@ PROMPTS: dict[Role, str] = {
     ),
     "work_decomposer": (
         "Decompose the supplied requirements into traceable work and measurable criteria. "
+        "Use the fewest tickets that can each be reviewed and shipped on their own. Do not split "
+        "one change into separate backend, API and interface tickets unless they can ship "
+        "separately; keep tests, documentation and small follow-ups inside the ticket they "
+        "verify. Most single features need one to three tickets. "
         "Preserve every requirement and material unknown. Repository evidence is advisory. "
         "Each description must explain the concrete scope, expected behavior and bounded "
         "implementation approach. Split independently reviewable deliverables; avoid overlapping "
