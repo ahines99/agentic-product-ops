@@ -35,10 +35,10 @@ SECRET = re.compile(
 
 
 class SnapshotLimits(Contract):
-    max_files: Annotated[int, Field(gt=0, le=5000)] = 300
-    max_entries: Annotated[int, Field(gt=0, le=20000)] = 3000
+    max_files: Annotated[int, Field(gt=0, le=5000)] = 1000
+    max_entries: Annotated[int, Field(gt=0, le=20000)] = 10000
     max_file_bytes: Annotated[int, Field(gt=0, le=1_000_000)] = 100_000
-    max_total_bytes: Annotated[int, Field(gt=0, le=20_000_000)] = 2_000_000
+    max_total_bytes: Annotated[int, Field(gt=0, le=20_000_000)] = 8_000_000
     max_depth: Annotated[int, Field(gt=0, le=30)] = 12
     max_seconds: Annotated[int, Field(gt=0, le=60)] = 10
 
