@@ -1,7 +1,9 @@
 """Preview a constrained proposal; only an explicit security approver may promote it."""
 
 import json
+import re
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from agentic_product_ops.adapters.identity.contracts import Principal
@@ -12,7 +14,7 @@ from agentic_product_ops.adapters.model.contracts import (
     RuntimeConfiguration,
 )
 from agentic_product_ops.adapters.model.runner import ModelProvider
-from agentic_product_ops.adapters.persistence.store import Conflict, Store
+from agentic_product_ops.adapters.persistence.store import Conflict, Missing, Store
 from agentic_product_ops.domain.contracts import (
     WorkSpecification,
     canonical_digest,
@@ -32,7 +34,12 @@ from agentic_product_ops.services.durable_analysis import (
     recorded_review,
 )
 from agentic_product_ops.services.plan_inputs import repository_label
-from product_ops_handoff.documentation import DocumentationCapability
+from product_ops_handoff.documentation import DocumentationCapability, semantic_digest
+
+LANE_PREFIX = "doc-add-v1-"
+BASE_BRANCH = "main"
+DOCUMENT_PATH = re.compile(r"(?<![\w/.-])docs/[a-z0-9][a-z0-9_-]{0,80}\.md(?![\w/-])")
+FENCED_BLOCK = re.compile(r"^```[^\n`]*\n(.*?)^```[ \t]*$", re.MULTILINE | re.DOTALL)
 
 
 def constrained_policy(
@@ -47,6 +54,115 @@ def constrained_policy(
             }
         )
     )
+
+
+def specification_policy(
+    store: Store, base: ServerPolicy, spec: WorkSpecification, current: ServerPolicy
+) -> ServerPolicy:
+    """The policy a revision was proposed under (ADR-029).
+
+    A promoted documentation candidate names its lane policy, whose capability is stored under
+    that version. Every other revision keeps the profile's current policy, as before.
+    """
+    version = spec.risk.policy_version
+    if version == current.version or not version.startswith(LANE_PREFIX):
+        return current
+    capability = DocumentationCapability.model_validate_json(
+        json.dumps(store.get(base.workspace_id, "documentation_capability", version))
+    )
+    if capability.policy_version != version:
+        raise PolicyError("documentation capability digest mismatch")
+    return constrained_policy(base, capability)
+
+
+def requested_document(source: str) -> tuple[str, str]:
+    """The one docs/ path and one fenced block a documentation request names, verbatim."""
+    paths = set(DOCUMENT_PATH.findall(source))
+    blocks = FENCED_BLOCK.findall(source)
+    if len(paths) != 1 or len(blocks) != 1:
+        raise PolicyError("a documentation change names one docs/ path and one fenced block")
+    return paths.pop(), blocks[0]
+
+
+def branch_head(root: Path, branch: str = BASE_BRANCH) -> str:
+    """Read a local branch head from Git's files; no Git command or repository code runs."""
+    git = root / ".git"
+    if git.is_symlink() or not git.is_dir():
+        raise PolicyError("documentation lane needs a plain local Git repository")
+    reference, value = git / "refs" / "heads" / branch, None
+    if reference.is_file() and not reference.is_symlink():
+        value = reference.read_text(encoding="ascii").strip()
+    elif (git / "packed-refs").is_file():
+        for line in (git / "packed-refs").read_text(encoding="ascii").splitlines():
+            sha, _, name = line.partition(" ")
+            if name == f"refs/heads/{branch}":
+                value = sha
+    if value is None or re.fullmatch(r"[a-f0-9]{40}", value) is None:
+        raise PolicyError("base branch head unavailable")
+    return value
+
+
+def lane_capability(
+    store: Store, workspace: str, spec: WorkSpecification
+) -> DocumentationCapability:
+    """The capability for this exact revision: one the operator bound, else derived from it.
+
+    Derived capabilities take the path and content verbatim from the request and the base
+    from the selected repository's main branch, never from model output.
+    """
+    try:
+        return DocumentationCapability.model_validate_json(
+            json.dumps(
+                store.get(
+                    workspace, "documentation_lane", str(spec.specification_id), spec.revision
+                )
+            )
+        )
+    except Missing:
+        pass
+    context = spec.repository_context
+    if context is None:
+        raise PolicyError("documentation lane requires a selected repository")
+    try:
+        selection = store.get(workspace, "repository_selection", context.repository_id)
+    except Missing:
+        raise PolicyError("documentation lane requires a selected repository") from None
+    if selection.get("kind") != "local":
+        raise PolicyError("documentation lane requires a local repository")
+    path, content = requested_document(spec.source_statements[0].text)
+    capability = DocumentationCapability(
+        semantic_digest=semantic_digest(spec.model_dump(mode="json")),
+        repository_id=context.repository_id,
+        base_sha=branch_head(Path(selection["location"])),
+        path=path,
+        content=content,
+    )
+    capability.validate_specification(spec.model_dump(mode="json"))
+    return capability
+
+
+def bind_lane(
+    store: Store, workspace: str, spec: WorkSpecification, capability: DocumentationCapability
+) -> None:
+    """Record the capability for this revision and under its policy version (immutable)."""
+    capability.validate_specification(spec.model_dump(mode="json"))
+    with store.database.begin() as conn:
+        store.put(
+            conn,
+            workspace,
+            "documentation_lane",
+            str(spec.specification_id),
+            spec.revision,
+            capability.model_dump(mode="json"),
+        )
+        store.put(
+            conn,
+            workspace,
+            "documentation_capability",
+            capability.policy_version,
+            1,
+            capability.model_dump(mode="json"),
+        )
 
 
 def candidate_for(base: WorkSpecification, policy: DocumentationPolicy) -> WorkSpecification:

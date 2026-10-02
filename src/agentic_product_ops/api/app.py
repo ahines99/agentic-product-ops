@@ -18,7 +18,11 @@ from sqlalchemy import Connection, insert, text, update
 from agentic_product_ops.adapters.identity.contracts import Principal as Principal
 from agentic_product_ops.adapters.linear.graphql import UnknownOutcome
 from agentic_product_ops.adapters.linear.intake import LinearSource, repository_name
-from agentic_product_ops.adapters.linear.native_plan import LinearScope, build_native_plan
+from agentic_product_ops.adapters.linear.native_plan import (
+    LinearScope,
+    build_native_plan,
+    ticket_rendering,
+)
 from agentic_product_ops.adapters.linear.offline import build_plan
 from agentic_product_ops.adapters.persistence.store import (
     Conflict,
@@ -45,6 +49,7 @@ from agentic_product_ops.domain.contracts import (
     source_digest,
 )
 from agentic_product_ops.policies.validation import (
+    DocumentationPolicy,
     PolicyError,
     ServerPolicy,
     blocking_findings,
@@ -146,6 +151,10 @@ def create_app(
     reconciliation_handler: Callable[[str, Principal], dict[str, Any]] | None = None,
     state_handler: Callable[[str], dict[str, Any]] | None = None,
     handoff_reader: Callable[[str, str], dict[str, Any]] | None = None,
+    capability_reader: Callable[[str, str], dict[str, Any]] | None = None,
+    policy_for: Callable[[Store, WorkSpecification], ServerPolicy] | None = None,
+    documentation_lane: Callable[[str], dict[str, Any]] | None = None,
+    documentation_handoff: Callable[[str, Principal, int, str, str], dict[str, Any]] | None = None,
     readiness: Callable[[], dict[str, Any]] | None = None,
     risk_handler: Callable[[str, Principal, RiskCommand, str], dict[str, Any]] | None = None,
     linear_source_reader: Callable[[str], LinearSource] | None = None,
@@ -158,6 +167,11 @@ def create_app(
 ) -> FastAPI:
     app = FastAPI(title="Agentic Product Ops", version="0.6.0", docs_url=None, redoc_url=None)
     active_policy = policy or ServerPolicy()
+
+    def spec_policy(db: Store, spec: WorkSpecification) -> ServerPolicy:
+        # A promoted documentation candidate carries its own lane policy (ADR-029).
+        return policy_for(db, spec) if policy_for is not None else active_policy
+
     auth = authenticator or DenyAll()
     roots = dict(repository_roots or {})
     browser = (
@@ -653,9 +667,9 @@ def create_app(
         try:
             return {
                 **analysis_mode(db, actor.workspace_id, spec),
-                "result": load_analysis(db, actor.workspace_id, spec, active_policy).model_dump(
-                    mode="json"
-                ),
+                "result": load_analysis(
+                    db, actor.workspace_id, spec, spec_policy(db, spec)
+                ).model_dump(mode="json"),
             }
         except Missing:
             pass
@@ -680,6 +694,14 @@ def create_app(
         spec = spec_for(db, actor, identifier)
         if authority:
             authority._scope(authority.check(actor), spec)
+        governing = spec_policy(db, spec)
+        ticket_format = "v2" if governing.version == EXECUTION_POLICY_V2 else "v1"
+        execution_details, handoff = governing.version in EXECUTION_POLICIES, False
+        if linear_scope is not None:
+            ticket_format, execution_details, label = ticket_rendering(
+                spec, governing, linear_scope
+            )
+            handoff = label is not None
         return {
             "specification_digest": spec.content_digest,
             "revision": spec.revision,
@@ -695,11 +717,10 @@ def create_app(
                         spec,
                         work,
                         "PREVIEW-NOT-PUBLISHED",
-                        execution_details=active_policy.version in EXECUTION_POLICIES,
-                        ticket_format="v2"
-                        if active_policy.version == EXECUTION_POLICY_V2
-                        else "v1",
+                        execution_details=execution_details,
+                        ticket_format=ticket_format,
                         repository_label=repository_label(db, actor.workspace_id, spec),
+                        handoff=handoff,
                     ),
                 }
                 for work in spec.work_items
@@ -713,19 +734,20 @@ def create_app(
         db: Annotated[Store, Depends(database)],
     ) -> dict[str, Any]:
         spec = spec_for(db, actor, identifier)
-        answers = load_clarifications(db, spec, active_policy)
-        review = passing_review(db, actor.workspace_id, spec, active_policy)
+        governing = spec_policy(db, spec)
+        answers = load_clarifications(db, spec, governing)
+        review = passing_review(db, actor.workspace_id, spec, governing)
         plan = (
             build_native_plan(
                 spec,
-                active_policy,
+                governing,
                 linear_scope,
                 clarifications=answers,
                 review=review,
                 repository_label=repository_label(db, actor.workspace_id, spec),
             )
             if linear_scope
-            else build_plan(spec, active_policy, clarifications=answers, review=review)
+            else build_plan(spec, governing, clarifications=answers, review=review)
         )
         return {"publication": "disabled", "plan": plan.model_dump(mode="json")}
 
@@ -744,23 +766,24 @@ def create_app(
                 raise PolicyError("specification cancelled")
             current_authority(conn, actor)
             spec = spec_for(db, actor, identifier, body, conn)
+            governing = spec_policy(db, spec)
             try:
-                recorded_review(db, actor.workspace_id, spec, active_policy)
+                recorded_review(db, actor.workspace_id, spec, governing)
             except Missing as exc:
                 raise PolicyError("analysis and review have not completed") from exc
-            answers = load_clarifications(db, spec, active_policy)
-            review = passing_review(db, actor.workspace_id, spec, active_policy)
+            answers = load_clarifications(db, spec, governing)
+            review = passing_review(db, actor.workspace_id, spec, governing)
             plan = (
                 build_native_plan(
                     spec,
-                    active_policy,
+                    governing,
                     linear_scope,
                     clarifications=answers,
                     review=review,
                     repository_label=repository_label(db, actor.workspace_id, spec),
                 )
                 if linear_scope
-                else build_plan(spec, active_policy, clarifications=answers, review=review)
+                else build_plan(spec, governing, clarifications=answers, review=review)
             )
             if (
                 linear_scope is not None or body.plan_digest is not None
@@ -774,7 +797,7 @@ def create_app(
                 content_digest=spec.content_digest,
                 actor_id=actor.actor_id,
                 decision="approve" if approve else "reject",
-                policy_version=active_policy.version,
+                policy_version=governing.version,
                 issued_at=now,
                 expires_at=now + timedelta(seconds=body.expires_in_seconds),
                 scope=ApprovalScope(
@@ -792,7 +815,7 @@ def create_app(
                 validate_approval(
                     spec,
                     approval,
-                    active_policy,
+                    governing,
                     authenticated_actor=actor.actor_id,
                     plan_digest=plan.content_digest,
                     operation_keys=tuple(o.operation_key for o in plan.operations),
@@ -808,7 +831,12 @@ def create_app(
                 authority.bind_approval(conn, actor, approval, spec)
             renewal = record_decision(db, conn, actor.workspace_id, str(identifier), approval, now)
             # A renewed revision's workflow already completed; durable records carry authority.
-            if decision_queue_enabled and not renewal:
+            # A promoted documentation candidate has no workflow; its records carry authority.
+            if (
+                decision_queue_enabled
+                and not renewal
+                and not isinstance(governing, DocumentationPolicy)
+            ):
                 conn.execute(
                     insert(outbox).values(
                         workspace=actor.workspace_id,
@@ -1021,6 +1049,34 @@ def create_app(
             return publication_handler(str(identifier), actor, command_key)
         raise HTTPException(503, "live publication is disabled; no provider credentials configured")
 
+    @app.get("/v1/specifications/{identifier}/documentation-lane")
+    def documentation_lane_status(
+        identifier: UUID,
+        actor: Annotated[Principal, Depends(identity)],
+        db: Annotated[Store, Depends(database)],
+    ) -> dict[str, Any]:
+        spec_for(db, actor, identifier)
+        if documentation_lane is None:
+            return {"eligible": False, "promoted": False}
+        return documentation_lane(str(identifier))
+
+    @app.post("/v1/specifications/{identifier}/documentation-lane")
+    def documentation_lane_handoff(
+        identifier: UUID,
+        body: RevisionCommand,
+        actor: Annotated[Principal, Depends(identity)],
+        command_key: Annotated[str, Depends(key)],
+    ) -> dict[str, Any]:
+        # The security approver's decision to use the documentation lane for this exact
+        # revision. It previews and promotes; approval and publication stay separate.
+        if documentation_handoff is None:
+            raise HTTPException(503, "documentation lane is not configured")
+        if source_guard is not None:
+            source_guard(str(identifier))
+        return documentation_handoff(
+            str(identifier), actor, body.revision, body.content_digest, command_key
+        )
+
     @app.post("/v1/specifications/{identifier}/reconcile")
     def reconcile(
         identifier: UUID, actor: Annotated[Principal, Depends(identity)]
@@ -1073,6 +1129,18 @@ def create_app(
                 content={"detail": "handoff no longer valid", "reason": gone.reason},
                 headers={"Reason": gone.reason},
             )
+
+    @app.get("/handoffs/{digest}/documentation-capability")
+    def handoff_capability(
+        digest: str, authorization: Annotated[str | None, Header()] = None
+    ) -> dict[str, Any]:
+        # Same read-only credential. The capability's digest is the signed approval's policy
+        # version, so Delivery OS can check it without trusting this response (ADR-029).
+        if capability_reader is None:
+            raise HTTPException(503, "handoff reading is not configured")
+        if authorization is None or not authorization.startswith("Bearer "):
+            raise HTTPException(401, "authentication required")
+        return capability_reader(authorization[7:], digest)
 
     @app.get("/v1/handoffs/{identifier}")
     def handoff(

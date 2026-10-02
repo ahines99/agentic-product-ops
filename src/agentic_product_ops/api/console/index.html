@@ -18,7 +18,8 @@
     <input id="repository" name="repository" maxlength="128" placeholder="agentic-product-ops" required autocomplete="off">
     <label for="prompt">What would you like to change?</label>
     <textarea id="prompt" name="prompt" rows="7" maxlength="16000" placeholder="Describe the outcome you want, who it is for, and anything that must stay unchanged." required></textarea>
-    <p class="hint">A basic request is enough to start. Only decisions that block the work become questions; minor details are filled with stated defaults.</p>
+    <p class="hint">A basic request is enough to start. Only decisions that block the work become questions; minor details are filled with stated defaults.
+      To have Delivery OS add a documentation page, name its <code>docs/</code> path and put the exact text in one fenced block between lines of three backticks.</p>
     <button id="submit" type="submit" disabled>Prepare proposed tickets</button>
   </form>
   <section id="result" hidden aria-live="polite">
@@ -28,11 +29,18 @@
     <ul id="blockers"></ul>
     <div id="questions"></div>
     <div id="tickets"></div>
+    <div id="lane" class="lane" hidden>
+      <h3>Delivery OS can make this change</h3>
+      <p id="lane-note" class="hint"></p>
+      <pre id="lane-content"></pre>
+      <button id="lane-use">Use the documentation lane</button>
+    </div>
     <details id="exact-plan" hidden><summary>Exact publication plan for approval</summary><pre id="plan"></pre></details>
     <p id="approval-note" class="hint"></p>
     <button id="approve" disabled>Approve this exact ticket set</button>
     <div id="publication" hidden>
       <p id="publication-note" class="hint"></p>
+      <p id="delivery-note" class="notice"></p>
       <button id="publish" hidden>Publish to Linear</button>
       <button id="reconcile" class="quiet" hidden>Check Linear for the uncertain ticket</button>
     </div>

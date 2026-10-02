@@ -279,7 +279,7 @@ def test_delivery_ready_documentation_plan_carries_the_pull_contract_lines(docum
 
 
 def test_operator_binds_the_lane_only_to_the_exact_analysed_request(documentation, tmp_path):
-    from agentic_product_ops.pilot.config import PilotSettings, read_settings
+    from agentic_product_ops.pilot.config import PilotSettings
     from agentic_product_ops.pilot.runtime import PilotRuntime
 
     store, _, policy, _, spec, _, cap, scope = documentation
@@ -296,13 +296,15 @@ def test_operator_binds_the_lane_only_to_the_exact_analysed_request(documentatio
         maximum_spend="10",
     )
     identifier = str(spec.specification_id)
-    with pytest.raises(PolicyError, match="no documentation lane"):
+    with pytest.raises(PolicyError, match="paid review is disabled"):
         runtime.documentation_preview(identifier)
     with pytest.raises(ValueError, match="exact requested work"):
         runtime.documentation_lane(identifier, cap.path, "# Other\n", cap.base_sha)
-    assert not (tmp_path / "pilot.json").exists()
     bound = runtime.documentation_lane(identifier, cap.path, cap.content, cap.base_sha)
     assert bound["policy_version"] == cap.policy_version
-    assert read_settings(tmp_path).documentation_capability == cap
-    runtime.documentation_lane_clear()
-    assert read_settings(tmp_path).documentation_capability is None
+    # Bound per revision in durable records; the profile is untouched and needs no restart.
+    assert not (tmp_path / "pilot.json").exists()
+    recorded = store.get(policy.workspace_id, "documentation_lane", identifier, spec.revision)
+    assert DocumentationCapability.model_validate(recorded) == cap
+    by_version = store.get(policy.workspace_id, "documentation_capability", cap.policy_version)
+    assert by_version == recorded

@@ -14,11 +14,12 @@ from pydantic import Field, SecretStr
 from agentic_product_ops.domain.contracts import Contract
 
 COOKIE = "apo_local_session"
-SAFE_READS = {"review", "plan", "tickets", "state"}
+SAFE_READS = {"review", "plan", "tickets", "state", "documentation-lane"}
 SAFE_WRITES = {"approve", "reject", "clarifications"}
 # Publishing from the browser is allowed only when the profile enables publication. The server
-# still rechecks the exact approval, grant, scope, source and budget at every write.
-PUBLICATION_WRITES = {"publish", "reconcile"}
+# still rechecks the exact approval, grant, scope, source and budget at every write. The
+# documentation-lane decision rides with publication (ADR-029); other risk changes stay out.
+PUBLICATION_WRITES = {"publish", "reconcile", "documentation-lane"}
 
 
 class Exchange(Contract):

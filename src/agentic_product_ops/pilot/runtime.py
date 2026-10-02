@@ -41,7 +41,16 @@ from agentic_product_ops.policies.validation import LowRiskCodePolicy, PolicyErr
 from agentic_product_ops.services.authority import ActorGrant, Authority
 from agentic_product_ops.services.decisions import current_decision
 from agentic_product_ops.services.delivery_progress import delivery_progress
-from agentic_product_ops.services.documentation import constrained_policy, preview, promote
+from agentic_product_ops.services.documentation import (
+    LANE_PREFIX,
+    bind_lane,
+    candidate_for,
+    constrained_policy,
+    lane_capability,
+    preview,
+    promote,
+    specification_policy,
+)
 from agentic_product_ops.services.linear_source import validate_linear_source
 from agentic_product_ops.services.native_publication import NativePublisher
 from agentic_product_ops.services.publication_state import publication_state
@@ -352,7 +361,7 @@ class PilotRuntime:
                 self.authority,
                 source_guard=self.source_guard,
                 allow_revision_republication=self.settings.allow_revision_republication,
-            ).publish(spec, plan, approval, self.policy)
+            ).publish(spec, plan, approval, self.policy_for(spec))
             return self._publication_result(identifier, spec, plan, receipts)
         finally:
             adapter.close()
@@ -390,7 +399,7 @@ class PilotRuntime:
         try:
             publisher = NativePublisher(self.store, adapter, self.authority)
             observed = {
-                spec.revision: publisher.reconcile(spec, plan, self.policy)
+                spec.revision: publisher.reconcile(spec, plan, self.policy_for(spec))
                 for spec, plan in revisions
             }
         finally:
@@ -568,18 +577,25 @@ class PilotRuntime:
         temporary.replace(target)
         self.settings = settings
 
+    def policy_for(self, spec: WorkSpecification) -> ServerPolicy:
+        if not spec.risk.policy_version.startswith(LANE_PREFIX):
+            return self.policy
+        return specification_policy(self.store, self.base_policy, spec, self.policy)
+
+    def _current_spec(self, identifier: str) -> WorkSpecification:
+        return WorkSpecification.model_validate_json(
+            json.dumps(self.store.get(self.settings.workspace, "specification", identifier))
+        )
+
     def documentation_lane(
         self, identifier: str, path: str, content: str, base_sha: str
     ) -> dict[str, Any]:
-        """Bind this profile's documentation lane to one analysed request (ADR-017).
+        """Bind the documentation lane to one analysed revision by hand (ADR-017, ADR-029).
 
-        The capability is trusted policy the operator writes, never model output. It must match
-        the request's exact path, content and repository, and it holds until it is cleared.
-        Restart the service to apply it.
+        For requests that do not use a fenced block. The capability must match the request's
+        exact path, content and repository. No restart is needed.
         """
-        spec = WorkSpecification.model_validate_json(
-            json.dumps(self.store.get(self.settings.workspace, "specification", identifier))
-        )
+        spec = self._current_spec(identifier)
         if spec.repository_context is None:
             raise PolicyError("documentation lane requires a selected repository")
         capability = DocumentationCapability(
@@ -589,38 +605,58 @@ class PilotRuntime:
             path=path,
             content=content,
         )
-        capability.validate_specification(spec.model_dump(mode="json"))
-        self._save_settings(
-            self.settings.model_copy(update={"documentation_capability": capability})
-        )
+        bind_lane(self.store, self.settings.workspace, spec, capability)
         return {
             "specification_id": identifier,
             "revision": spec.revision,
             "policy_version": capability.policy_version,
-            "restart_required": True,
         }
 
     def documentation_lane_clear(self) -> dict[str, Any]:
-        """Return the profile to its ordinary policy; restart the service to apply it."""
+        """Remove a profile-wide capability (the PER-7 mode); restart the service to apply it."""
         self._save_settings(self.settings.model_copy(update={"documentation_capability": None}))
         return {"documentation_lane": None, "restart_required": True}
 
+    def documentation_lane_status(self, identifier: str) -> dict[str, Any]:
+        """Whether this revision can be handed off as one inert documentation addition."""
+        spec = self._current_spec(identifier)
+        if spec.risk.policy_version.startswith(LANE_PREFIX):
+            return {"eligible": False, "promoted": True, "revision": spec.revision}
+        try:
+            capability = lane_capability(self.store, self.settings.workspace, spec)
+        except (PolicyError, ValueError, OSError):
+            return {"eligible": False, "promoted": False, "revision": spec.revision}
+        return {
+            "eligible": self.settings.allow_paid_execution and self.settings.allow_publication,
+            "promoted": False,
+            "revision": spec.revision,
+            "path": capability.path,
+            "content": capability.content,
+            "base_sha": capability.base_sha,
+        }
+
     def documentation_preview(self, identifier: str) -> dict[str, Any]:
         """Paid review of the tier-1 candidate. It approves nothing and changes no revision."""
-        capability = self.settings.documentation_capability
-        if capability is None:
-            raise PolicyError("no documentation lane is bound in this profile")
+        spec = self._current_spec(identifier)
         if not self.settings.allow_paid_execution:
             raise PolicyError("paid review is disabled")
-        document = preview(
-            self.store,
-            self.base_policy,
-            self.configuration,
-            self.provider(identifier),
-            self.settings.linear_scope,
-            identifier,
-            capability,
-        )
+        capability = lane_capability(self.store, self.settings.workspace, spec)
+        bind_lane(self.store, self.settings.workspace, spec, capability)
+        candidate = candidate_for(spec, constrained_policy(self.base_policy, capability))
+        try:
+            document = self.store.get(
+                self.settings.workspace, "documentation_preview", candidate.content_digest
+            )
+        except Missing:
+            document = preview(
+                self.store,
+                self.base_policy,
+                self.configuration,
+                self.provider(identifier),
+                self.settings.linear_scope,
+                identifier,
+                capability,
+            )
         review = document["result"]["review"]
         return {
             "candidate_digest": document["candidate_digest"],
@@ -638,6 +674,42 @@ class PilotRuntime:
         if actor is None:
             raise PolicyError("active operator required")
         return promote(self.store, self.authority, self.base_policy, actor, candidate_digest, key)
+
+    def documentation_handoff(
+        self, identifier: str, actor: Principal, revision: int, digest: str, key: str
+    ) -> dict[str, Any]:
+        """The console's one-click security decision: preview, then promote (ADR-029).
+
+        The click is the security approver's decision for this exact revision. A blocking
+        review finding stops it. The exact plan still needs the ordinary approval afterwards.
+        """
+        if "security_approver" not in actor.roles or not self.settings.allow_publication:
+            raise PolicyError("security approver and publication required")
+        spec = self._current_spec(identifier)
+        if (spec.revision, spec.content_digest) != (revision, digest):
+            raise PolicyError("stale documentation lane request")
+        candidate = self.documentation_preview(identifier)["candidate_digest"]
+        return promote(self.store, self.authority, self.base_policy, actor, candidate, key)
+
+    def documentation_capability_for_digest(self, bearer: str, digest: str) -> dict[str, Any]:
+        """The capability a lane handoff was approved under, for Delivery OS (ADR-029).
+
+        Its authenticity comes from the signed approval: the policy version is its digest.
+        """
+        if not self.handoff_reader_matches(bearer):
+            raise PolicyError("handoff reader credential required")
+        if digest.startswith("sha256:"):
+            digest = digest[len("sha256:") :]
+        if re.fullmatch(r"[a-f0-9]{64}", digest) is None:
+            raise Missing("unknown specification digest")
+        workspace = self.settings.workspace
+        index = self.store.get(workspace, "handoff_index", digest)
+        spec = self._current_spec(index["specification_id"])
+        version = spec.risk.policy_version
+        if spec.content_digest != digest or not version.startswith(LANE_PREFIX):
+            raise Missing("no documentation capability for this handoff")
+        record: dict[str, Any] = self.store.get(workspace, "documentation_capability", version)
+        return record
 
     def renew_grant(self, days: int = 30) -> dict[str, Any]:
         """Issue the next grant revision for the same operator, subject, roles and scope.
@@ -682,7 +754,7 @@ class PilotRuntime:
         artifact = export_signed_handoff(
             self.store,
             self.authority,
-            self.policy,
+            self.policy_for(spec),
             specification_id=str(spec.specification_id),
             approval_id=approval_id,
             issuer="product-ops-local",
@@ -702,7 +774,10 @@ class PilotRuntime:
         if actor is None:
             raise PolicyError("active operator required")
         spec, _, approval = self.records(identifier)
-        if spec.risk.tier not in self.policy.handoff_tiers or approval.decision != "approve":
+        if (
+            spec.risk.tier not in self.policy_for(spec).handoff_tiers
+            or approval.decision != "approve"
+        ):
             raise PolicyError("work is not eligible for delivery")
         try:
             return self.store.get(
@@ -788,6 +863,12 @@ class PilotRuntime:
             state_handler=self.state,
             readiness=self.readiness,
             handoff_reader=self.handoff_for_digest,
+            capability_reader=self.documentation_capability_for_digest,
+            policy_for=lambda store, spec: specification_policy(
+                store, self.base_policy, spec, self.policy
+            ),
+            documentation_lane=self.documentation_lane_status,
+            documentation_handoff=self.documentation_handoff,
             risk_handler=self.risk,
             linear_source_reader=self.read_linear_source,
             repository_names=RepositoryNames(

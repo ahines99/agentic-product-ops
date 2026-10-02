@@ -1,129 +1,67 @@
-# End-to-end test: prompt to reviewed change through the pull contract
+# End-to-end run: prompt to reviewed change
 
-The first run of the [ADR-028](adr/028-pull-handoff-contract-with-delivery-os.md) pull contract
-with both systems live. One request adds one documentation file to `agentic-delivery-engineer`
-through the constrained documentation lane ([ADR-017](adr/017-constrained-documentation-delivery.md)).
-It is the narrowest real path: no code is executed and every merge stays human. Software tickets
-are not handed off until the owner turns on PO-7.
+From a prompt in the Product Ops console to a review branch in `agentic-delivery-engineer`,
+through the [ADR-028](adr/028-pull-handoff-contract-with-delivery-os.md) pull contract and the
+documentation lane ([ADR-017](adr/017-constrained-documentation-delivery.md),
+[ADR-029](adr/029-documentation-lane-per-request-from-the-console.md)). No code is executed and
+every merge stays human. Software requests produce tickets but are not handed off until the
+owner turns on PO-7.
 
-Commands run from this repository against the prompt profile:
-
-```powershell
-$pilot = { python -m uv run product-ops-pilot --directory .local\pilot\prompt @args }
-```
-
-Steps marked **(you)** are human decisions. Nobody else runs them.
-
-## Preconditions
+## One-time setup (done 2026-10-02)
 
 Delivery OS:
 
-1. PRs #15 (DO-1, DO-2, DO-4), #16 (DO-3 pull intake) and #17 (documentation lane) are merged
-   and installed on the service. Its checkout of `main` is clean.
-2. `config.local.json`, for the `agentic-delivery-engineer` repository entry:
-   `automatic_execution: true`, `linear_repository_names: ["agentic-delivery-engineer"]`, and
-   `linear_progress_start` set to the current time.
-3. The same entry maps Product Ops' repository identity:
-   `product_ops_repository_ids: ["repo-a8a12ccb002929f9de78b80e29a3e1bb"]`. Product Ops
-   identifies a local repository by a hash of its path, here
-   `D:\Code\Personal\Portfolio Projects\agentic-delivery-engineer`.
-4. `alex-hines` is a configured Delivery operator with the `reviewer` role on that repository.
-   The lane accepts an approval only from someone who is both a Delivery reviewer and in
-   `documentation_approvers` (step 4 below).
-5. `HANDOFF_READER_TOKEN` is set in the Delivery service's environment from
-   `.local\pilot\prompt\handoff-reader.env` **(you)**.
+- `main` installed on the service, with `automatic_execution`, `linear_repository_names:
+  ["agentic-delivery-engineer"]`, `linear_progress_start` and `product_ops_repository_ids:
+  ["repo-a8a12ccb002929f9de78b80e29a3e1bb"]` on the `agentic-delivery-engineer` entry.
+- `alex-hines` is a Delivery operator with the `reviewer` role and in `documentation_approvers`.
+- `HANDOFF_READER_TOKEN` in the service's `.local/linear.env`.
+- Per-request capabilities read from Product Ops (ADR-029).
 
 Product Ops:
 
-6. The pilot is running (`& $pilot start`) and `http://127.0.0.1:18013/health` answers.
-7. The spending cap has room: `& $pilot status`. A request needs about $1.50 (analysis plus the
-   documentation preview), within the $2 per-request allowance.
+- The prompt profile serves `http://127.0.0.1:18013` with publication and paid analysis on, and
+  `delivery-ready` bound.
 
-## Steps
+## The run
 
-1. **Write the file content.** For example `e2e-content.md`:
+1. Open the console: `.local\pilot\prompt\Open Product Ops.cmd`.
+2. Repository `agentic-delivery-engineer`. Write the request with the path and one fenced block:
 
-   ```markdown
+   ````text
+   Add a documentation page docs/product-ops-pull-handoff.md with exactly this content:
+
+   ```
    # Product Ops pull handoff
 
    This file confirms that an approved Product Ops request reached Agentic Delivery OS through the pull contract.
    ```
+   ````
 
-   The lane accepts plain Markdown only: no `<`, `>`, backticks, square brackets or links, and
-   it must end with a newline.
-
-2. **Submit the request** in the console, or:
-
-   ```powershell
-   & $pilot prompt --repo agentic-delivery-engineer --input e2e-request.txt
-   ```
-
-   The request text must contain the path (`docs/product-ops-pull-handoff.md`) and the exact
-   content from step 1. Answer any blocking questions. Expect one ticket at tier 2, held from
-   handoff by the general policy.
-
-3. **Bind the lane to this request.** Pin the commit the file will be added to:
-
-   ```powershell
-   $base = git -C ..\agentic-delivery-engineer rev-parse main
-   & $pilot doc-lane --id SPEC-ID --path docs/product-ops-pull-handoff.md --content-file e2e-content.md --base-sha $base
-   ```
-
-   The command refuses a request whose path, content, repository or work items differ. Restart
-   the pilot (`stop`, then `start`) so the profile uses the lane's policy.
-
-4. **Give Delivery OS the same capability.** Copy the `documentation_capability` object from
-   `.local\pilot\prompt\pilot.json` into Delivery's `product_ops` block, add the printed
-   `policy_version` to its `policy_versions`, and set `documentation_approvers: ["alex-hines"]`.
-   Restart the Delivery service. Do not merge anything into `agentic-delivery-engineer` from here
-   until the test ends; the lane refuses a moved base.
-
-5. **Preview** (one paid review call; approves nothing):
-
-   ```powershell
-   & $pilot doc-preview --id SPEC-ID
-   ```
-
-   Expect no blocking findings. Note `candidate_digest`.
-
-6. **Promote (you).** The security decision that this exact candidate may use the lane:
-
-   ```powershell
-   & $pilot doc-promote --candidate CANDIDATE-DIGEST
-   ```
-
-7. **Approve the exact plan (you)** in the console. The ticket preview must start with
-   `Repository: agentic-delivery-engineer` and `Handoff: sha256:<digest>`, and carry
+   The content must be plain Markdown: no `<`, `>`, backticks, square brackets or links.
+3. Wait for the proposal (about a minute; the page refreshes itself). Answer any required
+   question.
+4. **Use the documentation lane.** One paid review runs, then the request moves to the lane.
+5. **Approve** the exact tickets. They start with `Repository:` and `Handoff:` and carry
    `delivery-ready`.
+6. **Publish.** If the result is uncertain, use Check Linear, never retry.
+7. The page shows Delivery's progress. Within one Delivery poll the ticket gets "in progress",
+   then "in review", and a local review branch appears in `agentic-delivery-engineer`.
+8. **Merge** the review branch.
 
-8. **Publish (you)** in the console. If the result is uncertain, use Check Linear, never retry.
-
-9. **Watch the pickup.** Within one Delivery poll, the ticket gets an "in progress" comment.
-   Delivery fetches `GET /handoffs/<digest>`, verifies it, and the lane creates a local review
-   branch, followed by an "in review" comment. `& $pilot state --id SPEC-ID` shows the progress.
-
-10. **Review and merge (you)** the review branch in `agentic-delivery-engineer`.
+Nothing may merge into `agentic-delivery-engineer`'s `main` between steps 4 and 7: the lane is
+pinned to the commit it read, and Delivery refuses a moved base.
 
 ## Pass criteria
 
 - One Linear ticket, created once, with the two contract lines and the label.
-- Delivery OS claimed it only after verifying the envelope; one run, one review branch.
+- Delivery OS claimed it only after verifying the envelope and the capability; one run, one
+  review branch.
 - The branch adds exactly the approved file at the pinned base, and nothing else.
-- Progress comments appear on the ticket, and Product Ops `state` reports them.
-- No step needed a credential in a command line or output.
+- Progress comments appear on the ticket and in the console.
 
-Record the result in [validation](validation.md) with the IDs, digests and spend, as for
-[PER-7](per7-validation-record.md), including anything that failed.
-
-## Afterwards
-
-```powershell
-& $pilot doc-lane-clear
-```
-
-Then restart the pilot. Keep the lane bound until Delivery OS has finished: Product Ops serves
-the handoff under the lane's policy, so clearing it early makes `GET /handoffs/<digest>` fail.
-Remove the capability from Delivery's config too.
+Record the result in [validation](validation.md) with the IDs, digests and spend, including
+anything that failed.
 
 A negative check worth running once: edit the published ticket's text in Linear before Delivery
 claims it. Delivery should hold it as changed after approval, without claiming it.
